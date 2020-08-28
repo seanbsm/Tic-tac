@@ -3,8 +3,8 @@
 
 using namespace std;
 
-const double hbarc = 197.326; // MeV fm
-const double Mn = 938.918; // in MeV, averaged mass (Mn + Mp)/2
+//const double hbarc = 197.326; // MeV fm
+//const double Mn = 938.918; // in MeV, averaged mass (Mn + Mp)/2
 
 void read_psi (char* filename, double** psi_read, int *Np, double **p, double **wp, int *Nq, double **q, double **wq, int *Nalpha, int **get_L, int **get_S, int **get_J, int **get_T, int **get_l, int **get_two_j){
 
@@ -87,38 +87,22 @@ void read_psi (char* filename, double** psi_read, int *Np, double **p, double **
     fclose(pFile);
 }
 
-int get_all_states(bool symm){
+void get_all_states(bool symm, double** state_3N_array, int& Np, double** p, double** wp, int& Nq, double** q, double** wq, int& Nalpha, int** L_2N, int** S_2N, int** J_2N, int** T_2N, int** l_3N, int** two_j_3N){
 
-    cout << "read wave functions...\n";
-
-    char psi_3H_filename[100];
-    char psiasymm_3H_filename[100];
-    double* psi_3H;
-    double* pvec_psi;
-    double* wpvec_psi;
-    double* qvec_psi;
-    double* wqvec_psi;
-
-    int* L12_psi;    // pair angular momentum
-    int* S12_psi;    // pair total spin
-    int* J12_psi;    // pair total angular momentum
-    int* T12_psi;    // pair total isospin
-    int* l3_psi;     // three-nucleon angular momentum (?)
-    int* two_j3_psi; // three-nucleon total angular momentum x2 (?)
-
-    int Np_psi, Nq_psi, Nalpha_psi;
-    
+    /* Read wave functions to argument-arrays */
     if (symm==true){
+        char psi_3H_filename[100];
         sprintf(psi_3H_filename, "%s", "Kai_code_and_data_package/H3_psi_N3LO_EM500_Sean.dat");
-        read_psi(psi_3H_filename, &psi_3H, &Np_psi, &pvec_psi, &wpvec_psi, &Nq_psi, &qvec_psi, &wqvec_psi, &Nalpha_psi, &L12_psi, &S12_psi, &J12_psi, &T12_psi, &l3_psi, &two_j3_psi);
+        read_psi(psi_3H_filename, state_3N_array, &Np, p, wp, &Nq, q, wq, &Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N);
     }
     else{
+        char psiasymm_3H_filename[100];
         sprintf(psiasymm_3H_filename, "%s", "Kai_code_and_data_package/H3_psiasymm_N3LO_EM500_Sean.dat");
-        read_psi(psiasymm_3H_filename, &psi_3H, &Np_psi, &pvec_psi, &wpvec_psi, &Nq_psi, &qvec_psi, &wqvec_psi, &Nalpha_psi, &L12_psi, &S12_psi, &J12_psi, &T12_psi, &l3_psi, &two_j3_psi);
+        read_psi(psiasymm_3H_filename, state_3N_array, &Np, p, wp, &Nq, q, wq, &Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N);
     }
     
-    double inner_product = 0;
-
+    /* Inner-product test (need to update symbols) */
+    /*double inner_product = 0;
     for (int idx_p=0; idx_p<Np_psi; idx_p++){
         for (int idx_q=0; idx_q<Nq_psi; idx_q++){
             for (int idx_alpha=0; idx_alpha<Nalpha_psi; idx_alpha++){
@@ -129,7 +113,5 @@ int get_all_states(bool symm){
                                  * psi_3H[idx_p*Nq_psi*Nalpha_psi + idx_q * Nalpha_psi + idx_alpha];
             }
         }
-    }
-
-    return 0;
+    }*/
 }

@@ -29,7 +29,8 @@ int main(int argc, char* argv[]){
 	double* wq_array = NULL;
 
 	/* Momentum-representation of 3N state at quadrature nodes in p_array and q_array */
-	double* state_3N_array = NULL;
+	double* state_3N_symm_array = NULL;
+	double* state_3N_asym_array = NULL;
 
 	/* Quantum numbers of partial-wave expansion in state_3N_array */
     int* L_2N     = NULL;     // pair angular momentum
@@ -41,10 +42,10 @@ int main(int argc, char* argv[]){
 
 	int Np, Nq, Nalpha;
 
-	get_all_states(true, &state_3N_array, Np, &p_array, &wp_array, Nq, &q_array, &wq_array, Nalpha, &L_2N, &S_2N, &J_2N, &T_2N, &l_3N, &two_j_3N);
+	get_all_states(&state_3N_symm_array, &state_3N_asym_array, Np, &p_array, &wp_array, Nq, &q_array, &wq_array, Nalpha, &L_2N, &S_2N, &J_2N, &T_2N, &l_3N, &two_j_3N);
 
 	/* Inner-product test */
-    double inner_product = 0;
+    /*double inner_product = 0;
     for (int idx_p=0; idx_p<Np; idx_p++){
         for (int idx_q=0; idx_q<Nq; idx_q++){
             for (int idx_alpha=0; idx_alpha<Nalpha; idx_alpha++){
@@ -56,14 +57,12 @@ int main(int argc, char* argv[]){
             }
         }
     }
-
-	cout << inner_product << endl;
-
-	/* This function will construct/read p and q momenta */
-	//get_p_and_q_momenta(p_array, q_array, n);
+	cout << inner_product << endl;*/
 
 	/* This function will calculate the 3N c.m. kinetic energy T */
-	//calculate_3N_kinetic_energy(p_array, q_array, T_array, n);
+	double kinetic_energy = calculate_3N_kinetic_energy(state_3N_symm_array, state_3N_asym_array, Np, p_array, wp_array, Nq, q_array, wq_array, Nalpha);
+
+	cout << kinetic_energy << endl;
 
 	/* End main body of code here */
 

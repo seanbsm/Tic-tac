@@ -131,7 +131,5 @@ int get_all_states(bool symm){
         }
     }
 
-    cout << inner_product << endl;
-
     return 0;
 }

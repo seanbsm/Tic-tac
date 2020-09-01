@@ -61,8 +61,9 @@ int main(int argc, char* argv[]){
 
 	/* This function will calculate the 3N c.m. kinetic energy T */
 	double kinetic_energy = calculate_3N_kinetic_energy(state_3N_symm_array, state_3N_asym_array, Np, p_array, wp_array, Nq, q_array, wq_array, Nalpha);
+	double potential_energy = calculate_3N_potential_energy(state_3N_symm_array, state_3N_asym_array, Np, p_array, wp_array, Nq, q_array, wq_array, Nalpha);
 
-	cout << kinetic_energy << endl;
+	cout << kinetic_energy + potential_energy << endl;
 
 	/* End main body of code here */
 

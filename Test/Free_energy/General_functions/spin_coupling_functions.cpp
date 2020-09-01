@@ -83,7 +83,7 @@ double SixJSymbol(double J1, double J2, double J3, double J4, double J5, double 
                             double a3 = ThreeJSymbol( J4, m4, J2, m2, J6, -m6); // J6 = j23
                             double a4 = ThreeJSymbol( J4, -m4, J5, m5, J3, m3); // J5 = j3 + j12
 
-                            double a = a1 * a2 * a3 * a4;
+                            //double a = a1 * a2 * a3 * a4;
                             //if( a != 0 ) printf("%4.1f %4.1f %4.1f %4.1f %4.1f %4.1f | %f \n", m1, m2, m3, m4, m5, m6, a);
 
                             sixJ += pow(-1, f) * a1 * a2 * a3 * a4;

@@ -1,20 +1,13 @@
 
 #include "kinetics.h"
 
-double calculate_3N_kinetic_energy(double* state_3N_symm_array,
-                                   double* state_3N_asym_array,
+double calculate_3N_kinetic_energy(double* state_3N_bra_array,
+                                   double* state_3N_ket_array,
                                    int &Np, double* p_array, double* wp_array,
                                    int &Nq, double* q_array, double* wq_array,
                                    int& Nalpha){
-    
-    double m1 = 1;
-    double m2 = 1;
-    double m3 = 1;
-    
-    double mu1 = 1/m1 + 1/m2;
-    double mu2 = 1/(m1+m2) + 1/m3;
 
-    double p, q, wp, wq, psi_symm, psi_asym, T;
+    double p, q, wp, wq, psi_bra, psi_ket, T;
 
     /* Kinetic energy test */
     double kinetic_energy_unormalised = 0;
@@ -31,13 +24,23 @@ double calculate_3N_kinetic_energy(double* state_3N_symm_array,
 
             for (int idx_alpha=0; idx_alpha<Nalpha; idx_alpha++){
                 //psi_symm = state_3N_symm_array[idx_p*Nq*Nalpha + idx_q * Nalpha + idx_alpha];
-                psi_asym = state_3N_asym_array[idx_p*Nq*Nalpha + idx_q * Nalpha + idx_alpha];
+                psi_bra = state_3N_bra_array[idx_p*Nq*Nalpha + idx_q * Nalpha + idx_alpha];
+                psi_ket = state_3N_ket_array[idx_p*Nq*Nalpha + idx_q * Nalpha + idx_alpha];
                 
-                kinetic_energy_unormalised +=  p*p*wp * q*q*wq  * T * psi_asym*psi_asym;
-                inner_product += p*p*wp * q*q*wq * psi_asym*psi_asym;
+                kinetic_energy_unormalised +=  p*p*wp * q*q*wq  * T * psi_bra*psi_ket;
+                inner_product += p*p*wp * q*q*wq * psi_bra*psi_ket;
             }
         }
     }
 	
     return hbarc*hbarc*kinetic_energy_unormalised/inner_product;
+}
+
+double calculate_3N_potential_energy(double* state_3N_bra_array,
+                                     double* state_3N_ket_array,
+                                     int &Np, double* p_array, double* wp_array,
+                                     int &Nq, double* q_array, double* wq_array,
+                                     int& Nalpha){
+	
+    return 0;
 }

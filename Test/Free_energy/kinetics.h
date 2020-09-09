@@ -13,6 +13,9 @@ double calculate_3N_kinetic_energy(double* state_3N_bra_array,
                                    int &Nq, double* q_array, double* wq_array,
                                    int& Nalpha);
 
+double extract_potential_element_from_array(int& L, int& Lp, int& J, int& S,
+                                            double* V_array);
+
 double calculate_3N_potential_energy(double* state_3N_bra_array,
                                      double* state_3N_ket_array,
                                      int &Np, double* p_array, double* wp_array,

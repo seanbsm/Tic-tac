@@ -36,6 +36,44 @@ double calculate_3N_kinetic_energy(double* state_3N_bra_array,
     return hbarc*hbarc*kinetic_energy_unormalised/inner_product;
 }
 
+double extract_potential_element_from_array(int& L, int& Lp, int& J, int& S, double* V_array){
+
+    if (J<abs(S-L) or J>S+L){exit(1);}
+    if (J<abs(S-Lp) or J>S+Lp){exit(1);}
+
+    double potential_element = NAN;
+
+    bool coupled = ( ((L!=Lp) or (L==Lp and L!=J)) );
+
+    if (coupled){
+        if (L==Lp and L<J){         // --
+            potential_element = V_array[2];
+        }
+        else if (L==Lp and L>J){    // ++
+            potential_element = V_array[5];
+        }
+        else if (L<Lp){             // +-
+            potential_element = (-1)*V_array[3];
+        }
+        else{                       // -+
+            potential_element = (-1)*V_array[4];
+        }
+    }
+    else{
+        if (J==0 and L!=J){         // 3P0 (++)
+            potential_element = V_array[5];
+        }
+        else if (S==0){             // S=0
+            potential_element = V_array[0];
+        }
+        else{                       // S=1
+            potential_element = V_array[1];
+        }
+    }
+
+    return potential_element;
+}
+
 double calculate_3N_potential_energy(double* state_3N_bra_array,
                                      double* state_3N_ket_array,
                                      int &Np, double* p_array, double* wp_array,
@@ -43,15 +81,13 @@ double calculate_3N_potential_energy(double* state_3N_bra_array,
                                      int& Nalpha, int* L_2N, int* S_2N, int* J_2N, int* T_2N, int* l_3N, int* two_j_3N,
                                      potential_model* pot_ptr_np,potential_model* pot_ptr_nn){
     
-    double p, pp, q, wp, wpp, wq, psi_bra, psi_ket, pot_term, CG_coeff;
-    double V_array [6];
+    double p, pp, q, wp, wpp, wq, psi_bra, psi_ket, pot_term, pi, po;
+    double V_nn_array [6];
+    double V_np_array [6];
 
-    int L, S, J, T;
-    int Lp, Sp, Jp, Tp;
+    int L, S, J, T, l3, tj3;
+    int Lp, Sp, Jp, Tp, l3p, tj3p;
     bool coupled;
-
-    /* Triton ground state isospin */
-    double T3 = 1./2, T3z = -1./2;
 
     /* Kinetic energy test */
     double potential_energy_unormalised = 0;
@@ -62,6 +98,8 @@ double calculate_3N_potential_energy(double* state_3N_bra_array,
         S = S_2N[idx_alpha];
         J = J_2N[idx_alpha];
         T = T_2N[idx_alpha];
+        l3 = l_3N[idx_alpha];
+        tj3 = two_j_3N[idx_alpha];
 
         std::cout << idx_alpha << " / " << Nalpha << std::endl;
 
@@ -70,76 +108,37 @@ double calculate_3N_potential_energy(double* state_3N_bra_array,
             Sp = S_2N[idx_alpha_p];
             Jp = J_2N[idx_alpha_p];
             Tp = T_2N[idx_alpha_p];
+            l3p = l_3N[idx_alpha_p];
+            tj3p = two_j_3N[idx_alpha_p];
 
             /* Make sure states can couple via interaction */
-            if (S==Sp and J==Jp and T==Tp and abs(L-Lp)<3){
-                coupled = ( ((L!=Lp) or (L==Lp and L!=J)) and J!=0);
+            if (S==Sp and J==Jp and T==Tp and (abs(L-Lp)==2 or abs(L-Lp)==0) and l3==l3p and tj3==tj3p){
+                
+                coupled = ( ((L!=Lp) or (L==Lp and L!=J)));
 
                 for (int idx_p=0; idx_p<Np; idx_p++){
                     p  = p_array[idx_p];
                     wp = wp_array[idx_p];
+
+                    pi = p*hbarc;
                     
                     for (int idx_pp=0; idx_pp<Np; idx_pp++){
                         pp  = p_array[idx_pp];
                         wpp = wp_array[idx_pp];
 
-                        pot_term = 0;
-                        /* Expand into isospin m-scheme from isospin j-scheme */
-                        for (int T2z=-T; T2z<=T; T2z++){
+                        po = pp*hbarc;
+                        
+                        if (T==1){
+                            pot_ptr_nn->V(pi, po, coupled, S, J, T, V_nn_array);
+                            pot_ptr_np->V(pi, po, coupled, S, J, T, V_np_array);
 
-                            /* Call correct potential class depending on nn-, np-, pp-interaction */
-                            /* CGcoeff(double J, double m, double J1, double m1, double J2, double m2); */
-                            if (T2z==-1){       // nn-pair, lone p-particle
-                                pot_ptr_nn->V(p, pp, coupled, S, J, T, V_array);
-                                CG_coeff = CGcoeff(T3, T3z, T, T2z, 1./2, +1./2);
-                            }
-                            else if (T2z==0){   // np-pair, lone n-particle
-                                pot_ptr_np->V(p, pp, coupled, S, J, T, V_array);
+                            pot_term = (1./3)*extract_potential_element_from_array(L, Lp, J, S, V_np_array)
+                                     + (2./3)*extract_potential_element_from_array(L, Lp, J, S, V_nn_array);
+                        }
+                        else{
+                            pot_ptr_np->V(pi, po, coupled, S, J, T, V_np_array);
 
-                               // if (S==0 and J==0 and L==0 and idx_pp==0){
-                               //     std::cout << p << " " << V_array[0] << std::endl;
-                               // }
-
-                                CG_coeff = CGcoeff(T3, T3z, T, T2z, 1./2, -1./2);
-                            }
-                            else{ /* We ignore pp-interactions for now (i.e. only simulate systems with a single proton) */
-                                continue;
-                            }
-                            // ss 00 mm pm mp pp
-                            /* Figure out which coupling it is */
-                            
-                            if (coupled){
-                                if (L==Lp and L<J){
-                                    pot_term += CG_coeff*CG_coeff*V_array[2];
-                                    //std::cout << "2: " << V_array[2] << std::endl;
-                                }
-                                else if (L==Lp and L>J){
-                                    pot_term += CG_coeff*CG_coeff*V_array[5];
-                                    //std::cout << "5: " << V_array[5] << std::endl;
-                                }
-                                else if (L<Lp){
-                                    pot_term += CG_coeff*CG_coeff*V_array[4];
-                                    //std::cout << "4: " << V_array[4] << std::endl;
-                                }
-                                else{
-                                    pot_term += CG_coeff*CG_coeff*V_array[3];
-                                    //std::cout << "3: " << V_array[3] << std::endl;
-                                }
-                            }
-                            else{
-                                if (J==0 and L!=J){
-                                    pot_term += CG_coeff*CG_coeff*V_array[5];
-                                    //std::cout << "5: " << V_array[5] << std::endl;
-                                }
-                                else if (S==0){
-                                    pot_term += CG_coeff*CG_coeff*V_array[0];
-                                    //std::cout << "0: " << V_array[0] << std::endl;
-                                }
-                                else{
-                                    pot_term += CG_coeff*CG_coeff*V_array[1];
-                                    //std::cout << "1: " << V_array[1] << std::endl;
-                                }
-                            }
+                            pot_term = extract_potential_element_from_array(L, Lp, J, S, V_np_array);
                         }
 
                         for (int idx_q=0; idx_q<Nq; idx_q++){
@@ -149,13 +148,14 @@ double calculate_3N_potential_energy(double* state_3N_bra_array,
                             psi_ket = state_3N_ket_array[idx_p*Nq*Nalpha + idx_q * Nalpha + idx_alpha];
                             psi_bra = state_3N_bra_array[idx_pp*Nq*Nalpha + idx_q * Nalpha + idx_alpha_p];
 
-                            potential_energy_unormalised +=  p*p*wp * pp*pp*wpp * q*q*wq * pot_term * psi_bra*psi_ket;
+                            potential_energy_unormalised += p*p*wp * pp*pp*wpp * q*q*wq * pot_term * psi_bra*psi_ket;
                         }
                     }
                 }
             }
         }
     }
+
     
     for (int idx_p=0; idx_p<Np; idx_p++){
         p  = p_array[idx_p];
@@ -176,5 +176,7 @@ double calculate_3N_potential_energy(double* state_3N_bra_array,
 
     std::cout << inner_product << std::endl;
 
-    return hbarc*hbarc*M_PI*MN*0.5*potential_energy_unormalised/ (inner_product);
+    const double asymm_factor = 3;
+
+    return hbarc*hbarc*hbarc*asymm_factor*potential_energy_unormalised / (inner_product);
 }

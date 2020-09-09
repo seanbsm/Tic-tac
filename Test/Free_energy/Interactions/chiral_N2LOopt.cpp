@@ -107,10 +107,10 @@ void chiral_N2LOopt::V(double &qi, double &qo, bool coupled, int &S, int &J, int
 	__idaho_chiral_potential_MOD_chp(&qi, &qo, &coupledState, &S, &J, &T, &Tz, tempVarray);
 
 	/* Change order of array to fit rest of code */
-	Varray[0] = tempVarray[0];
-	Varray[1] = tempVarray[1];
-	Varray[2] = tempVarray[3];
-	Varray[3] = tempVarray[5];
-	Varray[4] = tempVarray[4];
-	Varray[5] = tempVarray[2];
+	Varray[0] = tempVarray[0];	//S=0
+	Varray[1] = tempVarray[1];	//S=1
+	Varray[2] = tempVarray[3];	// Li==Lo<J
+	Varray[3] = tempVarray[5];	// Li<Lo
+	Varray[4] = tempVarray[4];	// Li>Lo
+	Varray[5] = tempVarray[2];	// Li==Lo>J
 }

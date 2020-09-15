@@ -90,7 +90,6 @@ void read_psi (char* filename, double** psi_read, int *Np, double **p, double **
 void get_all_states(double** state_3N_symm_array, double** state_3N_asym_array, int& Np, double** p, double** wp, int& Nq, double** q, double** wq, int& Nalpha, int** L_2N, int** S_2N, int** J_2N, int** T_2N, int** l_3N, int** two_j_3N){
 
     /* Read wave functions to argument-arrays */
-    
     char psi_3H_filename[100];
     sprintf(psi_3H_filename, "%s", "Kai_code_and_data_package/H3_psi_N3LO_EM500_Sean.dat");
     read_psi(psi_3H_filename, state_3N_symm_array, &Np, p, wp, &Nq, q, wq, &Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N);
@@ -98,19 +97,5 @@ void get_all_states(double** state_3N_symm_array, double** state_3N_asym_array, 
     char psiasymm_3H_filename[100];
     sprintf(psiasymm_3H_filename, "%s", "Kai_code_and_data_package/H3_psiasymm_N3LO_EM500_Sean.dat");
     read_psi(psiasymm_3H_filename, state_3N_asym_array, &Np, p, wp, &Nq, q, wq, &Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N);
-    
-    
-    /* Inner-product test (need to update symbols) */
-    /*double inner_product = 0;
-    for (int idx_p=0; idx_p<Np_psi; idx_p++){
-        for (int idx_q=0; idx_q<Nq_psi; idx_q++){
-            for (int idx_alpha=0; idx_alpha<Nalpha_psi; idx_alpha++){
 
-                inner_product +=   wpvec_psi[idx_p] * pvec_psi[idx_p] * pvec_psi[idx_p]
-                                 * wqvec_psi[idx_q] * qvec_psi[idx_q] * qvec_psi[idx_q]
-                                 * psi_3H[idx_p*Nq_psi*Nalpha_psi + idx_q * Nalpha_psi + idx_alpha]
-                                 * psi_3H[idx_p*Nq_psi*Nalpha_psi + idx_q * Nalpha_psi + idx_alpha];
-            }
-        }
-    }*/
 }

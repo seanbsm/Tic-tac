@@ -39,33 +39,18 @@ int main(int argc, char* argv[]){
     int* J_2N     = NULL;     // pair total angular momentum
     int* T_2N     = NULL;     // pair total isospin
     int* l_3N     = NULL;     // three-nucleon angular momentum (?)
-    int* two_j_3N = NULL; // three-nucleon total angular momentum x2 (?)
+    int* two_j_3N = NULL; 	  // three-nucleon total angular momentum x2 (?)
 
 	int Np, Nq, Nalpha;
 
 	get_all_states(&state_3N_symm_array, &state_3N_asym_array, Np, &p_array, &wp_array, Nq, &q_array, &wq_array, Nalpha, &L_2N, &S_2N, &J_2N, &T_2N, &l_3N, &two_j_3N);
 
-	/* Inner-product test */
-    /*double inner_product = 0;
-    for (int idx_p=0; idx_p<Np; idx_p++){
-        for (int idx_q=0; idx_q<Nq; idx_q++){
-            for (int idx_alpha=0; idx_alpha<Nalpha; idx_alpha++){
-
-                inner_product +=   p_array[idx_p] * p_array[idx_p] * wp_array[idx_p]
-                                 * q_array[idx_q] * q_array[idx_q] * wq_array[idx_q]
-                                 * state_3N_array[idx_p*Nq*Nalpha + idx_q * Nalpha + idx_alpha]
-                                 * state_3N_array[idx_p*Nq*Nalpha + idx_q * Nalpha + idx_alpha];
-            }
-        }
-    }
-	cout << inner_product << endl;*/
-
 	potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
 	potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
-
+	
 	/* This function will calculate the 3N c.m. kinetic energy T */
-	double kinetic_energy = calculate_3N_kinetic_energy(state_3N_asym_array, state_3N_asym_array, Np, p_array, wp_array, Nq, q_array, wq_array, Nalpha);
-	double potential_energy = calculate_3N_potential_energy(state_3N_asym_array, state_3N_asym_array, Np, p_array, wp_array, Nq, q_array, wq_array, Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N, pot_ptr_np, pot_ptr_nn);
+	double kinetic_energy = calculate_3N_kinetic_energy(state_3N_asym_array, state_3N_symm_array, Np, p_array, wp_array, Nq, q_array, wq_array, Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N);
+	double potential_energy = calculate_3N_potential_energy(state_3N_asym_array, state_3N_symm_array, Np, p_array, wp_array, Nq, q_array, wq_array, Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N, pot_ptr_np, pot_ptr_nn);
 
 	cout << "T: " << kinetic_energy << endl;
 	cout << "V: " << potential_energy << endl;

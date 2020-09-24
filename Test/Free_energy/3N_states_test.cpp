@@ -9,6 +9,7 @@
 #include <ctime>
 
 #include "kinetics.h"
+#include "permutation_operators.h"
 #include "Interactions/potential_model.h"
 #include "Kai_code_and_data_package/read_psi_Sean.h"
 
@@ -41,9 +42,14 @@ int main(int argc, char* argv[]){
     int* l_3N     = NULL;     // three-nucleon angular momentum (?)
     int* two_j_3N = NULL; 	  // three-nucleon total angular momentum x2 (?)
 
+	double* A123  = NULL;
+
 	int Np, Nq, Nalpha;
 
 	get_all_states(&state_3N_symm_array, &state_3N_asym_array, Np, &p_array, &wp_array, Nq, &q_array, &wq_array, Nalpha, &L_2N, &S_2N, &J_2N, &T_2N, &l_3N, &two_j_3N);
+
+
+	calculate_antisymmetrization_operator(state_3N_asym_array, state_3N_symm_array, Np, p_array, wp_array, Nq, q_array, wq_array, Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N, A123);
 
 	potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
 	potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");

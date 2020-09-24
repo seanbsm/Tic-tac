@@ -19,11 +19,11 @@ CPPFLAGS := -Wall -std=c++17 -O2 -ggdb
 # Stop compilation on warning-encounter (good for neat code but not necessary)
 #CPPFLAGS += -Werror
 # Use MKL-types
-#CPPFLAGS += -DMKL_ILP64 -m64 -DMKL_Complex16="std::complex<double>" -I$(MKLROOT)/include
+CPPFLAGS += -DMKL_ILP64 -m64 -DMKL_Complex16="std::complex<double>" -I$(MKLROOT)/include
 
-LDLIBS :=  -Wl,--no-as-needed -lgomp -lpthread -lm -ldl -lgfortran
+LDLIBS :=  -Wl,--no-as-needed -lgomp -lgsl -lgslcblas -lpthread -lm -ldl -lgfortran -lhdf5_hl_cpp -lhdf5_cpp -lhdf5_hl -lhdf5
 # Use MKL-libraries
-#LDLIBS += -L$(MKLROOT)/lib/intel64 -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core
+LDLIBS += -L$(MKLROOT)/lib/intel64 -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core
 
 # Symbol explentations
 # @ = recipe name (so $(TARGET) in this case)

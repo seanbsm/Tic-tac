@@ -24,11 +24,11 @@ void antisymmetrize_state(double* state_3N_symm_array,
                     for (int qp_idx=0; qp_idx<Nq; qp_idx++){
                         for (int pp_idx=0; pp_idx<Np; pp_idx++){
                             
-                            //A123_idx = (int) (alpha_idx*Nq*Np + q_idx*Np + p_idx)*D123_dim +
-                            //                   alphap_idx*Nq*Np + qp_idx*Np + pp_idx;
+                            A123_idx = (int) (alpha_idx*Nq*Np + q_idx*Np + p_idx)*D123_dim +
+                                               alphap_idx*Nq*Np + qp_idx*Np + pp_idx;
 
-                            A123_idx = (int) (alphap_idx*Nq*Np + qp_idx*Np + pp_idx)*D123_dim +
-                                              alpha_idx*Nq*Np + q_idx*Np + p_idx;
+                            //A123_idx = (int) (alphap_idx*Nq*Np + qp_idx*Np + pp_idx)*D123_dim +
+                            //                  alpha_idx*Nq*Np + q_idx*Np + p_idx;
 
                             state_symm = state_3N_symm_array[pp_idx*Nq*Nalpha + qp_idx * Nalpha + alphap_idx];
 

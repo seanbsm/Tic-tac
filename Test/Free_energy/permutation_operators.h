@@ -2,9 +2,11 @@
 #define PERMUTATION_OPERATORS_H
 
 #include <string>
+#include <iostream>
 #include <fstream>
 #include <stdexcept> // std::runtime_error
 #include <sstream> // std::stringstream
+#include <vector>
 
 /* Modules used in benchmark code */
 #include"mkl.h"
@@ -51,6 +53,7 @@ typedef struct qmesh_table
 
 void read_P123_h5_data_file(double* P123);
 void read_P123_csv_data_file(double* P123);
+void read_P123_bin_data_file(double* P123, int P123_array_size);
 
 void calculate_antisymmetrization_operator(int &Np, int &Nq, int& Nalpha,
                                            double** A123);

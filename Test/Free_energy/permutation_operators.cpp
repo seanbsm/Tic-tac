@@ -391,19 +391,48 @@ void read_P123_csv_data_file(double* P123){
     data_file.close();
 }
 
+void read_P123_bin_data_file(double* P123, int P123_array_size){   
+
+    //std::string P123_file_path = "../../../Data/3N_permutation_operator/Faddeev_permutation_operator_benchmark/P123_matrix_elements.bin";
+
+    std::ifstream file("../../../Data/3N_permutation_operator/Faddeev_permutation_operator_benchmark/P123_matrix elements_new.bin", std::ios::in | std::ios::binary | std::ios::ate);
+    file.seekg(0, std::ios::end); 
+    int size = file.tellg();  
+    file.seekg(0, std::ios::beg); 
+    char* memblock = new char[size];
+    file.read(memblock, size);
+    file.close();
+    float* element_array = (float*)memblock;//reinterpret as float
+    
+    std::cout << element_array[P123_array_size-1] << std::endl;
+
+    //#pragma omp parallel for
+    std::cout << "start" << std::endl;
+    for (int idx=0; idx<P123_array_size; idx++){
+        P123[idx] = (double)element_array[idx];//reinterpret as double
+    }
+    
+    delete [] memblock;
+    delete [] element_array;
+}
+
 void calculate_antisymmetrization_operator(int &Np, int &Nq, int& Nalpha, double** A123){
     
     int D123_dim = Np * Nq * Nalpha;
     int D123_dim_sq = D123_dim * D123_dim;
 
     *A123 = new double [D123_dim_sq];
-
-    read_P123_csv_data_file(*A123);
+    
+    read_P123_bin_data_file(*A123, D123_dim_sq);
+    //read_P123_csv_data_file(*A123);
     //read_P123_h5_data_file(*A123);
 
     /* Add square P123-term */
     #pragma omp parallel for 
     for (int idx=0; idx<D123_dim_sq; idx++){
+        if (idx<20){
+            std::cout << (*A123)[idx] << std::endl;
+        }
         (*A123)[idx] *= 2;
     }
 
@@ -421,5 +450,10 @@ void calculate_antisymmetrization_operator(int &Np, int &Nq, int& Nalpha, double
                 (*A123)[A123_diag_idx] += 1;
             }
         }
+    }
+
+    #pragma omp parallel for 
+    for (int idx=0; idx<D123_dim_sq; idx++){
+        (*A123)[idx] /= 6;
     }
 }

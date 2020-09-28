@@ -393,27 +393,41 @@ void read_P123_csv_data_file(double* P123){
 
 void read_P123_bin_data_file(double* P123, int P123_array_size){   
 
-    //std::string P123_file_path = "../../../Data/3N_permutation_operator/Faddeev_permutation_operator_benchmark/P123_matrix_elements.bin";
+    std::string P123_file_path = "../../../Data/3N_permutation_operator/Faddeev_permutation_operator_benchmark/P123_matrix_elements_2.bin";
 
-    std::ifstream file("../../../Data/3N_permutation_operator/Faddeev_permutation_operator_benchmark/P123_matrix elements_new.bin", std::ios::in | std::ios::binary | std::ios::ate);
+    std::ifstream infile(P123_file_path.c_str(), std::ios::in | std::ios::binary);
+    infile.seekg(0, std::ios::end); 
+    int size = infile.tellg();
+    std::cout << size/sizeof(float) << " " << P123_array_size << std::endl;
+
+    float binData [P123_array_size];
+    //or float binData[numRows][numCols]; if you knew it can fit on the stack 
+    //and your compiler has variable sized arrays
+
+    //read into the array
+    infile.read(reinterpret_cast<char *>(binData), sizeof(float) * P123_array_size);
+
+    /*std::ifstream file("../../../Data/3N_permutation_operator/Faddeev_permutation_operator_benchmark/P123_matrix_elements.bin", std::ios::in | std::ios::binary | std::ios::ate);
     file.seekg(0, std::ios::end); 
     int size = file.tellg();  
     file.seekg(0, std::ios::beg); 
     char* memblock = new char[size];
     file.read(memblock, size);
     file.close();
-    float* element_array = (float*)memblock;//reinterpret as float
+    float* element_array = (float*) memblock; //reinterpret as float
     
-    std::cout << element_array[P123_array_size-1] << std::endl;
+    //double g = element_array[P123_array_size-1];
+    std::cout << size << std::endl;*/
 
     //#pragma omp parallel for
-    std::cout << "start" << std::endl;
+    /*std::cout << "start reading P123" << std::endl;
     for (int idx=0; idx<P123_array_size; idx++){
         P123[idx] = (double)element_array[idx];//reinterpret as double
     }
+    std::cout << "end reading P123" << std::endl;*/
     
-    delete [] memblock;
-    delete [] element_array;
+    //delete [] memblock;
+    //delete [] element_array;
 }
 
 void calculate_antisymmetrization_operator(int &Np, int &Nq, int& Nalpha, double** A123){
@@ -423,9 +437,9 @@ void calculate_antisymmetrization_operator(int &Np, int &Nq, int& Nalpha, double
 
     *A123 = new double [D123_dim_sq];
     
-    read_P123_bin_data_file(*A123, D123_dim_sq);
+    //read_P123_bin_data_file(*A123, D123_dim_sq);
     //read_P123_csv_data_file(*A123);
-    //read_P123_h5_data_file(*A123);
+    read_P123_h5_data_file(*A123);
 
     /* Add square P123-term */
     #pragma omp parallel for 

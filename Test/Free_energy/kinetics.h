@@ -1,7 +1,7 @@
 #ifndef KINETICS_H
 #define KINETICS_H
 
-#include "General_functions/spin_coupling_functions.h"
+//#include "General_functions/spin_coupling_functions.h"
 #include "Interactions/potential_model.h"
 
 const double hbarc = 197.326; // MeV fm

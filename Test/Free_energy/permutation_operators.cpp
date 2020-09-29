@@ -13,7 +13,7 @@ void read_P123_h5_data_file(double* P123){
 
     int i_file;
     //i_file = sprintf(filename, "/data_in/T3_%d/J3_%d/PAR_%d/3NF_V_J3_%d_PAR_%d_T3_%d_N2LO_c1.h5", two_T, two_J, PAR, two_J, PAR, two_T);
-    i_file = sprintf(filename, "../../../Data/3N_permutation_operator/Kai_coda_and_data_package_2/3NF_Faddcomp_J3_1_PAR_1_T3_1_N3LO_2pi_cont.h5"); // Forced input two_T=1, two_J=1, PAR=1
+    i_file = sprintf(filename, "../../../Make_P123_matrix/data_out/P123_J3_1_PAR_1_T3_1.h5"); // Forced input two_T=1, two_J=1, PAR=1
 
     printf("read 3NF file %s...\n", filename);
 
@@ -133,7 +133,7 @@ void read_P123_h5_data_file(double* P123){
     //    P123[i] = 0.0;
     //}
 
-    int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/Faddeev_permutation_operator_benchmark/P123_J3_1_PAR_1_T3_1.h5");
+    int i_file3 = sprintf(filename, "../../../Make_P123_matrix/data_out/P123_J3_1_PAR_1_T3_1.h5");
 
     printf("read file %s\n", filename);
 
@@ -146,13 +146,13 @@ void read_P123_h5_data_file(double* P123){
     dataset_id_3 = H5Dopen(file_id_3, "Np", H5P_DEFAULT);
     ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
     int Np_3N_3 = N_h5_3[0];
-    ret_3 = H5Dclose(dataset_id);
+    ret_3 = H5Dclose(dataset_id_3);
 
     // N_q
     dataset_id_3 = H5Dopen(file_id_3, "Nq", H5P_DEFAULT);
     ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
     int Nq_3N_3 = N_h5_3[0];
-    ret_3 = H5Dclose(dataset_id);
+    ret_3 = H5Dclose(dataset_id_3);
 
     // N_alpha
     dataset_id_3 = H5Dopen(file_id_3, "Nalpha", H5P_DEFAULT);

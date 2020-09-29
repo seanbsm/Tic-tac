@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "../error_management.h"
-#include "../General_functions/spin_coupling_functions.h"
+//#include "../General_functions/spin_coupling_functions.h"
 
 void read_psi (char* filename, 
                double** psi_read,

@@ -1,6 +1,7 @@
 #ifndef KINETICS_H
 #define KINETICS_H
 
+//#include "General_functions/spin_coupling_functions.h"
 #include "Interactions/potential_model.h"
 
 const double hbarc = 197.326; // MeV fm
@@ -10,7 +11,7 @@ double calculate_3N_kinetic_energy(double* state_3N_bra_array,
                                    double* state_3N_ket_array,
                                    int &Np, double* p_array, double* wp_array,
                                    int &Nq, double* q_array, double* wq_array,
-                                   int& Nalpha);
+                                   int& Nalpha, int* L_2N, int* S_2N, int* J_2N, int* T_2N, int* l_3N, int* two_j_3N);
 
 double extract_potential_element_from_array(int& L, int& Lp, int& J, int& S,
                                             double* V_array);

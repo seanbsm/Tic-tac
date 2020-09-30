@@ -55,6 +55,10 @@ typedef struct qmesh_table
     double weight_qtable;
 } qmesh_table;
 
+void check_h5_read_call(herr_t ret);
+void check_h5_read_table_call(herr_t ret);
+void check_h5_close_call(herr_t ret);
+
 void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, double *p_3N);
 void read_P123_csv_data_file(double* P123);
 void read_P123_bin_data_file(double* P123, int P123_array_size);

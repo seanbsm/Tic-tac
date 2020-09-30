@@ -1,6 +1,24 @@
 
 #include "permutation_operators.h"
 
+void check_h5_read_call(herr_t ret){
+    if (ret<0){
+        raise_error("Erroneous control return-value from calling H5Dread()");
+    }
+}
+
+void check_h5_read_table_call(herr_t ret){
+    if (ret<0){
+        raise_error("Erroneous control return-value from calling H5TBread_table()");
+    }
+}
+
+void check_h5_close_call(herr_t ret){
+    if (ret<0){
+        raise_error("Erroneous control return-value from calling H5Dclose()");
+    }
+}
+
 void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, double *p_3N){
 
    
@@ -8,7 +26,7 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
 
     char filename[300];
 
-    hid_t   file_id_3, group_id_3, dataset_id_3;
+    hid_t   file_id_3, dataset_id_3;
     herr_t  ret_3;
 
    // double *P123_store = new double[V3N_Jj_dim_sq];
@@ -18,6 +36,9 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     //}
 
     int i_file3 = sprintf(filename, "../../../Make_P123_matrix/data_out/P123_J3_1_PAR_1_T3_1.h5");
+    if (i_file3 < 0){
+        raise_error("Couldn't locate P123-matrix h5-file.");
+    }
 
     printf("read file %s\n", filename);
 
@@ -29,20 +50,26 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     // N_p
     dataset_id_3 = H5Dopen(file_id_3, "Np", H5P_DEFAULT);
     ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
+    check_h5_read_call(ret_3);
     int Np_3N_3 = N_h5_3[0];
     ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
 
     // N_q
     dataset_id_3 = H5Dopen(file_id_3, "Nq", H5P_DEFAULT);
     ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
+    check_h5_read_call(ret_3);
     int Nq_3N_3 = N_h5_3[0];
     ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
 
     // N_alpha
     dataset_id_3 = H5Dopen(file_id_3, "Nalpha", H5P_DEFAULT);
     ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
+    check_h5_read_call(ret_3);
     int Jj_dim_3 = N_h5_3[0];
     ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
 
     // p_mesh
     size_t p_dst_size_3 =  sizeof( pmesh_table );
@@ -64,6 +91,7 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     printf("\np mesh:\n");
 
     ret_3 = H5TBread_table( file_id_3, "p mesh", p_dst_size_3, p_dst_offset_3, p_dst_sizes_3, p_h5_3 );
+    check_h5_read_table_call(ret_3);
     for (int i = 0; i <= Np_3N_3 - 1; i++)
     {
         p_3N_3[i] = p_h5_3[i].mesh_ptable;
@@ -91,6 +119,7 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     printf("q mesh:\n");
 
     ret_3 = H5TBread_table( file_id_3, "q mesh", q_dst_size_3, q_dst_offset_3, q_dst_sizes_3, q_h5_3 );
+    check_h5_read_table_call(ret_3);
     for (int i = 0; i <= Nq_3N - 1; i++)
     {
         q_3N_3[i] = q_h5_3[i].mesh_qtable;
@@ -161,6 +190,7 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     int two_j3_Jj_3[Jj_dim_3];
 
     ret_3 = H5TBread_table( file_id_3, "pw channels", pw_dst_size_3, pw_dst_offset_3, pw_dst_sizes_3, pw_h5_3 );
+    check_h5_read_table_call(ret_3);
     printf("\nNalpha = %d\n", Jj_dim_3);
     printf("  i   L   S   J   T   l  2*j\n");
     for (int i = 0; i <= Jj_dim_3 - 1; i++)
@@ -175,27 +205,27 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     }
 
     // matrix elements
-    H5D_layout_t layout_3;
-    hid_t cparms_3;
-    hid_t filespace_id_3;
-    hsize_t filespace_dims_3[6], chunk_dims_3[6];
-    herr_t filespace_status_n_3;
-    int filespace_rank_3, rank_chunk_3;
+    //H5D_layout_t layout_3;
+    //hid_t cparms_3;
+    //hid_t filespace_id_3;
+    //hsize_t filespace_dims_3[6], chunk_dims_3[6];
+    //herr_t filespace_status_n_3;
+    //int filespace_rank_3, rank_chunk_3;
 
     // check if dimensions agree with matrix element data
-    MKL_INT64 P123_dim = Np_3N_3 * Nq_3N_3 * Jj_dim_3;
-    MKL_INT64 P123_dim_sq = P123_dim * P123_dim;
+    //MKL_INT64 P123_dim = Np_3N_3 * Nq_3N_3 * Jj_dim_3;
+    //MKL_INT64 P123_dim_sq = P123_dim * P123_dim;
 
     printf("Read matrix elements...\n");
 
     dataset_id_3 = H5Dopen(file_id_3, "matrix elements", H5P_DEFAULT);
 
     // Get dataset rank and dimension.
-    filespace_id_3 = H5Dget_space(dataset_id_3);    // Get filespace handle first
+    /*filespace_id_3 = H5Dget_space(dataset_id_3);    // Get filespace handle first
     filespace_rank_3 = H5Sget_simple_extent_ndims(filespace_id_3);
     filespace_status_n_3 = H5Sget_simple_extent_dims(filespace_id_3, filespace_dims_3, NULL);
 
-    /*printf("dataset rank: %d\ndataset dimensions: {%lu,%lu,%lu,%lu,%lu,%lu}\n\n",
+    printf("dataset rank: %d\ndataset dimensions: {%lu,%lu,%lu,%lu,%lu,%lu}\n\n",
            filespace_rank,
            (unsigned long)(filespace_dims[0]),
            (unsigned long)(filespace_dims[1]),
@@ -204,12 +234,12 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
            (unsigned long)(filespace_dims[4]),
            (unsigned long)(filespace_dims[5])
 
-          );*/
+          );
 
     cparms_3 = H5Dget_create_plist (dataset_id_3);
     layout_3 = H5Pget_layout (cparms_3);
 
-    /*if (H5D_CHUNKED == layout_3)
+    if (H5D_CHUNKED == layout_3)
     {
         //Get chunking information: rank and dimensions
         rank_chunk_3 = H5Pget_chunk(cparms_3, 6, chunk_dims_3);
@@ -225,10 +255,13 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     }*/
 
     ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, P123);
+    check_h5_read_call(ret_3);
 
     ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
 
     ret_3 = H5Fclose(file_id_3);
+    check_h5_close_call(ret_3);
 }
 
 void read_P123_csv_data_file(double* P123){

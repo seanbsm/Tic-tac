@@ -5,7 +5,7 @@
 #include <vector>
 #include <map>
 
-#include "../typedefs.h"
+#include "../type_defs.h"
 
 class LegendrePolynomial
 {

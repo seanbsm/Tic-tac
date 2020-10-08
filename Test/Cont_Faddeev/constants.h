@@ -23,6 +23,7 @@ const floatType Lambda	= 450;				// cut-off for renormalization of LO 	[MeV]
 const floatType gA 		= 1.289;			// axial coupling constant 			 	[no units]
 const floatType fpi 	= 92.2;				// pion decay constant 				 	[MeV] 		(used convention 130.41/sqrt(2) = 92.2)
 const floatType mpi 	= 138.039;			// pion_0 mass 						 	[MeV] 		(average of pi+, pi-, and pi0 masses)
+const floatType hbarc   = 197.326;          // MeV fm
 
 
 

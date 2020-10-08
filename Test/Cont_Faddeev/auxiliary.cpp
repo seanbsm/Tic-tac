@@ -309,8 +309,8 @@ void S_spline (double *S, double *p_par, int N_par)
     {
         for (int j = 0; j <= N_par - 2; j++)
         {
-            S[j * N_par + i                  ] = KroneckerDelta(i, j);
-            S[j * N_par + i +  N_par * (N_par - 1)] = (KroneckerDelta(i, j + 1) - KroneckerDelta(i, j)) / h[j + 1] - h[j + 1] / 6.0 * (2.0 * C[j * N_par + i] + C[(j + 1) * N_par + i]);
+            S[j * N_par + i                          ] = KroneckerDelta(i, j);
+            S[j * N_par + i +     N_par * (N_par - 1)] = (KroneckerDelta(i, j + 1) - KroneckerDelta(i, j)) / h[j + 1] - h[j + 1] / 6.0 * (2.0 * C[j * N_par + i] + C[(j + 1) * N_par + i]);
             S[j * N_par + i + 2 * N_par * (N_par - 1)] = 0.5 * C[j * N_par + i];
             S[j * N_par + i + 3 * N_par * (N_par - 1)] = (C[(j + 1) * N_par + i] - C[j * N_par + i]) / (6.0 * h[j + 1]);
         }

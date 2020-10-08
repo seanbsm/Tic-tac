@@ -181,13 +181,41 @@ void make_G_array(double* G_array,
     delete [] SixJ_array;
 }
 
+/* Indexing: S[j*Nx + i + k*Nx(Nx-1)] for S_i(x) where x is in bin j, and k is the coefficient we need
+ * We have a function evaluation at x_i. 
+ * This means we use x_j when x is in bin j, i.e. (x-x_j). */
+double interpolate_using_spline_array(double* S_array, int Np, double* p_array, int idx_pi, double p, int idx_p){
+    double interpolate = 0;
+
+    double pi = p_array[idx_pi];
+
+    if (p <= p_array[Np - 1]){
+        interpolate = (
+                                                           S_array[idx_pi * Np + idx_p]
+                            + (p - pi)                   * S_array[idx_pi * Np + idx_p +     Np * (Np - 1)]
+                            + (p - pi)*(p - pi)          * S_array[idx_pi * Np + idx_p + 2 * Np * (Np - 1)]
+                            + (p - pi)*(p - pi)*(p - pi) * S_array[idx_pi * Np + idx_p + 3 * Np * (Np - 1)]
+                        );
+    }
+
+    return interpolate;
+}
+
 void iterate_faddeev(double* state_3N_symm_array,
                      int Np, double* p_array, double* wp_array,
                      int Nq, double* q_array, double* wq_array,
                      int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* l_3N_array, int* two_j_3N_array,
-                     int idx_alpha_proj, int idx_p_proj, int idx_q_proj,
-                     int two_T, int two_J, int PAR){
+                     int idx_alpha, int idx_p, int idx_q,
+                     int two_T, int two_J, int PAR,
+                     potential_model* pot_ptr_np,
+                     potential_model* pot_ptr_nn){
     
+    int Faddeev_iterations = 20;
+
+    /* Matrix of states to be orthogonalized using Gram-Schmidt algorithm
+     * and the nusing Lanczos algorithm to solve Faddeev */
+    double* psi_matrix = new double [Nalpha*Np*Nq * Faddeev_iterations];
+
     /* Make x integral mesh */
     int Nx = 20;
     double* x_array  = new double [Nx];
@@ -202,9 +230,6 @@ void iterate_faddeev(double* state_3N_symm_array,
      * See Eq. (II.16) in https://doi.org/10.1007/BF01417437 */
     S_spline(S_p_array, p_array, Np);
     S_spline(S_q_array, q_array, Nq);
-    /* Spline objects for Faddeev integral interpolations */
-    double interpolate_p = 0;
-    double interpolate_q = 0;
 
     /* Construct G_array
      * BEWARE: this is a multidimensional array that can consume a lot of memory
@@ -214,65 +239,96 @@ void iterate_faddeev(double* state_3N_symm_array,
                  Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, l_3N_array, two_j_3N_array,
                  two_T, two_J);
 
-    /* First faddeev state summation start */
+    /* Current Faddeev iteration */
+    int    current_iteration = 0;
 
-    int    L_p   = 0;
-    int    L_pp  = 0;
-    int    G_idx = 0;
-    double G     = 0;
+    /* Projection state quantum numbers (alpha) */
+    int L     = L_2N_array[idx_alpha];
+    int S     = S_2N_array[idx_alpha];
+    int J     = J_2N_array[idx_alpha];
+    int T     = T_2N_array[idx_alpha];
+    int two_l = l_3N_array[idx_alpha];
+    int two_j = two_j_3N_array[idx_alpha];
+
+    /* Triton ground-state energy (to be determined through Lanczos iterations) */
+    double E = 0;
+    /* Upper-case is for the 2N-pair, lower-case is for orbiting spectator */
+    int L_p  = 0, S_p  = 0, J_p  = 0, T_p  = 0, two_l_p  = 0, two_j_p  = 0;
+    int L_pp = 0, S_pp = 0, J_pp = 0, T_pp = 0, two_l_pp = 0, two_j_pp = 0;
+    /* Spline object for Faddeev integral interpolations */
+    double S_interpolation = 0;
+    /* Geometric function indexing and function value */
+    int    idx_G     = 0;
+    double G_element = 0;
+    /* T-matrix element of interest */
+    double t_element = 0;
+    /* Previous value of wave-function, kept and updated in psi_matrix */
+    double prev_psi = 0;
+    /* Faddeev summation term */
     double total_sum = 0;
     /* Loop over alpha prime summation */
     for (int idx_alpha_p=0; idx_alpha_p<Nalpha; idx_alpha_p++){
-        L_p = L_2N_array[idx_alpha_p];
+        L_p     = L_2N_array[idx_alpha_p];
+        S_p     = S_2N_array[idx_alpha_p];
+        J_p     = J_2N_array[idx_alpha_p];
+        T_p     = T_2N_array[idx_alpha_p];
+        two_l_p = l_3N_array[idx_alpha_p];
+        two_j_p = two_j_3N_array[idx_alpha_p];
+        
         /* Loop over alpha double-prime summation */
         for (int idx_alpha_pp=0; idx_alpha_pp<Nalpha; idx_alpha_pp++){
-            L_pp = L_2N_array[idx_alpha_pp];
-            /* Loop over q prime integral */
-            for (int idx_q_p=0; idx_q_p<Nq; idx_q_p++){
-                /* Loop over x integral*/
-                for (int idx_x=0; idx_x<Nx; idx_x++){
-                    
-                    /* Evaluate p1 and p2 functions */
-                    double pi1 = pi1_tilde(p_array[p_index], q_array[q_index], x_array[idx_x]);
-                    double pi2 = pi2_tilde(p_array[p_index], q_array[q_index], x_array[idx_x]);
-                    
-                    /* Determine which spline-array index we need */
-                    int pi1_index = 0; while ((p_array[pi1_index] < pi1) && (pi1_index < Np - 1)) pi1_index++; if (pi1_index > 0) pi1_index--;
-                    int pi2_index = 0; while ((q_array[pi2_index] < pi2) && (pi2_index < Nq - 1)) pi2_index++; if (pi2_index > 0) pi2_index--;
+            L_pp     = L_2N_array[idx_alpha_pp];
+            S_pp     = S_2N_array[idx_alpha_pp];
+            J_pp     = J_2N_array[idx_alpha_pp];
+            T_pp     = T_2N_array[idx_alpha_pp];
+            two_l_pp = l_3N_array[idx_alpha_pp];
+            two_j_pp = two_j_3N_array[idx_alpha_pp];
 
-                    /* Calculate spline functions from pre-calculated spline-arrays */
-                    /* If-test to avoid artefacts at the upper limits of mesh system */
-                    if (pi1 <= p_array[Np - 1]){
-                        interpolate_p = (
-                                            S_p_array[pi1_index * Np + pprime_index]
-                                            + (pi1 - p_array[pi1_index]) * S_p_array[pi1_index * Np + pprime_index + Np * (Np - 1)]
-                                            + (pi1 - p_array[pi1_index]) * (pi1 - p_array[pi1_index]) * S_p_array[pi1_index * Np + pprime_index + 2 * Np * (Np - 1)]
-                                            + (pi1 - p_array[pi1_index]) * (pi1 - p_array[pi1_index]) * (pi1 - p_array[pi1_index]) * S_p_array[pi1_index * Np + pprime_index + 3 * Np * (Np - 1)]
-                                        );
-                    }
-                    else{
-                        interpolate_p = 0.0;
-                    }
+            /* The two-body force can only allow for L_p!=L_pp, everything else must be the same */
+            if (two_l_p==two_l_pp and two_j_p==two_j_pp and T_p==T_pp and J_p==J_pp and S_p==S_pp and abs(L_p-L_pp)<=2){
+                /* Loop over q prime integral */
+                for (int idx_q_p=0; idx_q_p<Nq; idx_q_p++){
+                    /* Loop over x integral*/
+                    for (int idx_x=0; idx_x<Nx; idx_x++){
 
-                    /* If-test to avoid spline artefacts at the upper limits of mesh system */
-                    if (pi2 <= q_array[Nq - 1]){
-                        interpolate_q = (
-                                            S_q_array[pi2_index * Nq + qprime_index]
-                                            + (pi2 - q_array[pi2_index]) * S_q_array[pi2_index * Nq + qprime_index + Nq * (Nq - 1)]
-                                            + (pi2 - q_array[pi2_index]) * (pi2 - q_array[pi2_index]) * S_q_array[pi2_index * Nq + qprime_index + 2 * Nq * (Nq - 1)]
-                                            + (pi2 - q_array[pi2_index]) * (pi2 - q_array[pi2_index]) * (pi2 - q_array[pi2_index]) * S_q_array[pi2_index * Nq + qprime_index + 3 * Nq * (Nq - 1)]
-                                        );
-                    }
-                    else{
-                        interpolate_q = 0.0;
-                    }
-                    
-                    /* Retrieve G_{alpha,alpha''}(q,q'',x) from pre-calculated G_array */
-                    G_idx = idx_alpha_proj * Nalpha*Np*Nq*Nx + idx_alpha_pp * Np*Nq*Nx + idx_q_proj * Nq*Nx + idx_q_p * Nx + idx_x;
-                    G = G_array[G_idx];
+                        /* Evaluate p1 and p2 functions */
+                        double p1 = pi1_tilde(q_array[idx_q], q_array[idx_q_p], x_array[idx_x]);
+                        double p2 = pi2_tilde(q_array[idx_q], q_array[idx_q_p], x_array[idx_x]);
 
-                    /* Evaluate integral term and add to total sum */
-                    total_sum += wq_array[idx_q_p]*q_array[idx_q_p]*q_array[idx_q_p] * wx_array[idx_x] * t_element * G * interpolate_q * prev_psi;
+                        /* Determine which spline-array index we need */
+                        int idx_p2 = 0; while ((p_array[idx_p2] < p2) && (idx_p2 < Nq - 1)) idx_p2++; if (idx_p2 > 0) idx_p2--;
+
+                        /* Calculate spline functions from pre-calculated spline-arrays */
+                        S_interpolation = interpolate_using_spline_array(S_p_array, Np, p_array, idx_p2, p2, idx_p);
+
+
+                        /* Solve Lippmann-Schwinger equation for current q', q, alpha', and alpha */
+                        /* !!! NOTE I USE NUCLEON MASS HERE, THIS IS SLIGHTLY WRONG BUT SHOULD MATTER LITTLE !!! */
+                        double E_LS = E - q_array[idx_q_p]*q_array[idx_q_p] / (2 * 3*MN/4);
+                        t_element = calculate_t_element(L, L_p, S, J, T,
+						                                E_LS, p_array[idx_p], MN,
+						                                Nq, q_array, wq_array,
+						                                idx_p, Nq,
+						                                pot_ptr_nn, pot_ptr_np);
+
+                        /* Copy previous Faddeev solution (wave-function) */
+                        if (current_iteration==0){  // For the first Faddeev-iteration we use the first column of the matrix
+                            prev_psi = psi_matrix[idx_alpha*Nq*Np* + idx_q*Np + idx_p];
+                        }
+                        else{   // For current_iteration>0 Faddeev-iteration we use the previous column of the matrix
+                            prev_psi = psi_matrix[(current_iteration-1)*Nalpha*Nq*Np + idx_alpha*Nq*Np* + idx_q*Np + idx_p];
+                        }
+
+                        /* Retrieve G_{alpha,alpha''}(q,q'',x) from pre-calculated G_array */
+                        idx_G = idx_alpha * Nalpha*Np*Nq*Nx + idx_alpha_pp * Np*Nq*Nx + idx_q * Nq*Nx + idx_q_p * Nx + idx_x;
+                        G_element = G_array[idx_G];
+
+                        double denominator = 1./(pow(p1, L_pp) * pow(p2, L_p));
+
+                        /* Evaluate integral term and add to total sum */
+                        total_sum +=  wq_array[idx_q_p] * q_array[idx_q_p] * q_array[idx_q_p]
+                                    * wx_array[idx_x] * t_element * G_element * denominator * S_interpolation * prev_psi;
+                    }
                 }
             }
         }

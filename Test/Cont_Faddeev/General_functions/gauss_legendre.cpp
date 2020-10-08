@@ -11,7 +11,7 @@ void gauss(std::vector<float>& x, std::vector<float>& w, int N){
 	int m	= (N+1)/2;
 	
 	for (int i=1; i<m+1; i++){
-		float t  = cos(pi*(i-0.25)/(N+0.5));		// xi
+		float t  = cos(M_PI*(i-0.25)/(N+0.5));		// xi
 		float t1 = 1;								// old xi
 		float pp = 0;
 		
@@ -46,7 +46,7 @@ void gauss(std::vector<double>& x, std::vector<double>& w, int N){
 	int m	= (N+1)/2;
 	
 	for (int i=1; i<m+1; i++){
-		double t  = cos(pi*(i-0.25)/(N+0.5));		// xi
+		double t  = cos(M_PI*(i-0.25)/(N+0.5));		// xi
 		double t1 = 1;								// old xi
 		double pp = 0;
 		
@@ -75,14 +75,14 @@ void gauss(std::vector<double>& x, std::vector<double>& w, int N){
 // changes range from (-1,1) to (0,inf)
 void rangeChange_0_inf(std::vector<float>& x, std::vector<float>& w, float scale){
 	for (size_t i=0; i<x.size(); i++){
-		w[i] = scale*w[i]*pi/(4*(cos(pi*(x[i]+1)/4))*(cos(pi*(x[i]+1)/4)));
-		x[i] = scale*tan(pi*(x[i]+1)/4);
+		w[i] = scale*w[i]*M_PI/(4*(cos(M_PI*(x[i]+1)/4))*(cos(M_PI*(x[i]+1)/4)));
+		x[i] = scale*tan(M_PI*(x[i]+1)/4);
 	}
 }
 void rangeChange_0_inf(std::vector<double>& x, std::vector<double>& w, double scale){
 	for (size_t i=0; i<x.size(); i++){
-		w[i] = scale*w[i]*pi/(4*(cos(pi*(x[i]+1)/4))*(cos(pi*(x[i]+1)/4)));
-		x[i] = scale*tan(pi*(x[i]+1)/4);
+		w[i] = scale*w[i]*M_PI/(4*(cos(M_PI*(x[i]+1)/4))*(cos(M_PI*(x[i]+1)/4)));
+		x[i] = scale*tan(M_PI*(x[i]+1)/4);
 	}
 }
 

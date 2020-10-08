@@ -2,10 +2,11 @@
 #define KINETICS_H
 
 //#include "General_functions/spin_coupling_functions.h"
+#include "constants.h"
 #include "Interactions/potential_model.h"
 
-const double hbarc = 197.326; // MeV fm
-const double MN = 938.918; // in MeV, averaged mass (Mn + Mp)/2
+//const double hbarc = 197.326; // MeV fm
+//const double MN = 938.918; // in MeV, averaged mass (Mn + Mp)/2
 
 double calculate_3N_kinetic_energy(double* state_3N_bra_array,
                                    double* state_3N_ket_array,

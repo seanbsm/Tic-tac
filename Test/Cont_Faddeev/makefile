@@ -20,7 +20,7 @@ CPPFLAGS := -Wall -std=c++17 -O2 -ggdb -fopenmp
 # Stop compilation on warning-encounter (good for neat code but not necessary)
 #CPPFLAGS += -Werror
 # Use MKL-types
-CPPFLAGS += -DMKL_ILP64 -m64 -I$(MKLROOT)/include
+CPPFLAGS += -DMKL_ILP64 -m64 -DMKL_Complex16="std::complex<double>" -DMKL_Complex8="std::complex<float>" -I$(MKLROOT)/include
 
 LDLIBS :=  -Wl,--no-as-needed -lgomp -lgsl -lgslcblas -lpthread -lm -ldl -lgfortran -lhdf5_hl_cpp -lhdf5_cpp -lhdf5_serial_hl  -lhdf5_serial 
 # Use MKL-libraries

@@ -4,6 +4,10 @@
 void construct_symmetric_pw_states(int two_J_3N,
                                    int two_T_3N,
                                    int parity_3N,
+                                   int two_J_1N_min,
+                                   int two_J_1N_max,
+                                   int J_2N_min,
+                                   int J_2N_max,
                                    int& Nalpha,
                                    int** L_2N_array_ptr,
                                    int** S_2N_array_ptr,
@@ -11,14 +15,8 @@ void construct_symmetric_pw_states(int two_J_3N,
                                    int** T_2N_array_ptr,
                                    int** l_3N_array_ptr,
                                    int** two_j_3N_array_ptr){
-    
-    /* Maximum (max) and minimum (min) values for J_2N and J_1N */
-    int two_J_1N_min = 1;
-    int two_J_1N_max = 13;
-    int J_2N_min = 0;
-    int J_2N_max = 6;
 
-    bool print_content = true;
+    bool print_content = false;
 
     if (print_content){
         /* Print partial-wave expansion (PWE) truncations */

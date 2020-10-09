@@ -2,10 +2,11 @@
 #define LIPPMANN_SCHWINGER_SOLVER_H
 
 #include <iostream>
-#include <string>
-#include <vector>
 #include <complex>
 #include "mkl.h"
+
+#include <string>
+#include <vector>
 
 #include "constants.h"
 #include "type_defs.h"
@@ -15,8 +16,8 @@ const cfloatType J{ 0.0, 1.0 };
 
 void cdot_VS_colMaj(std::complex<float>*  A, std::complex<float>*  B, int N);
 void cdot_VS_colMaj(std::complex<double>* A, std::complex<double>* B, int N);
-void solve_MM_line_eq(std::complex<float>*  A, std::complex<float>*  B, int N);
-void solve_MM_line_eq(std::complex<double>* A, std::complex<double>* B, int N);
+void solve_MM_lin_eq(std::complex<float>*  A, std::complex<float>*  B, int N);
+void solve_MM_lin_eq(std::complex<double>* A, std::complex<double>* B, int N);
 
 double extract_potential_element_from_array(int L, int Lp, int J, int S, bool coupled, double* V_array);
 

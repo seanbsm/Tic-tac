@@ -1,10 +1,7 @@
 
 #include "gauss_legendre.h"
 
-void gauss(std::vector<float>& x, std::vector<float>& w, int N){
-	
-	x.resize(N);
-	w.resize(N);
+void gauss(float* x, float* w, int N){
 	
 	float p3	= 0;								// Legendre polynomial, P(xi), for i=3
 	float eps = 3.e-7;
@@ -36,10 +33,7 @@ void gauss(std::vector<float>& x, std::vector<float>& w, int N){
 		w[N-i] = w[i-1];
 	}
 }
-void gauss(std::vector<double>& x, std::vector<double>& w, int N){
-	
-	x.resize(N);
-	w.resize(N);
+void gauss(double* x, double* w, int N){
 	
 	double p3	= 0;								// Legendre polynomial, P(xi), for i=3
 	double eps = 3.e-16;
@@ -73,28 +67,28 @@ void gauss(std::vector<double>& x, std::vector<double>& w, int N){
 }
 
 // changes range from (-1,1) to (0,inf)
-void rangeChange_0_inf(std::vector<float>& x, std::vector<float>& w, float scale){
-	for (size_t i=0; i<x.size(); i++){
+void rangeChange_0_inf(float* x, float* w, float scale, int N){
+	for (int i=0; i<N; i++){
 		w[i] = scale*w[i]*M_PI/(4*(cos(M_PI*(x[i]+1)/4))*(cos(M_PI*(x[i]+1)/4)));
 		x[i] = scale*tan(M_PI*(x[i]+1)/4);
 	}
 }
-void rangeChange_0_inf(std::vector<double>& x, std::vector<double>& w, double scale){
-	for (size_t i=0; i<x.size(); i++){
+void rangeChange_0_inf(double* x, double* w, double scale, int N){
+	for (int i=0; i<N; i++){
 		w[i] = scale*w[i]*M_PI/(4*(cos(M_PI*(x[i]+1)/4))*(cos(M_PI*(x[i]+1)/4)));
 		x[i] = scale*tan(M_PI*(x[i]+1)/4);
 	}
 }
 
 // changes range from (-1,1) to (a,b)
-void updateRange_a_b(std::vector<float>& x, std::vector<float>& w, float a, float b){
-	for (size_t i=0; i<x.size(); i++){
+void updateRange_a_b(float* x, float* w, float a, float b, int N){
+	for (int i=0; i<N; i++){
 		x[i] = 0.5*(b-a)*x[i] + 0.5*(b+a);
 		w[i] = 0.5*(b-a)*w[i];
 	}
 }
-void updateRange_a_b(std::vector<double>& x, std::vector<double>& w, double a, double b){
-	for (size_t i=0; i<x.size(); i++){
+void updateRange_a_b(double* x, double* w, double a, double b, int N){
+	for (int i=0; i<N; i++){
 		x[i] = 0.5*(b-a)*x[i] + 0.5*(b+a);
 		w[i] = 0.5*(b-a)*w[i];
 	}

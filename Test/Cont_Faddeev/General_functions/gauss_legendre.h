@@ -5,28 +5,32 @@
 #include <vector>
 #include <cmath>
 
-void gauss( std::vector<float>& x,
-			std::vector<float>& w,
+void gauss( float* x,
+			float* w,
 			int N );
-void gauss( std::vector<double>& x,
-			std::vector<double>& w,
+void gauss( double* x,
+			double* w,
 			int N );
 
-void rangeChange_0_inf( std::vector<float>& x,
-						std::vector<float>& w,
-						float scale );
-void rangeChange_0_inf( std::vector<double>& x,
-						std::vector<double>& w,
-						double scale );
+void rangeChange_0_inf( float* x,
+						float* w,
+						float scale,
+						int N );
+void rangeChange_0_inf( double* x,
+						double* w,
+						double scale,
+						int N );
 
-void updateRange_a_b( std::vector<float>& x,
-					  std::vector<float>& w,
+void updateRange_a_b( float* x,
+					  float* w,
 					  float a,
-					  float b );
-void updateRange_a_b( std::vector<double>& x,
-					  std::vector<double>& w,
+					  float b,
+					  int N );
+void updateRange_a_b( double* x,
+					  double* w,
 					  double a,
-					  double b );
+					  double b,
+					  int N );
 
 #endif // GAUSS_LEGENDRE_H
 

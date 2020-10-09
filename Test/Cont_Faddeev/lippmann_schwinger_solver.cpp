@@ -8,14 +8,14 @@ void cdot_VS_colMaj(std::complex<float>* A, std::complex<float>* B, int N){
 void cdot_VS_colMaj(std::complex<double>* A, std::complex<double>* B, int N){
 	cblas_zscal(N, B, A, N);
 }
-void solve_MM_line_eq(std::complex<float>* A, std::complex<float>* B, int N){
+void solve_MM_lin_eq(std::complex<float>* A, std::complex<float>* B, int N){
 	char trans = 'N';
 	long long int ipiv [N];
 	
 	LAPACKE_cgetrf(LAPACK_ROW_MAJOR, N, N, A, N, ipiv);
     LAPACKE_cgetrs(LAPACK_ROW_MAJOR, trans, N, N, A, N, ipiv, B, N);
 }
-void solve_MM_line_eq(std::complex<double>* A, std::complex<double>* B, int N){
+void solve_MM_lin_eq(std::complex<double>* A, std::complex<double>* B, int N){
 	char trans = 'N';
 	long long int ipiv [N];
 	
@@ -165,13 +165,13 @@ double calculate_t_element(int L, int L_p, int S, int J, int T,
 
 			/* Write element to potential matrix V_array */
 			if (coupled){
-				V_array[idx_row*mat_dim + idx_col]						 = extract_potential_element_from_array(J-1, J-1, J, S, V_elements);
-				V_array[idx_row*mat_dim + idx_col + mat_dim]			 = extract_potential_element_from_array(J-1, J+1, J, S, V_elements); 
-				V_array[(idx_row + mat_dim)*mat_dim + idx_col]			 = extract_potential_element_from_array(J+1, J-1, J, S, V_elements);
-				V_array[(idx_row + mat_dim)*mat_dim + idx_col + mat_dim] = extract_potential_element_from_array(J+1, J+1, J, S, V_elements);
+				V_array[idx_row*mat_dim + idx_col]						 = extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_elements);
+				V_array[idx_row*mat_dim + idx_col + mat_dim]			 = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_elements); 
+				V_array[(idx_row + mat_dim)*mat_dim + idx_col]			 = extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_elements);
+				V_array[(idx_row + mat_dim)*mat_dim + idx_col + mat_dim] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_elements);
 			}
 			else{
-				V_array[idx_k*mat_dim + idx_k_p] = extract_potential_element_from_array(L, L_p, J, S, V_elements);
+				V_array[idx_k*mat_dim + idx_k_p] = extract_potential_element_from_array(L, L_p, J, S, coupled, V_elements);
 			}
 		}
 	}
@@ -187,7 +187,7 @@ double calculate_t_element(int L, int L_p, int S, int J, int T,
 	make_wave_matrix(F_array, D_array, mat_dim, false);
 	
 	/* Solve LS */
-	solve_MM_line_eq(F_array, T_array, mat_dim);
+	solve_MM_lin_eq(F_array, T_array, mat_dim);
 	
 	/* Delete temporary wave matrix */
 	delete [] D_array;

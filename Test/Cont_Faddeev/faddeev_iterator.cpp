@@ -117,8 +117,9 @@ void make_G_array(double* G_array,
     double *SixJ_array = new double[(two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1)];
     //cout << "SixJ_test (>0?):" << (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) << "\n";
 
+    std::cout << "   - Pre-storing Wigner-6j coupling symbols ..." << std::endl;
     #pragma omp parallel for collapse(3)
-
+    
     for (int two_l1 = 0; two_l1 <= two_jmax_SixJ; two_l1++){
         for (int two_l2 = 0; two_l2 <= two_jmax_SixJ; two_l2++){
             for (int two_l3 = 0; two_l3 <= two_jmax_SixJ; two_l3++){
@@ -142,6 +143,7 @@ void make_G_array(double* G_array,
         }
     }
 
+    std::cout << "   - Calculating Atilde ..." << std::endl;
     for (int alpha = 0; alpha <= Jj_dim - 1; alpha++){
         for (int alphaprime = 0; alphaprime <= Jj_dim - 1; alphaprime++){
             for (int Ltotal = 0; Ltotal <= Lmax; Ltotal++){
@@ -154,6 +156,7 @@ void make_G_array(double* G_array,
     //long int fullsize = Np_3N*Nq_3N*Nx_Gtilde*Jj_dim*(Jj_dim - 1);
     //long int counter = 0;
     //int frac_n, frac_o=0;
+    std::cout << "   - Calculating Gtilde ..." << std::endl;
     #pragma omp parallel
     {
         #pragma omp for
@@ -175,7 +178,7 @@ void make_G_array(double* G_array,
             }
         }
     }
-
+    std::cout << "   - Done!" << std::endl;
     /* Free memory */
     delete [] Atilde_store;
     delete [] SixJ_array;
@@ -210,7 +213,7 @@ void iterate_faddeev(double* state_3N_symm_array,
                      potential_model* pot_ptr_np,
                      potential_model* pot_ptr_nn){
     
-    int Faddeev_iterations = 20;
+    int Faddeev_iterations = 10;
 
     /* Matrix of states to be orthogonalized using Gram-Schmidt algorithm
      * and the nusing Lanczos algorithm to solve Faddeev */
@@ -228,12 +231,15 @@ void iterate_faddeev(double* state_3N_symm_array,
     /* Calculate and fill spline arrays
      * In steps of 4, these arrays contain the coefficients for quadratic interpolation of momenta.
      * See Eq. (II.16) in https://doi.org/10.1007/BF01417437 */
+     std::cout << "Calculating spline-objects" << std::endl;
     S_spline(S_p_array, p_array, Np);
     S_spline(S_q_array, q_array, Nq);
+    std::cout << "   - Done!" << std::endl;
 
     /* Construct G_array
      * BEWARE: this is a multidimensional array that can consume a lot of memory
      * (e.g. Nalpha=50, Np=Nq=30, Nx=20: dimension = 4.5*1e7) */
+    std::cout << "Calculating G_array" << std::endl;
     double* G_array = new double [Nalpha * Nalpha * Np * Nq * Nx];
     make_G_array(G_array, Np, p_array, Nq, q_array, Nx, x_array,
                  Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, l_3N_array, two_j_3N_array,
@@ -267,7 +273,9 @@ void iterate_faddeev(double* state_3N_symm_array,
     /* Faddeev summation term */
     double total_sum = 0;
     /* Loop over alpha prime summation */
+    std::cout << "Starting Faddeev iterations" << std::endl;
     for (int idx_alpha_p=0; idx_alpha_p<Nalpha; idx_alpha_p++){
+        std::cout << idx_alpha_p << " / " << Nalpha << std::endl;
         L_p     = L_2N_array[idx_alpha_p];
         S_p     = S_2N_array[idx_alpha_p];
         J_p     = J_2N_array[idx_alpha_p];
@@ -294,22 +302,24 @@ void iterate_faddeev(double* state_3N_symm_array,
                         /* Evaluate p1 and p2 functions */
                         double p1 = pi1_tilde(q_array[idx_q], q_array[idx_q_p], x_array[idx_x]);
                         double p2 = pi2_tilde(q_array[idx_q], q_array[idx_q_p], x_array[idx_x]);
+                        //std::cout << "1" << std::endl;
 
                         /* Determine which spline-array index we need */
                         int idx_p2 = 0; while ((p_array[idx_p2] < p2) && (idx_p2 < Nq - 1)) idx_p2++; if (idx_p2 > 0) idx_p2--;
 
                         /* Calculate spline functions from pre-calculated spline-arrays */
                         S_interpolation = interpolate_using_spline_array(S_p_array, Np, p_array, idx_p2, p2, idx_p);
-
+                         //std::cout << "2" << std::endl;
 
                         /* Solve Lippmann-Schwinger equation for current q', q, alpha', and alpha */
                         /* !!! NOTE I USE NUCLEON MASS HERE, THIS IS SLIGHTLY WRONG BUT SHOULD MATTER LITTLE !!! */
                         double E_LS = E - q_array[idx_q_p]*q_array[idx_q_p] / (2 * 3*MN/4);
                         t_element = calculate_t_element(L, L_p, S, J, T,
 						                                E_LS, p_array[idx_p], MN,
-						                                Nq, q_array, wq_array,
+						                                Np, p_array, wp_array,
 						                                idx_p, Nq,
 						                                pot_ptr_nn, pot_ptr_np);
+                         //std::cout << "3" << std::endl;
 
                         /* Copy previous Faddeev solution (wave-function) */
                         if (current_iteration==0){  // For the first Faddeev-iteration we use the first column of the matrix
@@ -322,12 +332,14 @@ void iterate_faddeev(double* state_3N_symm_array,
                         /* Retrieve G_{alpha,alpha''}(q,q'',x) from pre-calculated G_array */
                         idx_G = idx_alpha * Nalpha*Np*Nq*Nx + idx_alpha_pp * Np*Nq*Nx + idx_q * Nq*Nx + idx_q_p * Nx + idx_x;
                         G_element = G_array[idx_G];
+                         //std::cout << "4" << std::endl;
 
                         double denominator = 1./(pow(p1, L_pp) * pow(p2, L_p));
 
                         /* Evaluate integral term and add to total sum */
                         total_sum +=  wq_array[idx_q_p] * q_array[idx_q_p] * q_array[idx_q_p]
                                     * wx_array[idx_x] * t_element * G_element * denominator * S_interpolation * prev_psi;
+                         //std::cout << "5" << std::endl;
                     }
                 }
             }

@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <complex>
 #include <algorithm>
 #include <stdexcept> // std::runtime_error
 #include <sstream> // std::stringstream

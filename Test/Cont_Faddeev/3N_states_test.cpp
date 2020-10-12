@@ -98,7 +98,7 @@ int main(int argc, char* argv[]){
 	else{
 		cout << "Starting Faddeev Iterator" << endl;
 		//for (int idx_alpha=0; idx_alpha<Nalpha; idx_alpha++){
-			idx_alpha = 0; /* Test case */
+			int idx_alpha = 0; /* Test case */
         	for (int idx_q=0; idx_q<Nq; idx_q++){
         	    for (int idx_p=0; idx_p<Np; idx_p++){
 					iterate_faddeev(state_3N_asym_array,

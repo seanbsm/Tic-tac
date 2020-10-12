@@ -1,44 +1,161 @@
 
 #include "faddeev_iterator.h"
 
+
+/* Finds the eigenvalues of a real,
+ * general N-by-N matrix A using LAPACK: geev.
+ * "wr" will be filled with the real components of
+ * the eigenvalues, in ascending order. We work
+ * with row-major matrices, as is usual
+ * in C & C++ */
+void find_eigenvalues(double* A, double* wr, double* vl, int N){
+    
+    char jobvl = 'V'; // left eigenvectors (u in u*A=u*w) of A are computed.
+    char jobvr = 'N'; // right eigenvectors (v in A*v=w*v) of A are not computed. 
+
+    /* Imaginary part of eigenvalues.
+     * This variable is not used anywhere
+     * and is merely required by the routine */
+    double  wi [N];
+
+    double* vr = NULL; // This will not be referenced since jobvl='N'
+
+    int lda  = N;   // leading dimension of A
+    int ldvr = 0;   // leading dimension of vr
+    int ldvl = N;   // leading dimension of vl
+
+    LAPACKE_dgeev(LAPACK_ROW_MAJOR, jobvl, jobvr, N, A, lda, wr, wi, vl, ldvl, vr, ldvr);
+}
+
+
 /* Copied from https://stackoverflow.com/questions/25313816/gram-schmidt-function-not-working-c/25320243
  * The function uses the modified Gram-Scmidt orgonalization routine to read a matrix of vectors (state_matrix)
- * to create an orgothogonal basis from them (state_basis). */
-void modified_gram_schmidt(double* state_matrix, double* state_basis, int N){
-    double r [N*N];
-    double v [N*N];
+ * to create an orgothogonal basis from them (state_basis).
+ * Each row corresponds to a state.  */
+void modified_gram_schmidt(double* state_matrix,
+                           double* state_basis,
+                           int num_states,
+                           int num_state_elements){
+    
+    /* Define easier-to-read internal notation */
+    int rows = num_states;
+    int cols = num_state_elements;
 
-    for (int i=0; i < N; i++){
-        for (int j=0; j<N; j++){
-            //v[i][j] = matrix[i][j];
-            v[i*N + j] = state_matrix[i*N + j];
+    double v [rows*cols];
+
+    /* Copy input state_matrix into v */
+    for (int i=0; i<rows; i++){   // state loop
+        for (int j=0; j<cols; j++){ // element loop
+            v[i*cols + j] = state_matrix[i*cols + j];
         }
     }
 
-    for (int i=0; i<N; i++){
-        //r[i][i] = getNorm(v[i]);
-        r[i*N + i] = 0;
-        for (int n=0; n<N; n++){
-            r[i*N + i] += v[i*N + n] * v[i*N + n];
-        }
-        r[i*N + i] = sqrt(r[i*N + i]);
+    /* Input state normalisation */
+    double norm;
+    double dot_product;
 
-        for (int j=0; j<N; j++){
-            //base[i][j] = v[i][j] / r[i][i];
-            state_basis[i*N + j] = v[i*N + j] / r[i*N + i];
+    /* Loop over states */
+    for (int i=0; i<rows; i++){        // state loop
+
+        /* Calculate normalisation of vi */
+        norm = 0;
+        for (int n=0; n<cols; n++){    // element loop
+            norm += v[i*cols + n] * v[i*cols + n];
+        }
+        norm = sqrt(norm);
+
+        /* Set orthogonal basis vector i to vi/|vi| */
+        for (int j=0; j<cols; j++){       // element loop
+            state_basis[i*cols + j] = v[i*cols + j] / norm;
         }
 
-        for (int k=i+1;  k<N; k++){
-            //r[i][k] = dotProduct(base[i],v[k]);
-            r[i*N + k] = 0;
-            for (int n=0; n<N; n++){
-                r[i*N + k] += state_basis[i*N + n] * v[k*N + n];
+        /* Set basis states k orthogonal to input state i */
+        for (int k=i+1;  k<rows; k++){ // state loop
+
+            /* Calculate dot-product of state i in state_basis with vk */
+            dot_product = 0;
+            for (int n=0; n<cols; n++){
+                dot_product += state_basis[i*cols + n] * v[k*cols + n];
             }
             
-            for (int j=0; j<N; j++){
-                //v[k][j] = v[k][j] - r[i][k] * base[i][j];
-                v[k*N + j] = v[k*N + j] - r[i*N + k] * state_basis[i*N + j];
+            /* Modify state vk */
+            for (int j=0; j<cols; j++){ // element loop
+                v[k*cols + j] = v[k*cols + j] - dot_product * state_basis[i*cols + j];
             }
+        }
+    }
+}
+
+void brute_force_lanczos_for_faddeev(double* states_array,
+                                     double* physical_state_array,
+                                     int& physical_state_idx,
+                                     int num_states,
+                                     int num_state_elements){
+    
+    /* Orthogonal state basis */
+    double ort_states_array [num_states*num_state_elements];
+
+    /* Call modified Gram-Schmidt routine to fill ort_states_array */
+    modified_gram_schmidt(states_array,
+                          ort_states_array,
+                          num_states,
+                          num_state_elements);
+
+    /* Calculate a and b state-bases transformation matrices */
+    double a_array [num_states*num_states];   // Transforms ort_state to state
+    double b_array [num_states*num_states];   // Transforms state to ort_state
+    double inner_product_for_a = NAN;
+    double inner_product_for_b = NAN;
+    for (int i=0; i<num_states; i++){
+        /* a and b are lower-triangular due to Gram-Schmidt orthogonalization */
+        for (int j=0; j<i+1; j++){
+            inner_product_for_a = 0;
+            inner_product_for_b = 0;
+
+            /* Inner-products of states */
+            for (int k=0; k<num_state_elements; k++){
+                inner_product_for_a += ort_states_array[j*num_state_elements + k] * states_array[i*num_state_elements + k];
+                inner_product_for_b += states_array[j*num_state_elements + k] * ort_states_array[i*num_state_elements + k];
+            }
+            
+            a_array[i*num_states + j] = inner_product_for_a;
+            b_array[i*num_states + j] = inner_product_for_b;
+        }
+    }
+
+    /* Calculate M-matrix from a and b */
+    double M_array [num_states*num_states];
+    for (int i=0; i<num_states; i++){
+        for (int n=0; n<num_states; n++){
+            
+            M_array[i*num_states + n] = 0;
+            for (int j=0; j<i+1; j++){
+                M_array[i*num_states + n] += b_array[i*num_states + j] * a_array[(j+1)*num_states + n];
+            }
+        }
+    }
+
+    /* Diagonalize M */
+    double M_eigenvalues  [num_states];
+    double M_eigenvectors [num_states*num_states];
+    find_eigenvalues(M_array, M_eigenvalues, M_eigenvectors, num_states);
+    
+    double closest_eigenvalue_to_one = 0;
+    /* See if any an eigenvalue is close to 1,
+     * and set state_value to this eigenvector */
+    for (int i=0; i<num_states; i++){
+        /* See if we have a physical state (must select eigenvalue closest to 1) */
+        if (abs(M_eigenvalues[i]-1)<1e-14 and closest_eigenvalue_to_one<M_eigenvalues[i] and M_eigenvalues[i]<=1){
+            physical_state_idx = i;
+        }
+    }
+
+    /* Express physical state in orthogonal basis */
+    /* Loop over linear expansion in ort_states */
+    for (int j=0; j<num_states; j++){
+        /* Loop over elements in given ort_state */
+        for (int k=0; k<num_state_elements; k++){
+            physical_state_array[k] += M_eigenvectors[physical_state_idx*num_states+j] * ort_states_array[j*num_state_elements + k];
         }
     }
 }

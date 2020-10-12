@@ -2,13 +2,26 @@
 #define FADDEEV_ITERATOR_H
 
 #include <math.h>
+#include <complex>
+#include "mkl.h"
 
 #include "lippmann_schwinger_solver.h"
 #include "auxiliary.h"
 #include "General_functions/coupling_coefficients.h"
 #include "Interactions/potential_model.h"
 
-void modified_gram_schmidt(double* state_matrix, double* state_basis, int N);
+void find_eigenvalues(double* A, double* wr, int N);
+
+void modified_gram_schmidt(double* state_matrix,
+                           double* state_basis,
+                           int num_states,
+                           int num_state_elements);
+
+void brute_force_lanczos_for_faddeev(double* states_array,
+                                     double* physical_state_array,
+                                     int& physical_state_idx,
+                                     int num_states,
+                                     int num_state_elements);
 
 void iterate_faddeev(double* state_3N_symm_array,
                      int Np, double* p_array, double* wp_array,

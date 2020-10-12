@@ -136,19 +136,19 @@ double calculate_t_element(int L, int L_p, int S, int J, int T,
 	make_denominator_array(D_array, mat_dim, k_array, wk_array, q, M);
 	
 	/* Construct 2N potential matrix <k|v|k_p> */
-	double V_nn_elements [6];
-	double V_np_elements [6];
-	double V_elements [6];
+	double V_IS_elements [6];	// Isoscalar (IS)
+	double V_nn_elements [6];	// neutron-neutron (nn)
+	double V_np_elements [6];	// neutron-proton (np)
 	double k=0, k_in=0, k_p=0, k_out=0;
 	for (int idx_k=0; idx_k<mat_dim; idx_k++){
         if (idx_k<Nk){k = k_array[idx_k];}	// We set to quadrature momentum
 		else		 {k = p;}				// We set to off-shell momentum p
-        k_in = k*hbarc;
+        k_in = k;//*hbarc;
                     
         for (int idx_k_p=0; idx_k_p<mat_dim; idx_k_p++){
 			if (idx_k_p<Nk){k_p = k_array[idx_k_p];}	// We set to quadrature momentum
 			else		   {k_p = q;} 					// We set to on-shell momentum q
-            k_out = k_p*hbarc;
+            k_out = k_p;//*hbarc;
 
 			/* We create an isoscalar potential */
 			if (T==1){ // Interaction can be either nn or np
@@ -156,22 +156,22 @@ double calculate_t_element(int L, int L_p, int S, int J, int T,
                 pot_ptr_np->V(k_in, k_out, coupled, S, J, T, V_np_elements);
 
 				for (int idx_element=0; idx_element<6; idx_element++){
-					V_elements[idx_element] = (1./3)*V_np_elements[idx_element] + (2./3)*V_nn_elements[idx_element];
+					V_IS_elements[idx_element] = (1./3)*V_np_elements[idx_element] + (2./3)*V_nn_elements[idx_element];
 				}
             }
             else{ 	   // Interaction must be np
-                pot_ptr_np->V(k_in, k_out, coupled, S, J, T, V_elements);
+                pot_ptr_np->V(k_in, k_out, coupled, S, J, T, V_IS_elements);
             }
 
 			/* Write element to potential matrix V_array */
 			if (coupled){
-				V_array[idx_row*mat_dim + idx_col]						 = extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_elements);
-				V_array[idx_row*mat_dim + idx_col + mat_dim]			 = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_elements); 
-				V_array[(idx_row + mat_dim)*mat_dim + idx_col]			 = extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_elements);
-				V_array[(idx_row + mat_dim)*mat_dim + idx_col + mat_dim] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_elements);
+				V_array[idx_row*mat_dim + idx_col]						 = extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_IS_elements);
+				V_array[idx_row*mat_dim + idx_col + mat_dim]			 = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_IS_elements); 
+				V_array[(idx_row + mat_dim)*mat_dim + idx_col]			 = extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_IS_elements);
+				V_array[(idx_row + mat_dim)*mat_dim + idx_col + mat_dim] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_IS_elements);
 			}
 			else{
-				V_array[idx_k*mat_dim + idx_k_p] = extract_potential_element_from_array(L, L_p, J, S, coupled, V_elements);
+				V_array[idx_k*mat_dim + idx_k_p] = extract_potential_element_from_array(L, L_p, J, S, coupled, V_IS_elements);
 			}
 		}
 	}

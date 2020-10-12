@@ -106,8 +106,8 @@ int main(int argc, char* argv[]){
         			             	Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N,
         			             	idx_alpha, idx_p, idx_q,
         			             	two_T_3N, two_J_3N, parity_3N,
-        			             	pot_ptr_np,
-        			             	pot_ptr_nn);
+        			             	pot_ptr_nn,
+        			             	pot_ptr_np);
 				}
 			}
 		}

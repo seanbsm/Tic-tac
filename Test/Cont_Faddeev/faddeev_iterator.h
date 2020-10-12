@@ -16,7 +16,7 @@ void iterate_faddeev(double* state_3N_symm_array,
                      int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* l_3N_array, int* two_j_3N_array,
                      int idx_alpha_proj, int idx_p_proj, int idx_q_proj,
                      int two_T, int two_J, int PAR,
-                     potential_model* pot_ptr_np,
-                     potential_model* pot_ptr_nn);
+                     potential_model* pot_ptr_nn,
+                     potential_model* pot_ptr_np);
 
 #endif // FADDEEV_ITERATOR_H

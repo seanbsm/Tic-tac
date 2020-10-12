@@ -210,8 +210,8 @@ void iterate_faddeev(double* state_3N_symm_array,
                      int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* l_3N_array, int* two_j_3N_array,
                      int idx_alpha, int idx_p, int idx_q,
                      int two_T, int two_J, int PAR,
-                     potential_model* pot_ptr_np,
-                     potential_model* pot_ptr_nn){
+                     potential_model* pot_ptr_nn,
+                     potential_model* pot_ptr_np){
     
     int Faddeev_iterations = 10;
 
@@ -292,8 +292,8 @@ void iterate_faddeev(double* state_3N_symm_array,
             two_l_pp = l_3N_array[idx_alpha_pp];
             two_j_pp = two_j_3N_array[idx_alpha_pp];
 
-            /* The two-body force can only allow for L_p!=L_pp, everything else must be the same */
-            if (two_l_p==two_l_pp and two_j_p==two_j_pp and T_p==T_pp and J_p==J_pp and S_p==S_pp and abs(L_p-L_pp)<=2){
+            /* The two-body force can only allow for L!=L_pp, everything else must be the same */
+            if (two_l==two_l_pp and two_j==two_j_pp and T==T_pp and J==J_pp and S==S_pp and abs(L-L_pp)<=2){
                 /* Loop over q prime integral */
                 for (int idx_q_p=0; idx_q_p<Nq; idx_q_p++){
                     /* Loop over x integral*/
@@ -313,9 +313,9 @@ void iterate_faddeev(double* state_3N_symm_array,
 
                         /* Solve Lippmann-Schwinger equation for current q', q, alpha', and alpha */
                         /* !!! NOTE I USE NUCLEON MASS HERE, THIS IS SLIGHTLY WRONG BUT SHOULD MATTER LITTLE !!! */
-                        double E_LS = E - q_array[idx_q_p]*q_array[idx_q_p] / (2 * 3*MN/4);
-                        t_element = calculate_t_element(L, L_p, S, J, T,
-						                                E_LS, p_array[idx_p], MN,
+                        double E_LS = E - q_array[idx_q]*q_array[idx_q] / (2 * 3*MN/4);
+                        t_element = calculate_t_element(L, L_pp, S, J, T,
+						                                E_LS, p1, MN,
 						                                Np, p_array, wp_array,
 						                                idx_p, Nq,
 						                                pot_ptr_nn, pot_ptr_np);

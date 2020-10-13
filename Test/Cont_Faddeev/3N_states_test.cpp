@@ -42,11 +42,15 @@ int main(int argc, char* argv[]){
 	/* Quadrature 3N momenta */
 	int Np	   		 = 10;
 	int Nq	   		 = 10;
+	int Nx 			 = 20;
 	int Nalpha 		 =  0;
 	double* p_array  = NULL;
 	double* q_array  = NULL;
 	double* wp_array = NULL;
 	double* wq_array = NULL;
+    double* x_array  = new double [Nx];
+    double* wx_array = new double [Nx];
+	calculate_angular_quadrature_grids(x_array, wx_array, Nx);
 
 	/* Momentum-representation of 3N state at quadrature nodes in p_array and q_array */
 	double* state_3N_symm_array = NULL;
@@ -92,39 +96,6 @@ int main(int argc, char* argv[]){
 		gauss(q_array, wq_array, Nq); rangeChange_0_inf(q_array, wq_array, 1000., Nq);
 	}
 
-
-	//double test_mat [9] = {0.68145061, 0.57856103, 0.86367043,
-	//					   0.78340389, 0.31313660, 0.11695929,
-	//					   0.67919365, 0.94635141, 0.72050563};
-	//double test_mat [9] = {12, -51,  -4,
-	//					    6, 167, -68,
-	//					   -4,  24, -41};
-	double test_mat [9] = {12, 6,  -4,
-						-51, 167, 24,
-						   -4,  -68, -41};
-	double test_base [9];
-	//double ctrl_base [9] = {6./7, -69./175, -58./175,
-	//					    3./7, 158./175,   6./175,
-	//					   -2./7,   6./35,  -33./35};
-	double ctrl_base [9] = {6./7, 3./7, -2./7,
-						    -69./175, 158./175,   6./35,
-						   -58./175,   6./175,  -33./35};
-
-	modified_gram_schmidt(test_mat, test_base, 3, 3);
-
-	for (int i=0; i<3; i++){
-		for (int j=0; j<3; j++){
-			std::cout << test_base[i*3 + j] << ", ";
-		}
-		std::cout << std::endl;
-	}
-	for (int i=0; i<3; i++){
-		for (int j=0; j<3; j++){
-			std::cout << ctrl_base[i*3 + j] << ", ";
-		}
-		std::cout << std::endl;
-	}
-
 	/* Loops for testing */
 	//double P, PP, Q, T;
 	////for (int idx_q=0; idx_q<Nq; idx_q++){
@@ -137,8 +108,7 @@ int main(int argc, char* argv[]){
 	//		}
 	//	}
 	//}
-
-	return 0;
+	//return 0;
 
 
 	if (use_premade_antisymmetric_states == true){
@@ -149,14 +119,25 @@ int main(int argc, char* argv[]){
 		antisymmetrize_state(state_3N_symm_array, state_3N_asym_array, A123, Np, Nq, Nalpha);
 	}
 	else{
+		/* Construct G_array
+    	 * BEWARE: this is a multidimensional array that can consume a lot of memory
+    	 * (e.g. Nalpha=50, Np=Nq=30, Nx=20: dimension = 4.5*1e7) */
+    	std::cout << "Calculating G_array" << std::endl;
+    	double* G_array = new double [Nalpha * Nalpha * Np * Nq * Nx];
+    	make_G_array(G_array, Np, p_array, Nq, q_array, Nx, x_array,
+    	             Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N,
+    	             two_T_3N, two_J_3N);
+
 		cout << "Starting Faddeev Iterator" << endl;
 		//for (int idx_alpha=0; idx_alpha<Nalpha; idx_alpha++){
 			int idx_alpha = 0; /* Test case */
         	for (int idx_q=0; idx_q<Nq; idx_q++){
         	    for (int idx_p=0; idx_p<Np; idx_p++){
 					iterate_faddeev(state_3N_asym_array,
+									G_array,
         			             	Np, p_array, wp_array,
         			             	Nq, q_array, wq_array,
+									Nx, x_array, wx_array,
         			             	Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N,
         			             	idx_alpha, idx_p, idx_q,
         			             	two_T_3N, two_J_3N, parity_3N,

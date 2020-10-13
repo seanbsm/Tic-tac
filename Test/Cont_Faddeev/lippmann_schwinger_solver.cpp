@@ -212,8 +212,6 @@ double calculate_t_element(int L, int L_p, int S, int J, int T,
 
 	double T_element_real = T_element.real();
 
-	std::cout << T_element << std::endl;
-
 	/* Delete temporary wave matrix */
 	delete [] V_array;
 	delete [] D_array;

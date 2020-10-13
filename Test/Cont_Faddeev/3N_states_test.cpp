@@ -92,43 +92,50 @@ int main(int argc, char* argv[]){
 		gauss(q_array, wq_array, Nq); rangeChange_0_inf(q_array, wq_array, 1000., Nq);
 	}
 
-	/* LS-test for 1S0 */
-	double P, PP, Q, T;
-	//for (int idx_q=0; idx_q<Nq; idx_q++){
-		Q = 48.4655691116; std::cout << Q << std::endl;
-		double E = Q*Q / MN;
-      	for (int idx_p=0; idx_p<Np; idx_p++){
-			P = p_array[idx_p];
-			for (int idx_pp=0; idx_pp<Np; idx_pp++){
-				PP = p_array[idx_pp];
-				//std::cout << P << " " << PP << std::endl;
-				//T = calculate_t_element(1, 1, 0, 1, 1,
-				//                        E, Q, MN,
-				//                        Np, p_array, wp_array,
-				//                        idx_p, idx_pp,
-				//                        pot_ptr_nn, pot_ptr_np);
-            	T = calculate_t_element(0, 0, 1, 1, 0,
-				                        E, Q, MN,
-				                        Np, p_array, wp_array,
-				                        idx_p, idx_pp,
-				                        pot_ptr_nn, pot_ptr_np);
-				T = calculate_t_element(0, 2, 1, 1, 0,
-				                        E, Q, MN,
-				                        Np, p_array, wp_array,
-				                        idx_p, idx_pp,
-				                        pot_ptr_nn, pot_ptr_np);
-				T = calculate_t_element(2, 0, 1, 1, 0,
-				                        E, Q, MN,
-				                        Np, p_array, wp_array,
-				                        idx_p, idx_pp,
-				                        pot_ptr_nn, pot_ptr_np);
-				T = calculate_t_element(2, 2, 1, 1, 0,
-				                        E, Q, MN,
-				                        Np, p_array, wp_array,
-				                        idx_p, idx_pp,
-				                        pot_ptr_nn, pot_ptr_np);
-			}
+
+	//double test_mat [9] = {0.68145061, 0.57856103, 0.86367043,
+	//					   0.78340389, 0.31313660, 0.11695929,
+	//					   0.67919365, 0.94635141, 0.72050563};
+	//double test_mat [9] = {12, -51,  -4,
+	//					    6, 167, -68,
+	//					   -4,  24, -41};
+	double test_mat [9] = {12, 6,  -4,
+						-51, 167, 24,
+						   -4,  -68, -41};
+	double test_base [9];
+	//double ctrl_base [9] = {6./7, -69./175, -58./175,
+	//					    3./7, 158./175,   6./175,
+	//					   -2./7,   6./35,  -33./35};
+	double ctrl_base [9] = {6./7, 3./7, -2./7,
+						    -69./175, 158./175,   6./35,
+						   -58./175,   6./175,  -33./35};
+
+	modified_gram_schmidt(test_mat, test_base, 3, 3);
+
+	for (int i=0; i<3; i++){
+		for (int j=0; j<3; j++){
+			std::cout << test_base[i*3 + j] << ", ";
 		}
+		std::cout << std::endl;
+	}
+	for (int i=0; i<3; i++){
+		for (int j=0; j<3; j++){
+			std::cout << ctrl_base[i*3 + j] << ", ";
+		}
+		std::cout << std::endl;
+	}
+
+	/* Loops for testing */
+	//double P, PP, Q, T;
+	////for (int idx_q=0; idx_q<Nq; idx_q++){
+	//	double E = Q*Q / MN;
+    //  	for (int idx_p=0; idx_p<Np; idx_p++){
+	//		P = p_array[idx_p];
+	//		for (int idx_pp=0; idx_pp<Np; idx_pp++){
+	//			PP = p_array[idx_pp];
+	//			
+	//		}
+	//	}
 	//}
 
 	return 0;

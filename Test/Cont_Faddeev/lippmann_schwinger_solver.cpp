@@ -37,10 +37,10 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
             potential_element = V_array[5];
         }
         else if (L<Lp){             // +-
-            potential_element = (-1)*V_array[3];
+            potential_element = V_array[3];
         }
         else{                       // -+
-            potential_element = (-1)*V_array[4];
+            potential_element = V_array[4];
         }
     }
     else{
@@ -58,50 +58,47 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
     return potential_element;
 }
 
-void make_denominator_array(cfloatType* D_array, int mat_dim, double* k_array, double* wk_array, double q, double M){
-
-	/* Number of quadrature points */
-	int N = mat_dim - 1;
+void make_denominator_array(cfloatType* D_array, int Nk, double* k_array, double* wk_array, double q, double M){
 
 	/* Reset D */
-	for (int i=0; i<mat_dim; i++){
+	for (int i=0; i<Nk+1; i++){
 		D_array[i] = 0;
 	}
 	
 	double temp = 0;
-	for (int i=0; i<N; i++){
-		temp = wk_array[i] / (k_array[i]*k_array[i] - q*q);
+	for (int i=0; i<Nk; i++){
+		temp = M*wk_array[i] / (k_array[i]*k_array[i] - q*q);
 		/* LS integral summation */
 		D_array[i]  = temp * k_array[i] * k_array[i];
 		/* Principle value prescription term */
-		D_array[N] -= temp;
+		D_array[Nk] -= temp;
 	}
-	D_array[N] *= q*q;
+	D_array[Nk] *= q*q;
 
 	/* Complex integration term. Only required in on-shell calculations */
-	D_array[N] += 0.5*J*q*pi*M;
+	D_array[Nk] += 0.5*J*q*pi*M;
 }
 
-void make_wave_matrix(cfloatType* F_array, cfloatType* D_array, int mat_dim, bool coupled){
+void make_wave_matrix(cfloatType* F_array, cfloatType* D_array, int Nk1, bool coupled){
 
-	for (int i=0; i<mat_dim; i++){
+	for (int i=0; i<Nk1; i++){
 		cfloatType factor = D_array[i];
 		
 		if (coupled == false){
 			/* Calculate V*D */
-			cdot_VS_colMaj(F_array + i, &factor, mat_dim);
+			cdot_VS_colMaj(F_array + i, &factor, Nk1);
 
 			/* Add identity matrix */
-			F_array[i*mat_dim + i] += 1;
+			F_array[i*Nk1 + i] += 1;
 		}
 		else{
 			/* Calculate V*D */
-			cdot_VS_colMaj(F_array + i		   ,  &factor, 2*mat_dim);
-			cdot_VS_colMaj(F_array + i + mat_dim, &factor, 2*mat_dim);
+			cdot_VS_colMaj(F_array + i		 , &factor, 2*Nk1);
+			cdot_VS_colMaj(F_array + i + Nk1,  &factor, 2*Nk1);
 
 			/* Add identity matrix */
-			F_array[2*i*mat_dim + i] 					 += 1;
-			F_array[2*(i+mat_dim)*mat_dim + i + mat_dim] += 1;
+			F_array[i*2*Nk1 + i] 			 += 1;
+			F_array[(i+Nk1)*2*Nk1 + i + Nk1] += 1;
 		}
 	}
 }
@@ -117,35 +114,40 @@ double calculate_t_element(int L, int L_p, int S, int J, int T,
 
 	double q = sqrt(E*M);
 
-	int mat_dim    = Nk+1;
-	int mat_dim_sq = mat_dim * mat_dim;
+	/* Number of quadrature points plus on-shell momentum (x2 for coupled matrices) */
+	int Nk1 = Nk + 1;
+	int Nk2 = 2*Nk1;
 
-	double* V_array = new double [mat_dim_sq];								// Potential matrix
-	cfloatType* D_array = new cfloatType [mat_dim];		// Denominator vector
-	cfloatType* F_array = new cfloatType [mat_dim_sq];	// Wave matrix
-	cfloatType* T_array = new cfloatType [mat_dim_sq];	// T-matrix
+	/* Matrix dimension */
+	int mat_dim = Nk1;
 
 	/* Detemine if this is a coupled channel */
 	bool coupled = false;
 	if (L!=L_p or (L==L_p and L!=J and J!=0)){
-		coupled = true;
+		coupled  = true;
 		mat_dim *= 2;
 	}
+	int mat_dim_sq = mat_dim * mat_dim;
+
+	double* 	V_array = new double 	 [mat_dim_sq];								// Potential matrix
+	cfloatType* D_array = new cfloatType [Nk1];		// Denominator vector
+	cfloatType* F_array = new cfloatType [mat_dim_sq];	// Wave matrix
+	cfloatType* T_array = new cfloatType [mat_dim_sq];	// T-matrix
 	
 	/* Set resolvent array pointer to pre-calculated arrays */
-	make_denominator_array(D_array, mat_dim, k_array, wk_array, q, M);
+	make_denominator_array(D_array, Nk, k_array, wk_array, q, M);
 	
 	/* Construct 2N potential matrix <k|v|k_p> */
 	double V_IS_elements [6];	// Isoscalar (IS)
 	double V_nn_elements [6];	// neutron-neutron (nn)
 	double V_np_elements [6];	// neutron-proton (np)
 	double k=0, k_in=0, k_p=0, k_out=0;
-	for (int idx_k=0; idx_k<mat_dim; idx_k++){
+	for (int idx_k=0; idx_k<Nk1; idx_k++){
         if (idx_k<Nk){k = k_array[idx_k];}	// We set to quadrature momentum
 		else		 {k = p;}				// We set to off-shell momentum p
         k_in = k;//*hbarc;
                     
-        for (int idx_k_p=0; idx_k_p<mat_dim; idx_k_p++){
+        for (int idx_k_p=0; idx_k_p<Nk1; idx_k_p++){
 			if (idx_k_p<Nk){k_p = k_array[idx_k_p];}	// We set to quadrature momentum
 			else		   {k_p = q;} 					// We set to on-shell momentum q
             k_out = k_p;//*hbarc;
@@ -165,17 +167,17 @@ double calculate_t_element(int L, int L_p, int S, int J, int T,
 
 			/* Write element to potential matrix V_array */
 			if (coupled){
-				V_array[idx_row*mat_dim + idx_col]						 = extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_IS_elements);
-				V_array[idx_row*mat_dim + idx_col + mat_dim]			 = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_IS_elements); 
-				V_array[(idx_row + mat_dim)*mat_dim + idx_col]			 = extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_IS_elements);
-				V_array[(idx_row + mat_dim)*mat_dim + idx_col + mat_dim] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_IS_elements);
+				V_array[idx_k*Nk2 + idx_k_p]			   = extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_IS_elements);
+				V_array[idx_k*Nk2 + idx_k_p + Nk1]		   = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_IS_elements);
+				V_array[(idx_k + Nk1)*Nk2 + idx_k_p]	   = extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_IS_elements);
+				V_array[(idx_k + Nk1)*Nk2 + idx_k_p + Nk1] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_IS_elements);
 			}
 			else{
-				V_array[idx_k*mat_dim + idx_k_p] = extract_potential_element_from_array(L, L_p, J, S, coupled, V_IS_elements);
+				V_array[idx_k*Nk1 + idx_k_p] = extract_potential_element_from_array(L, L_p, J, S, coupled, V_IS_elements);
 			}
 		}
 	}
-
+	
 	/* Copy potentials into wave- and T-matrices
 	 * (required since to BLAS-routines rewrites matrices). */
 	for (int i=0; i<mat_dim_sq; i++){
@@ -184,37 +186,39 @@ double calculate_t_element(int L, int L_p, int S, int J, int T,
 	}
 	
 	/* Calculate wave-matrix */
-	make_wave_matrix(F_array, D_array, mat_dim, false);
-	
+	make_wave_matrix(F_array, D_array, Nk1, coupled);
+
 	/* Solve LS */
 	solve_MM_lin_eq(F_array, T_array, mat_dim);
 	
-	/* Delete temporary wave matrix */
-	delete [] D_array;
-	delete [] F_array;
-	delete [] V_array;
-	delete [] T_array;
-
 	cfloatType T_element = NAN;
 	if (coupled){
-		if (L<L_p){		 // upper-right block of coupled T-matrix
-			T_element = T_array[idx_row*mat_dim + idx_col + mat_dim]; 
+		if (L>L_p){		 // upper-right block of coupled T-matrix
+			T_element = T_array[idx_row*Nk2 + idx_col + Nk1]; 
 		}
-		else if (L>L_p){ // lower-left block of coupled T-matrix
-			T_element = T_array[(idx_row + mat_dim)*mat_dim + idx_col];
+		else if (L<L_p){ // lower-left block of coupled T-matrix
+			T_element = T_array[(idx_row + Nk1)*Nk2 + idx_col];
 		}
 		else if (L<J){	 // upper-left block of coupled T-matrix
-			T_element = T_array[idx_row*mat_dim + idx_col];
+			T_element = T_array[idx_row*Nk2 + idx_col];
 		}
 		else{			 // lower-right block of coupled T-matrix
-			T_element = T_array[(idx_row + mat_dim)*mat_dim + idx_col + mat_dim];
+			T_element = T_array[(idx_row + Nk1)*Nk2 + idx_col + Nk1];
 		}
 	}
 	else{
-		T_element = T_array[idx_row*mat_dim + idx_col];
+		T_element = T_array[idx_row*Nk1 + idx_col];
 	}
 
 	double T_element_real = T_element.real();
+
+	std::cout << T_element << std::endl;
+
+	/* Delete temporary wave matrix */
+	delete [] V_array;
+	delete [] D_array;
+	delete [] F_array;
+	delete [] T_array;
 
 	return T_element_real;
 }

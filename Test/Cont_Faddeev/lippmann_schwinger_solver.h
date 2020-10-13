@@ -21,9 +21,9 @@ void solve_MM_lin_eq(std::complex<double>* A, std::complex<double>* B, int N);
 
 double extract_potential_element_from_array(int L, int Lp, int J, int S, bool coupled, double* V_array);
 
-void make_denominator_array(cfloatType* D_array, int mat_dim, double* k_array, double* wk_array, double q, double M);
+void make_denominator_array(cfloatType* D_array, int Nk, double* k_array, double* wk_array, double q, double M);
 
-void make_wave_matrix(cfloatType* F_array, cfloatType* D_array, int mat_dim, bool coupled);
+void make_wave_matrix(cfloatType* F_array, cfloatType* D_array, int Nk1, bool coupled);
 
 double calculate_t_element(int L, int L_p, int S, int J, int T,
 						   double E, double p, double M,

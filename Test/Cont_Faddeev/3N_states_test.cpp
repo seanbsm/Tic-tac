@@ -17,6 +17,8 @@
 #include "Interactions/potential_model.h"
 #include "Triton_states/read_psi.h"
 
+#include "lippmann_schwinger_solver.h"
+
 using namespace std;
 
 int main(int argc, char* argv[]){
@@ -38,8 +40,8 @@ int main(int argc, char* argv[]){
     int J_2N_max 	 = 3;
 
 	/* Quadrature 3N momenta */
-	int Np	   		 = 30;
-	int Nq	   		 = 15;
+	int Np	   		 = 10;
+	int Nq	   		 = 10;
 	int Nalpha 		 =  0;
 	double* p_array  = NULL;
 	double* q_array  = NULL;
@@ -66,8 +68,10 @@ int main(int argc, char* argv[]){
 	bool use_premade_symmetric_states 	  = false;
 	bool use_premade_antisymmetric_states = false;
 
-	potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
-	potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
+	potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
+	potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
+	//potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
+	//potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
 	
 	if (use_premade_symmetric_states){
 		cout << "Reading states from file" << endl;
@@ -87,6 +91,48 @@ int main(int argc, char* argv[]){
 		wq_array = new double [Nq];
 		gauss(q_array, wq_array, Nq); rangeChange_0_inf(q_array, wq_array, 1000., Nq);
 	}
+
+	/* LS-test for 1S0 */
+	double P, PP, Q, T;
+	//for (int idx_q=0; idx_q<Nq; idx_q++){
+		Q = 48.4655691116; std::cout << Q << std::endl;
+		double E = Q*Q / MN;
+      	for (int idx_p=0; idx_p<Np; idx_p++){
+			P = p_array[idx_p];
+			for (int idx_pp=0; idx_pp<Np; idx_pp++){
+				PP = p_array[idx_pp];
+				//std::cout << P << " " << PP << std::endl;
+				//T = calculate_t_element(1, 1, 0, 1, 1,
+				//                        E, Q, MN,
+				//                        Np, p_array, wp_array,
+				//                        idx_p, idx_pp,
+				//                        pot_ptr_nn, pot_ptr_np);
+            	T = calculate_t_element(0, 0, 1, 1, 0,
+				                        E, Q, MN,
+				                        Np, p_array, wp_array,
+				                        idx_p, idx_pp,
+				                        pot_ptr_nn, pot_ptr_np);
+				T = calculate_t_element(0, 2, 1, 1, 0,
+				                        E, Q, MN,
+				                        Np, p_array, wp_array,
+				                        idx_p, idx_pp,
+				                        pot_ptr_nn, pot_ptr_np);
+				T = calculate_t_element(2, 0, 1, 1, 0,
+				                        E, Q, MN,
+				                        Np, p_array, wp_array,
+				                        idx_p, idx_pp,
+				                        pot_ptr_nn, pot_ptr_np);
+				T = calculate_t_element(2, 2, 1, 1, 0,
+				                        E, Q, MN,
+				                        Np, p_array, wp_array,
+				                        idx_p, idx_pp,
+				                        pot_ptr_nn, pot_ptr_np);
+			}
+		}
+	//}
+
+	return 0;
+
 
 	if (use_premade_antisymmetric_states == true){
 		cout << "Reading P123 from file and calculating A123" << endl;

@@ -64,6 +64,8 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
 void read_P123_csv_data_file(double* P123);
 void read_P123_bin_data_file(double* P123, int P123_array_size);
 
+void get_h5_P123_dimensions(int& Nalpha, int& Np, int& Nq);
+
 void calculate_antisymmetrization_operator(int &Np, int &Nq, int& Nalpha,
                                            double** A123,
                                            double* q_array,

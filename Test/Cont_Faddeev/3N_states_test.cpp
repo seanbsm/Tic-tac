@@ -56,6 +56,9 @@ int main(int argc, char* argv[]){
 	double* state_3N_symm_array = NULL;
 	double* state_3N_asym_array = NULL;
 
+	/* Permutation operator */
+	double* P123_array  = NULL;
+
 	/* Anti-symmetrization operator */
 	double* A123  = NULL;
 
@@ -69,8 +72,8 @@ int main(int argc, char* argv[]){
 
 	/* Tells the program to read pre-calculated antisymmetric triton states.
 	 * Handy for small tests since the P123-file can be huge */
-	bool use_premade_symmetric_states 	  = false;
-	bool use_premade_antisymmetric_states = false;
+	bool use_premade_symmetric_states 	  = true;
+	bool use_premade_antisymmetric_states = true;
 
 	potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
 	potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
@@ -119,33 +122,25 @@ int main(int argc, char* argv[]){
 		antisymmetrize_state(state_3N_symm_array, state_3N_asym_array, A123, Np, Nq, Nalpha);
 	}
 	else{
-		/* Construct G_array
-    	 * BEWARE: this is a multidimensional array that can consume a lot of memory
-    	 * (e.g. Nalpha=50, Np=Nq=30, Nx=20: dimension = 4.5*1e7) */
-    	std::cout << "Calculating G_array" << std::endl;
-    	double* G_array = new double [Nalpha * Nalpha * Np * Nq * Nx];
-    	make_G_array(G_array, Np, p_array, Nq, q_array, Nx, x_array,
-    	             Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N,
-    	             two_T_3N, two_J_3N);
+		cout << "Read P123 dimensions from h5-file" << endl;
+		int Nalpha_P123 = 0;
+		int Np_P123 = 0;
+		int Nq_P123 = 0;
+		get_h5_P123_dimensions(Nalpha_P123, Np_P123, Nq_P123);
+    	P123_array = new double [Np_P123 * Nq_P123 * Nalpha_P123 * Np_P123 * Nq_P123 * Nalpha_P123];
+
+		cout << "Reading P123 from file" << endl;
+		//read_P123_h5_data_file(P123_array, Nq, q_array, Np, p_array);
 
 		cout << "Starting Faddeev Iterator" << endl;
-		//for (int idx_alpha=0; idx_alpha<Nalpha; idx_alpha++){
-			int idx_alpha = 0; /* Test case */
-        	for (int idx_q=0; idx_q<Nq; idx_q++){
-        	    for (int idx_p=0; idx_p<Np; idx_p++){
-					iterate_faddeev(state_3N_asym_array,
-									G_array,
-        			             	Np, p_array, wp_array,
-        			             	Nq, q_array, wq_array,
-									Nx, x_array, wx_array,
-        			             	Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N,
-        			             	idx_alpha, idx_p, idx_q,
-        			             	two_T_3N, two_J_3N, parity_3N,
-        			             	pot_ptr_nn,
-        			             	pot_ptr_np);
-				}
-			}
-		//}
+		//calculate_faddeev_convergence(state_3N_asym_array,
+		//							  P123_array,
+        //             				  Np, p_array, wp_array,
+        //             				  Nq, q_array, wq_array,
+        //             				  Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N,
+        //             				  two_T_3N, two_J_3N, parity_3N,
+        //             				  pot_ptr_nn,
+        //             				  pot_ptr_np);
 	}
 	
 	/* This function will calculate the 3N c.m. kinetic energy T */

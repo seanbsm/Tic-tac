@@ -350,6 +350,55 @@ void read_P123_bin_data_file(double* P123, int P123_array_size){
     //delete [] element_array;
 }
 
+void get_h5_P123_dimensions(int& Nalpha, int& Np, int& Nq){
+    // ---------------------------------------------- READ 3N --------------------------------------------
+
+    char filename[300];
+
+    hid_t   file_id_3, dataset_id_3;
+    herr_t  ret_3;
+
+    int i_file3 = sprintf(filename, "../../../Make_P123_matrix/data_out/P123_J3_1_PAR_1_T3_1.h5");
+    if (i_file3 < 0){
+        raise_error("Couldn't locate P123-matrix h5-file.");
+    }
+
+    printf("read file %s\n", filename);
+
+    file_id_3 = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+
+    // determine Np, Nq and Nalpha
+    int N_h5_3[1];
+
+    // N_p
+    dataset_id_3 = H5Dopen(file_id_3, "Np", H5P_DEFAULT);
+    ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
+    check_h5_read_call(ret_3);
+    int Np_3N_3 = N_h5_3[0];
+    ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
+
+    // N_q
+    dataset_id_3 = H5Dopen(file_id_3, "Nq", H5P_DEFAULT);
+    ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
+    check_h5_read_call(ret_3);
+    int Nq_3N_3 = N_h5_3[0];
+    ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
+
+    // N_alpha
+    dataset_id_3 = H5Dopen(file_id_3, "Nalpha", H5P_DEFAULT);
+    ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
+    check_h5_read_call(ret_3);
+    int Jj_dim_3 = N_h5_3[0];
+    ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
+
+    Nalpha = Jj_dim_3;
+    Np     = Np_3N_3;
+    Nq     = Nq_3N_3;
+}
+
 void calculate_antisymmetrization_operator(int &Np, int &Nq, int& Nalpha, double** A123, double* q_array, double* p_array){
     
     int D123_dim = Np * Nq * Nalpha;

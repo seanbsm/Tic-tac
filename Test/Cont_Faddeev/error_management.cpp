@@ -7,4 +7,8 @@ void raise_error (std::string error_cause){
         "There was an error in reading the data. Are you sure you've understood the data format?"
         << std::endl;
     }
+    else{
+        std::cout << error_cause << std::endl;
+    }
+    std::exit(0);
 }

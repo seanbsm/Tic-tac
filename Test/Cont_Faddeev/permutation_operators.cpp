@@ -24,6 +24,8 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
    
     // ---------------------------------------------- READ 3N --------------------------------------------
 
+    bool print_content = false;
+
     char filename[300];
 
     hid_t   file_id_3, dataset_id_3;
@@ -35,7 +37,8 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     //    P123[i] = 0.0;
     //}
 
-    int i_file3 = sprintf(filename, "../../../Make_P123_matrix/data_out/P123_J3_1_PAR_1_T3_1.h5");
+    //int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_J3_1_PAR_1_T3_1.h5");
+    int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_small.h5");
     if (i_file3 < 0){
         raise_error("Couldn't locate P123-matrix h5-file.");
     }
@@ -88,7 +91,7 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     double p_3N_3[Np_3N_3];
     double wp_3N_3[Np_3N_3];
 
-    printf("\np mesh:\n");
+    if(print_content){ printf("\np mesh:\n"); }
 
     ret_3 = H5TBread_table( file_id_3, "p mesh", p_dst_size_3, p_dst_offset_3, p_dst_sizes_3, p_h5_3 );
     check_h5_read_table_call(ret_3);
@@ -96,7 +99,7 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     {
         p_3N_3[i] = p_h5_3[i].mesh_ptable;
         wp_3N_3[i] = p_h5_3[i].weight_ptable;
-        printf("%d %.3f %.3f\n", i, p_3N_3[i], wp_3N_3[i]);
+       if(print_content){  printf("%d %.3f %.3f\n", i, p_3N_3[i], wp_3N_3[i]); }
     }
 
     // q_mesh
@@ -116,7 +119,7 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
                                 sizeof( q_h5_3[0].weight_qtable )
                               };
 
-    printf("q mesh:\n");
+    if(print_content){ printf("q mesh:\n"); }
 
     ret_3 = H5TBread_table( file_id_3, "q mesh", q_dst_size_3, q_dst_offset_3, q_dst_sizes_3, q_h5_3 );
     check_h5_read_table_call(ret_3);
@@ -124,10 +127,10 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     {
         q_3N_3[i] = q_h5_3[i].mesh_qtable;
         wq_3N_3[i] = q_h5_3[i].weight_qtable;
-        printf("%d %.3f %.3f\n", i, q_3N_3[i], wq_3N_3[i]);
+        if(print_content){ printf("%d %.3f %.3f\n", i, q_3N_3[i], wq_3N_3[i]); }
     }
 
-    printf("Check mesh systems...\n");
+    if(print_content){ printf("Check mesh systems...\n"); }
     if ((Nq_3N != Nq_3N_3) || (Np_3N != Np_3N_3))
     {
         raise_error("Inconsistent mesh systems!");
@@ -191,8 +194,8 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
 
     ret_3 = H5TBread_table( file_id_3, "pw channels", pw_dst_size_3, pw_dst_offset_3, pw_dst_sizes_3, pw_h5_3 );
     check_h5_read_table_call(ret_3);
-    printf("\nNalpha = %d\n", Jj_dim_3);
-    printf("  i   L   S   J   T   l  2*j\n");
+    if(print_content){ printf("\nNalpha = %d\n", Jj_dim_3);
+                       printf("  i   L   S   J   T   l  2*j\n"); }
     for (int i = 0; i <= Jj_dim_3 - 1; i++)
     {
         L12_Jj_3[i] = pw_h5_3[i].L_pwtable;
@@ -201,7 +204,7 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
         T12_Jj_3[i] = pw_h5_3[i].T_pwtable;
         l3_Jj_3[i] = pw_h5_3[i].l_pwtable;
         two_j3_Jj_3[i] = pw_h5_3[i].twoj_pwtable;
-        printf("%3d %3d %3d %3d %3d %3d %3d\n", i, L12_Jj_3[i], S12_Jj_3[i], J12_Jj_3[i], T12_Jj_3[i], l3_Jj_3[i], two_j3_Jj_3[i]);
+        if(print_content){ printf("%3d %3d %3d %3d %3d %3d %3d\n", i, L12_Jj_3[i], S12_Jj_3[i], J12_Jj_3[i], T12_Jj_3[i], l3_Jj_3[i], two_j3_Jj_3[i]); }
     }
 
     // matrix elements
@@ -216,7 +219,7 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     //MKL_INT64 P123_dim = Np_3N_3 * Nq_3N_3 * Jj_dim_3;
     //MKL_INT64 P123_dim_sq = P123_dim * P123_dim;
 
-    printf("Read matrix elements...\n");
+    if(print_content){ printf("Read matrix elements...\n"); }
 
     dataset_id_3 = H5Dopen(file_id_3, "matrix elements", H5P_DEFAULT);
 
@@ -358,7 +361,8 @@ void get_h5_P123_dimensions(int& Nalpha, int& Np, int& Nq){
     hid_t   file_id_3, dataset_id_3;
     herr_t  ret_3;
 
-    int i_file3 = sprintf(filename, "../../../Make_P123_matrix/data_out/P123_J3_1_PAR_1_T3_1.h5");
+    //int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_J3_1_PAR_1_T3_1.h5");
+    int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_small.h5");
     if (i_file3 < 0){
         raise_error("Couldn't locate P123-matrix h5-file.");
     }
@@ -409,13 +413,10 @@ void calculate_antisymmetrization_operator(int &Np, int &Nq, int& Nalpha, double
     //read_P123_bin_data_file(*A123, D123_dim_sq);
     //read_P123_csv_data_file(*A123);
     read_P123_h5_data_file(*A123, Nq, q_array, Np, p_array);
-
+    
     /* Add square P123-term */
     #pragma omp parallel for 
     for (int idx=0; idx<D123_dim_sq; idx++){
-        if (idx<20){
-            std::cout << (*A123)[idx] << std::endl;
-        }
         (*A123)[idx] *= 2;
     }
 

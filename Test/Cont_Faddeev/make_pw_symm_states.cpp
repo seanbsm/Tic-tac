@@ -64,7 +64,7 @@ void construct_symmetric_pw_states(int two_J_3N,
     for (int J_2N=J_2N_min; J_2N<J_2N_max+1; J_2N++){
         /* S_2N loop */
         for (int S_2N=0; S_2N<2; S_2N++){
-            L_2N_min = J_2N - S_2N;
+            L_2N_min = (int) abs(J_2N - S_2N);
             L_2N_max = J_2N + S_2N;
             /* L_2N loop */
             for (int L_2N=L_2N_min; L_2N<L_2N_max+1; L_2N++){
@@ -81,7 +81,7 @@ void construct_symmetric_pw_states(int two_J_3N,
                                     if ( std::abs(2*J_2N-two_J_1N)<=two_J_3N and two_J_3N<=(2*J_2N+two_J_1N) ){
                                         /* Check if triangle inequality is satisfied for two_T_3N */
                                         if ( std::abs(2*T_2N-1)<=two_T_3N and two_T_3N<=(2*T_2N+1) ){
-                                            L_1N_min = (int) (two_J_1N - 1)/2;
+                                            L_1N_min = (int) (abs(two_J_1N - 1))/2;
                                             L_1N_max = (int) (two_J_1N + 1)/2;
                                             /* L_1N loop */
                                             for (int L_1N=L_1N_min; L_1N<L_1N_max+1; L_1N++){

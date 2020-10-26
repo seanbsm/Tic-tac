@@ -25,6 +25,7 @@ void make_denominator_array(cfloatType* D_array, int Nk, double* k_array, double
 void make_wave_matrix(cfloatType* F_array, cfloatType* D_array, int Nk1, bool coupled);
 
 double calculate_t_element(double* V_prestored_array,
+						   double* t_array,
 						   int L, int L_p, int S, int J, int T,
 						   double E, double M,
 						   int Nk, double* k_array, double* wk_array,

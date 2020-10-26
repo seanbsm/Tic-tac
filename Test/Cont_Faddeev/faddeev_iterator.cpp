@@ -369,9 +369,6 @@ void calculate_potential_matrices_array(double* V_unco_array,
                                         int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array,
                                         potential_model* pot_ptr_nn,
                                         potential_model* pot_ptr_np){
-    
-    /* V_mat dimension */
-    int mat_dim = Nalpha*Np;
 
     double V_IS_elements [6];	// Isoscalar (IS)
 	double V_nn_elements [6];	// neutron-neutron (nn)
@@ -380,17 +377,17 @@ void calculate_potential_matrices_array(double* V_unco_array,
 	double p_r=0, p_in=0, p_c=0, p_out=0;
     /* Row state */
     for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
-        int L_r     = L_2N_array[idx_alpha_r];
-        int S_r     = S_2N_array[idx_alpha_r];
-        int J_r     = J_2N_array[idx_alpha_r];
-        int T_r     = T_2N_array[idx_alpha_r];
+        int L_r = L_2N_array[idx_alpha_r];
+        int S_r = S_2N_array[idx_alpha_r];
+        int J_r = J_2N_array[idx_alpha_r];
+        int T_r = T_2N_array[idx_alpha_r];
 
         /* Column state */
         for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
-            int L_c     = L_2N_array[idx_alpha_c];
-            int S_c     = S_2N_array[idx_alpha_c];
-            int J_c     = J_2N_array[idx_alpha_c];
-            int T_c     = T_2N_array[idx_alpha_c];
+            int L_c = L_2N_array[idx_alpha_c];
+            int S_c = S_2N_array[idx_alpha_c];
+            int J_c = J_2N_array[idx_alpha_c];
+            int T_c = T_2N_array[idx_alpha_c];
 
             /* Check if possible channel through interaction */
             if (T_r==T_c and J_r==J_c and S_r==S_c and abs(L_r-L_c)<=2){
@@ -400,14 +397,18 @@ void calculate_potential_matrices_array(double* V_unco_array,
 	            	coupled  = true;
 	            }
 
-                for (int idx_p_r=0; idx_p_r<Np; idx_p_r++){
-                    int idx_V_r = idx_alpha_r*Np + idx_p_r;
+                /* Skip redundant calculations by only doing the coupled calculation when L_r<L_c */
+                if (coupled){
+                    if ( L_r<L_c==false ){
+                        continue;
+                    }
+                }
 
+                for (int idx_p_r=0; idx_p_r<Np; idx_p_r++){
                     p_r = p_array[idx_p_r];
                     p_in = p_r;//*hbarc;
 
                     for (int idx_p_c=0; idx_p_c<Np; idx_p_c++){
-                        int idx_V_c = idx_alpha_c*Np + idx_p_c;
 	                    p_c = p_array[idx_p_c];
                         p_out = p_c;//*hbarc;
 
@@ -424,18 +425,29 @@ void calculate_potential_matrices_array(double* V_unco_array,
                         }
 
 	                    /* Write element to potential matrix V_array */
-                       // V_mat_array[idx_V_r*mat_dim + idx_V_c] = extract_potential_element_from_array(L_r, L_c, J_r, S_r, coupled, V_IS_elements);
                         if (coupled){
                             int step_V_coup = J_r-1;
 			            	V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c]	   = extract_potential_element_from_array(J_r-1, J_r-1, J_r, S_r, coupled, V_IS_elements);
 			            	V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c + Np] = extract_potential_element_from_array(J_r-1, J_r+1, J_r, S_r, coupled, V_IS_elements);
 			            	V_coup_array[step_V_coup*4*Np*Np + (idx_p_r + Np)*2*Np + idx_p_c]	   = extract_potential_element_from_array(J_r+1, J_r-1, J_r, S_r, coupled, V_IS_elements);
 			            	V_coup_array[step_V_coup*4*Np*Np + (idx_p_r + Np)*2*Np + idx_p_c + Np] = extract_potential_element_from_array(J_r+1, J_r+1, J_r, S_r, coupled, V_IS_elements);
-			            }
+			            
+                            //if (J_r==1){
+                            //    std::cout << V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c]	    << std::endl;
+                            //    std::cout << V_coup_array[step_V_coup*4*Np*Np + (idx_p_r + Np)*2*Np + idx_p_c]	    << std::endl;
+			            	//    std::cout << V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c + Np] << std::endl;
+			            	//    std::cout << V_coup_array[step_V_coup*4*Np*Np + (idx_p_r + Np)*2*Np + idx_p_c + Np] << std::endl;
+                            //}
+                        
+                        }
 			            else{
                             int step_V_unco = L_r + S_r + (J_r!=0) - (J_r==0 and L_r!=J_r);   // This indexing gives room for the 3P0-wave
 			            	V_unco_array[step_V_unco*Np*Np + idx_p_r*Np + idx_p_c] = extract_potential_element_from_array(L_r, L_c, J_r, S_r, coupled, V_IS_elements);
-			            }
+
+                            //if (S_r==0 and J_r==0){
+                            //    std::cout << V_unco_array[step_V_unco*Np*Np + idx_p_r*Np + idx_p_c] << std::endl;
+                            //}
+                        }
                     }
                 }
             }
@@ -469,6 +481,17 @@ void calculate_faddeev_convergence(double* state_array,
                                        pot_ptr_np);
     std::cout << "Done." << std::endl;
 
+/*
+    double q = 21.67446140943171;
+    double E_LS = q*q/MN; double t_element;
+    t_element = calculate_t_element(&V_coup_array[0],
+                                    0, 2, 1, 1, 1,
+			                		E_LS, MN,
+			                		Np, p_array, wp_array,
+			                		0, 0,
+			                		pot_ptr_nn, pot_ptr_np);
+    raise_error("Test printout over.");
+*/
 
     /* K-matrix */
     double* K_array = new double [basis_size * basis_size];
@@ -537,10 +560,12 @@ void calculate_faddeev_convergence(double* state_array,
         for (int i=0; i<basis_size; i++){
 
             /* Ensure |lambda|<=1 */
-            if (abs(lambda_array[i])>1){
-                raise_error ("lambda is too big! Fix yo algorithm");
-            }
-
+            //if (abs(lambda_array[i])>1){
+            //    raise_error ("lambda is too big! Fix yo algorithm");
+            //}
+            
+            std::cout << lambda_array[i] << std::endl;
+            
             if (lambda_current < lambda_array[i]){
                 lambda_current = lambda_array[i];
             }
@@ -590,25 +615,29 @@ double iterate_faddeev(double Z,
                        potential_model* pot_ptr_nn,
                        potential_model* pot_ptr_np){
 
-    int idx_alpha = idx_alpha_r;
-    int idx_p = idx_p_r;
-    int idx_q = idx_q_r;
+    double mu1 = 0.50*MN;
+    double mu2 = 0.75*MN;
 
-    if (idx_q_r != idx_q_c){
-        return 0;
-    }
+    /* Projection state quantum numbers (rows) */
+    int L_r     = L_2N_array[idx_alpha_r];
+    int S_r     = S_2N_array[idx_alpha_r];
+    int J_r     = J_2N_array[idx_alpha_r];
+    int T_r     = T_2N_array[idx_alpha_r];
+    int two_l_r = l_3N_array[idx_alpha_r];
+    int two_j_r = two_j_3N_array[idx_alpha_r];
 
-    /* Projection state quantum numbers (alpha) */
-    int L     = L_2N_array[idx_alpha];
-    int S     = S_2N_array[idx_alpha];
-    int J     = J_2N_array[idx_alpha];
-    int T     = T_2N_array[idx_alpha];
-    int two_l = l_3N_array[idx_alpha];
-    int two_j = two_j_3N_array[idx_alpha];
+    /* Projection state quantum numbers (columns) */
+    int L_c     = L_2N_array[idx_alpha_c];
+    int S_c     = S_2N_array[idx_alpha_c];
+    int J_c     = J_2N_array[idx_alpha_c];
+    int T_c     = T_2N_array[idx_alpha_c];
+    int two_l_c = l_3N_array[idx_alpha_c];
+    int two_j_c = two_j_3N_array[idx_alpha_c];
 
-    /* Upper-case is for the 2N-pair, lower-case is for orbiting spectator */
-    int L_p  = 0, S_p  = 0, J_p  = 0, T_p  = 0, two_l_p  = 0, two_j_p  = 0;
-    int L_pp = 0, S_pp = 0, J_pp = 0, T_pp = 0, two_l_pp = 0, two_j_pp = 0;
+    double t_unco_array [  (Np+1)*(Np+1)];
+    double t_coup_array [4*(Np+1)*(Np+1)];
+
+
     /* P123-matrix element of interest */
     double P123_element = 0;
     /* T-matrix element of interest */
@@ -617,64 +646,68 @@ double iterate_faddeev(double Z,
     double total_sum = 0;
     /* Loop over alpha prime summation */
     for (int idx_alpha_p=0; idx_alpha_p<Nalpha; idx_alpha_p++){
-        L_p     = L_2N_array[idx_alpha_p];
-        S_p     = S_2N_array[idx_alpha_p];
-        J_p     = J_2N_array[idx_alpha_p];
-        T_p     = T_2N_array[idx_alpha_p];
-        two_l_p = l_3N_array[idx_alpha_p];
-        two_j_p = two_j_3N_array[idx_alpha_p];
-        
-        /* Loop over alpha double-prime summation */
-        for (int idx_alpha_pp=0; idx_alpha_pp<Nalpha; idx_alpha_pp++){
-            L_pp     = L_2N_array[idx_alpha_pp];
-            S_pp     = S_2N_array[idx_alpha_pp];
-            J_pp     = J_2N_array[idx_alpha_pp];
-            T_pp     = T_2N_array[idx_alpha_pp];
-            two_l_pp = l_3N_array[idx_alpha_pp];
-            two_j_pp = two_j_3N_array[idx_alpha_pp];
+        int L_p     = L_2N_array[idx_alpha_p];
+        int S_p     = S_2N_array[idx_alpha_p];
+        int J_p     = J_2N_array[idx_alpha_p];
+        int T_p     = T_2N_array[idx_alpha_p];
+        int two_l_p = l_3N_array[idx_alpha_p];
+        int two_j_p = two_j_3N_array[idx_alpha_p];
 
-            /* The two-body force can only allow for L!=L_pp, everything else must be the same */
-            if (two_l==two_l_pp and two_j==two_j_pp and T==T_pp and J==J_pp and S==S_pp and abs(L-L_pp)<=2){
-                if (idx_alpha_pp == idx_alpha_c){
-                    /* Loop over p prime integral */
-                    //for (int idx_p_p=0; idx_p_p<Np; idx_p_p++){
-                    //    if (idx_p_p == idx_p_c){
-                            int idx_p_p = idx_p_c;
-                            //if (idx_alpha_r==1){std::cout << 1 << std::endl;}
-                            /* Solve Lippmann-Schwinger equation for current q', q, alpha', and alpha */
-                            /* !!! NOTE I USE NUCLEON MASS HERE, THIS IS SLIGHTLY WRONG BUT SHOULD MATTER LITTLE !!! */
-                            double E_LS = Z - q_array[idx_q]*q_array[idx_q] / (2 * 3*MN/4);
+        /* The two-body force can only allow for L!=L_pp, everything else must be the same */
+        if (two_l_r==two_l_p and two_j_r==two_j_p and T_r==T_p and J_r==J_p and S_r==S_p and abs(L_r-L_p)<=2){
+            
+            bool coupled = L_r!=L_p or (L_r==L_p and L_r!=J_p and J_r!=0);
 
-                            double* V_mat_array_ptr = NULL;
-	                        if (L!=L_pp or (L==L_pp and L!=J_pp and J!=0)){ // coupled interaction
-                                int step_V_coup = J-1;
-	                        	V_mat_array_ptr = &V_coup_array[step_V_coup*4*Np*Np];
-	                        }
-                            else{ // uncoupled
-                                int step_V_unco = L + S + (J!=0) - (J==0 and L!=J);
-                                V_mat_array_ptr = &V_unco_array[step_V_unco*Np*Np];
-                            }
+            /* Energy for LS-solver */
+            double E_LS = Z - q_array[idx_q_r]*q_array[idx_q_r] / (2 * mu2);
+            double* V_mat_array_ptr = NULL;
+            double* t_mat_array_ptr = NULL;
+	        if (coupled){ // coupled interaction
+                int step_V_coup = J_r-1;
+	        	V_mat_array_ptr = &V_coup_array[step_V_coup*4*Np*Np];
+                t_mat_array_ptr = t_coup_array;
+	        }
+            else{ // uncoupled
+                int step_V_unco = L_r + S_r + (J_r!=0) - (J_r==0 and L_r!=J_r);
+                V_mat_array_ptr = &V_unco_array[step_V_unco*Np*Np];
+                t_mat_array_ptr = t_unco_array;
+            }
+            /* Solve Lippmann-Schwinger equation */
+            t_element = calculate_t_element(V_mat_array_ptr,
+                                            t_mat_array_ptr,
+                                            L_r, L_p, S_r, J_r, T_r,
+		    			                    E_LS, MN,
+		    			                    Np, p_array, wp_array,
+		    			                    0, 0,
+		    			                    pot_ptr_nn, pot_ptr_np);
 
-                            //if (idx_alpha_r==1){std::cout << E_LS << std::endl;}
-                            t_element = calculate_t_element(V_mat_array_ptr,
-                                                            L, L_pp, S, J, T,
-			                			                    E_LS, MN,
-			                			                    Np, p_array, wp_array,
-			                			                    idx_p, idx_p_p,
-			                			                    pot_ptr_nn, pot_ptr_np);
-                            //if (idx_alpha_r==1){std::cout << 3 << std::endl;}
-                            /* Retrieve P123 from pre-calculated P123_array - this INCLUDES spline-functionality*/
-                            int P123_idx = (idx_alpha*Nq*Np + idx_q*Np + idx_p)*Np*Nq*Nalpha + idx_alpha_pp*Nq*Np + idx_q*Np + idx_p_p;
-                            P123_element = P123_array[P123_idx];
-                            //if (idx_alpha_r==1){std::cout << 4 << std::endl;}
-                            /* Evaluate integral term and add to total sum */
-                            //total_sum +=  wp_array[idx_p_p] * p_array[idx_p_p] * p_array[idx_p_p]
-                            //            * t_element * P123_element;
-                            total_sum += t_element * P123_element;
-                            //if (idx_alpha_r==1){std::cout << 5 << std::endl;}
-                    //    }
-                    //}
+            /* Loop over integration momenta */
+            for (int idx_p_p=0; idx_p_p<Np; idx_p_p++){
+                
+                /* Extract correct matrix element */
+                if (coupled){
+                    if(L_r<L_p){        // Upper right
+                        t_element = t_mat_array_ptr[ idx_p_r      *2*(Np+1) + idx_p_p + Np+1];
+                    }
+                    else if (L_r>L_p){  // Lower left
+                        t_element = t_mat_array_ptr[(idx_p_r+Np+1)*2*(Np+1) + idx_p_p];
+                    }
+                    else if (L_r<J_r){  // Upper left
+                        t_element = t_mat_array_ptr[ idx_p_r      *2*(Np+1) + idx_p_p];
+                    }
+                    else{               // Lower right
+                        t_element = t_mat_array_ptr[(idx_p_r+Np+1)*2*(Np+1) + idx_p_p + Np+1];
+                    }
                 }
+                else{
+                    t_element = t_mat_array_ptr[idx_p_r*(Np+1) + idx_p_p];
+                }
+
+                /* Retrieve P123 from pre-calculated P123_array - this INCLUDES spline-functionality*/
+                int P123_idx = (idx_alpha_p*Nq*Np + idx_q_r*Np + idx_p_p)*Np*Nq*Nalpha + idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c;
+                P123_element = P123_array[P123_idx];
+
+                total_sum += wp_array[idx_p_p] * p_array[idx_p_p] * p_array[idx_p_p] * t_element * P123_element;
             }
         }
     }
@@ -682,9 +715,7 @@ double iterate_faddeev(double Z,
     /* First faddeev state summation end */
 
     /* 3-nucleon free Green's function */
-    double mu1 = 0.5*MN;
-    double mu2 = 2.0*MN/3.;
-    double G0 = 1./(Z - 0.5*p_array[idx_p]*p_array[idx_p]/mu1 - 0.5*q_array[idx_q]*q_array[idx_q]/mu2 );
+    double G0 = 1./(Z - 0.5*p_array[idx_p_r]*p_array[idx_p_r]/mu1 - 0.5*q_array[idx_q_r]*q_array[idx_q_r]/mu2 );
 
     return total_sum*G0;
 }

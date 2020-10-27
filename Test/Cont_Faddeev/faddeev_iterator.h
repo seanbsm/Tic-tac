@@ -52,15 +52,14 @@ void calculate_faddeev_convergence(double* state_array,
                                    potential_model* pot_ptr_nn,
                                    potential_model* pot_ptr_np);
 
-double iterate_faddeev(double Z,
+void iterate_faddeev(double* K_array,
+                       double Z,
                        double* P123_array,
                        double* V_unco_array,
                        double* V_coup_array,
                        int Np, double* p_array, double* wp_array,
                        int Nq, double* q_array, double* wq_array,
                        int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* l_3N_array, int* two_j_3N_array,
-                       int idx_alpha_r, int idx_p_r, int idx_q_r,
-                       int idx_alpha_c, int idx_p_c, int idx_q_c,
                        int two_T, int two_J, int PAR,
                        potential_model* pot_ptr_nn,
                        potential_model* pot_ptr_np);

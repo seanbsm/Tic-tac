@@ -19,7 +19,7 @@ void check_h5_close_call(herr_t ret){
     }
 }
 
-void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, double *p_3N){
+void read_P123_h5_data_file(std::string file_path, double* P123, int Nq_3N, double *q_3N, int Np_3N, double *p_3N){
 
    
     // ---------------------------------------------- READ 3N --------------------------------------------
@@ -27,21 +27,10 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     bool print_content = false;
 
     char filename[300];
+    std::strcpy(filename, file_path.c_str());
 
     hid_t   file_id_3, dataset_id_3;
     herr_t  ret_3;
-
-   // double *P123_store = new double[V3N_Jj_dim_sq];
-
-    //for (MKL_INT64 i = 0; i <= V3N_Jj_dim_sq - 1; i++) {
-    //    P123[i] = 0.0;
-    //}
-
-    //int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_J3_1_PAR_1_T3_1.h5");
-    int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_medium.h5");
-    if (i_file3 < 0){
-        raise_error("Couldn't locate P123-matrix h5-file.");
-    }
 
     printf("read file %s\n", filename);
 
@@ -267,105 +256,14 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     check_h5_close_call(ret_3);
 }
 
-void read_P123_csv_data_file(double* P123){
-    // Reads a CSV file into a vector of <string, vector<int>> pairs where
-    // each pair represents <column name, column values>
-
-    std::string P123_file_path = "../../../Data/3N_permutation_operator/Faddeev_permutation_operator_benchmark/P123_matrix_elements.csv";
-    //std::string P123_file_path = "text_csv.csv";
-    
-    // Create an input filestream
-    std::ifstream data_file(P123_file_path);
-
-    // Make sure the file is open
-    if(!data_file.is_open()) throw std::runtime_error("Could not open file");
-
-    // Helper vars
-    std::string line;
-    double val;
-
-    int incrementing_idx = 0;
-
-    // Read data, line by line
-    while(std::getline(data_file, line))
-    {
-        // Create a stringstream of the current line
-        std::stringstream ss(line);
-        
-        // Keep track of the current column index
-        int colIdx = 0;
-        
-        // Extract each integer
-        while(ss >> val){
-            
-            // Add the current integer to the 'colIdx' column's values vector
-            P123[incrementing_idx] = val;
-            
-            // If the next token is a comma, ignore it and move on
-            if(ss.peek() == ',') ss.ignore();
-            
-            // Increment the column index
-            colIdx++;
-        }
-        incrementing_idx += 1;
-    }
-
-    // Close file
-    data_file.close();
-}
-
-void read_P123_bin_data_file(double* P123, int P123_array_size){   
-
-    std::string P123_file_path = "../../../Data/3N_permutation_operator/Faddeev_permutation_operator_benchmark/P123_matrix_elements_2.bin";
-
-    std::ifstream infile(P123_file_path.c_str(), std::ios::in | std::ios::binary);
-    infile.seekg(0, std::ios::end); 
-    int size = infile.tellg();
-    std::cout << size/sizeof(float) << " " << P123_array_size << std::endl;
-
-    float binData [P123_array_size];
-    //or float binData[numRows][numCols]; if you knew it can fit on the stack 
-    //and your compiler has variable sized arrays
-
-    //read into the array
-    infile.read(reinterpret_cast<char *>(binData), sizeof(float) * P123_array_size);
-
-    /*std::ifstream file("../../../Data/3N_permutation_operator/Faddeev_permutation_operator_benchmark/P123_matrix_elements.bin", std::ios::in | std::ios::binary | std::ios::ate);
-    file.seekg(0, std::ios::end); 
-    int size = file.tellg();  
-    file.seekg(0, std::ios::beg); 
-    char* memblock = new char[size];
-    file.read(memblock, size);
-    file.close();
-    float* element_array = (float*) memblock; //reinterpret as float
-    
-    //double g = element_array[P123_array_size-1];
-    std::cout << size << std::endl;*/
-
-    //#pragma omp parallel for
-    /*std::cout << "start reading P123" << std::endl;
-    for (int idx=0; idx<P123_array_size; idx++){
-        P123[idx] = (double)element_array[idx];//reinterpret as double
-    }
-    std::cout << "end reading P123" << std::endl;*/
-    
-    //delete [] memblock;
-    //delete [] element_array;
-}
-
-void get_h5_P123_dimensions(int& Nalpha, int& Np, int& Nq){
+void get_h5_P123_dimensions(std::string file_path, int& Nalpha, int& Np, int& Nq){
     // ---------------------------------------------- READ 3N --------------------------------------------
 
     char filename[300];
+    std::strcpy(filename, file_path.c_str());
 
     hid_t   file_id_3, dataset_id_3;
     herr_t  ret_3;
-
-    //int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_J3_1_PAR_1_T3_1.h5");
-    int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_medium.h5");
-    if (i_file3 < 0){
-        raise_error("Couldn't locate P123-matrix h5-file.");
-    }
 
     printf("read file %s\n", filename);
 
@@ -403,7 +301,7 @@ void get_h5_P123_dimensions(int& Nalpha, int& Np, int& Nq){
     Nq     = Nq_3N_3;
 }
 
-void calculate_antisymmetrization_operator(int &Np, int &Nq, int& Nalpha, double** A123, double* q_array, double* p_array){
+void calculate_antisymmetrization_operator(std::string file_path, int &Np, int &Nq, int& Nalpha, double** A123, double* q_array, double* p_array){
     
     int D123_dim = Np * Nq * Nalpha;
     int D123_dim_sq = D123_dim * D123_dim;
@@ -412,7 +310,7 @@ void calculate_antisymmetrization_operator(int &Np, int &Nq, int& Nalpha, double
     
     //read_P123_bin_data_file(*A123, D123_dim_sq);
     //read_P123_csv_data_file(*A123);
-    read_P123_h5_data_file(*A123, Nq, q_array, Np, p_array);
+    read_P123_h5_data_file(file_path, *A123, Nq, q_array, Np, p_array);
     
     /* Add square P123-term */
     #pragma omp parallel for 

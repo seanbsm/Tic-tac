@@ -505,7 +505,7 @@ void calculate_faddeev_convergence(double* state_array,
     double *psi_array = new double [basis_size * basis_size];
 
     /* Triton ground-state energy (to be determined) */
-    double Z = -7., E=Z, lambda=0, Z_step_length=0.1;
+    double Z = 0, E=Z, lambda=0, Z_step_length=0.5;
 
     bool lambda_equals_one = false;
     bool Z_too_negative    = false;

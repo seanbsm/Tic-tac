@@ -11,7 +11,7 @@
 #include "make_pw_symm_states.h"
 //#include "kinetics.h"
 #include "permutation_operators.h"
-#include "state_antisymmetrization.h"
+//#include "state_antisymmetrization.h"
 //#include "faddeev_iterator.h"
 #include "General_functions/gauss_legendre.h"
 #include "Interactions/potential_model.h"
@@ -59,9 +59,6 @@ int main(int argc, char* argv[]){
 	/* Permutation operator */
 	double* P123_array  = NULL;
 
-	/* Anti-symmetrization operator */
-	double* A123  = NULL;
-
 	/* Quantum numbers of partial-wave expansion in state_3N_array */
     int* L_2N     = NULL;     // pair angular momentum
     int* S_2N     = NULL;     // pair total spin
@@ -70,67 +67,48 @@ int main(int argc, char* argv[]){
     int* l_3N     = NULL;     // three-nucleon angular momentum (?)
     int* two_j_3N = NULL; 	  // three-nucleon total angular momentum x2 (?)
 
-	/* Tells the program to read pre-calculated antisymmetric triton states.
-	 * Handy for small tests since the P123-file can be huge */
-	bool use_premade_symmetric_states 	  = false;
-	bool use_premade_antisymmetric_states = false;
-
 	//potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
 	//potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
 	potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
 	potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
 	
-	//if (use_premade_symmetric_states){
-	//	cout << "Reading states from file" << endl;
-	//	get_all_states(&state_3N_symm_array, &state_3N_asym_array, Np, &p_array, &wp_array, Nq, &q_array, &wq_array, Nalpha, &L_2N, &S_2N, &J_2N, &T_2N, &l_3N, &two_j_3N);
-	//}
-	//else{
 	cout << "Constructing 3N partial-wave basis" << endl;
 	construct_symmetric_pw_states(two_J_3N, two_T_3N, parity_3N,
 								  two_J_1N_min, two_J_1N_max, J_2N_min, J_2N_max,
 								  Nalpha, &L_2N, &S_2N, &J_2N, &T_2N, &l_3N, &two_j_3N);
+
 	cout << "Constructing p mesh" << endl;
 	p_array  = new double [Np];
 	wp_array = new double [Np];
 	gauss(p_array, wp_array, Np); rangeChange_0_inf(p_array, wp_array, 1000., Np);
+
 	cout << "Constructing q mesh" << endl;
 	q_array  = new double [Nq];
 	wq_array = new double [Nq];
 	gauss(q_array, wq_array, Nq); rangeChange_0_inf(q_array, wq_array, 1000., Nq);
-	//}
 
 	string P123_file_path = "../../Data/3N_permutation_operator/P123_files/P123_medium.h5";
 
-	if (use_premade_antisymmetric_states == true){
-		cout << "Reading P123 from file and calculating A123" << endl;
-		calculate_antisymmetrization_operator(P123_file_path, Np, Nq, Nalpha, &A123, q_array, p_array);
+	bool read_prestored_P123 = false;
 
-		cout << "Calculating psi_asym from psi_symm using A123" << endl;
-		antisymmetrize_state(state_3N_symm_array, state_3N_asym_array, A123, Np, Nq, Nalpha);
-	}
-	else{
+	if (read_prestored_P123){
 		cout << "Read P123 dimensions from h5-file" << endl;
 		int Nalpha_P123 = 0;
 		int Np_P123 = 0;
 		int Nq_P123 = 0;
-		
 		get_h5_P123_dimensions(P123_file_path, Nalpha_P123, Np_P123, Nq_P123);
-    	P123_array = new double [Np_P123 * Nq_P123 * Nalpha_P123 * Np_P123 * Nq_P123 * Nalpha_P123];
 
+    	P123_array = new double [Np_P123 * Nq_P123 * Nalpha_P123 * Np_P123 * Nq_P123 * Nalpha_P123];
 		cout << "Reading P123 from file" << endl;
 		read_P123_h5_data_file(P123_file_path, P123_array, Nq, q_array, Np, p_array);
 	}
-	
-	/* This function will calculate the 3N c.m. kinetic energy T */
-	cout << "Calculating kinetic energy" << endl;
-	//double kinetic_energy = calculate_3N_kinetic_energy(state_3N_asym_array, state_3N_asym_array, Np, p_array, wp_array, Nq, q_array, wq_array, Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N);
-	
-	cout << "Calculating potential energy" << endl;
-	//double potential_energy = calculate_3N_potential_energy(state_3N_asym_array, state_3N_asym_array, Np, p_array, wp_array, Nq, q_array, wq_array, Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N, pot_ptr_np, pot_ptr_nn);
+	else{
+		P123_array = new double [Np*Nq*Nalpha * Np*Nq*Nalpha];
 
-	//cout << "T: " << kinetic_energy << endl;
-	//cout << "V: " << potential_energy << endl;
-	//cout << "H: " << kinetic_energy + potential_energy << endl;
+
+	}
+
+		
 
 	/* End main body of code here */
 

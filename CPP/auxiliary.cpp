@@ -657,6 +657,74 @@ void generate_Ptilde_new (double *P123_store, MKL_INT64 Pdim, MKL_INT64 N_p, dou
     } // pragma
 }
 
+void calculate_Ptilde_no_spline (double *P123_store, MKL_INT64 Pdim,
+                                 MKL_INT64 N_p, double *p,
+                                 MKL_INT64 N_q, double *q,
+                                 MKL_INT64 N_x, double *x, double *wx,
+                                 MKL_INT64 Jj_dim, double pmax, double qmax,
+                                 int *L12_Jj, int *l3_Jj, int *J12_Jj, int *two_j3_Jj, int *S12_Jj, int *T12_Jj,
+                                 MKL_INT64 Lmax, MKL_INT64 max_L12, MKL_INT64 max_l3, MKL_INT64 two_J, MKL_INT64 two_T,
+                                 double *SixJ_array, int two_jmax_SixJ, double* Gtilde_store){
+
+    for (MKL_INT64 index = 0; index <= Pdim * Pdim - 1; index++)
+    {
+        P123_store[index] = 0.0;
+    }
+
+    #pragma omp parallel
+    {
+        #pragma omp for
+
+        for (MKL_INT64 c = 0; c <= Pdim - 1; c++){
+
+            int c_fortran = c + 1;
+            int c_global = c_fortran - 1;
+
+            int alphaprime = (int) (c_global / (N_q * N_p));
+            c_global = c_global - alphaprime * N_q * N_p;
+
+            int qprime_index = (int) (c_global / (N_p));
+            c_global = c_global - qprime_index * N_p;
+
+            int pprime_index = c_global;
+
+            for (MKL_INT64 r = 0; r <= Pdim - 1; r++){
+
+                int r_fortran = r + 1;
+                int r_global = r_fortran - 1;
+
+                int alpha = (int) (r_global / (N_q * N_p));
+                r_global = r_global - alpha * N_q * N_p;
+
+                int q_index = (int) (r_global / (N_p));
+                r_global = r_global - q_index * N_p;
+
+                int p_index = r_global;
+
+                double x_integral_sum = 0;
+                for (int x_index = 0; x_index <= N_x - 1; x_index++){
+
+                    double pi1 = pi1_tilde(p[p_index], q[q_index], x[x_index]);
+                    double pi2 = pi2_tilde(p[p_index], q[q_index], x[x_index]);
+
+                    int pi1_index = 0; while ((p[pi1_index] < pi1) && (pi1_index < N_p - 1)) pi1_index++; if (pi1_index > 0) pi1_index--;
+                    int pi2_index = 0; while ((q[pi2_index] < pi2) && (pi2_index < N_q - 1)) pi2_index++; if (pi2_index > 0) pi2_index--;
+
+                    double costheta1 = -(0.5 * p[p_index] + 0.75 * q[q_index] * x[x_index]) / pi1;
+                    double costheta2 = (p[p_index] - 0.5 * q[q_index] * x[x_index]) / pi2;
+
+                    if (fabs(costheta1) > 1) cout << "costheta1 problem: " << costheta1 << "\n";
+                    if (fabs(costheta2) > 1) cout << "costheta2 problem: " << costheta2 << "\n";
+                    
+                    x_integral_sum += wx[x_index] * Gtilde_store[alpha*Jj_dim*N_p*N_q*N_x + alphaprime*N_p*N_q*N_x + p_index*N_q*N_x + q_index*N_x + x_index];
+                } // x_index
+
+                P123_store[r * Pdim + c] = x_integral_sum;
+            } // j
+        } // i
+    } // pragma
+}
+
 double Atilde (int alpha, int alphaprime, int Ltotal, int Jj_dim, int *L12_Jj, int *l3_Jj, int *J12_Jj, int *two_j3_Jj, int *S12_Jj, int *T12_Jj, int two_J, int two_T, double *SixJ_array, int two_jmax_SixJ)
 {
 

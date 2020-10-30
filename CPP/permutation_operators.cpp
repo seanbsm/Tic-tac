@@ -301,6 +301,228 @@ void get_h5_P123_dimensions(std::string file_path, int& Nalpha, int& Np, int& Nq
     Nq     = Nq_3N_3;
 }
 
+void calculate_permutation_operator(double* P123_array,
+                                    int Nq, double* q_array, double* wq_array,
+                                    int Np, double* p_array, double* wp_array,
+                                    int Nx, double* x_array, double* wx_array,
+                                    int Nalpha,
+                                    int* L_2N_array,
+                                    int* S_2N_array,
+                                    int* J_2N_array,
+                                    int* T_2N_array,
+                                    int* l_3N_array,
+                                    int* two_j_3N_array,
+                                    int two_J_3N, int two_T_3N, int parity_3N){
+    
+    int P123_dim = Np * Nq * Nalpha;
+    int P123_dim_sq = P123_dim * P123_dim;
+    
+    /* Notation change */
+    int two_T = two_T_3N;
+    int two_J = two_J_3N;
+    int PAR   = parity_3N;
+    int Nx_Gtilde = Nx;
+    int Jj_dim = Nalpha;
+    int Np_3N = Np;
+    int Nq_3N = Nq;
+
+    int* L12_Jj    = L_2N_array;
+    int* S12_Jj    = S_2N_array;
+    int* J12_Jj    = J_2N_array;
+    int* T12_Jj    = T_2N_array;
+    int* l3_Jj     = l_3N_array;
+    int* two_j3_Jj = two_j_3N_array;
+
+    double* p_3N = p_array;
+    double* q_3N = q_array;
+    /* End of notation change */
+
+    int J12_max;
+    double pmax_3N;
+    double qmax_3N;
+
+    // for ptilde and qtilde integrals
+    int Npq;
+
+    // for angular integrals in F_interpolate
+    int Nz;
+
+    // determine optimized Lmax: Lmax = max(get_L)+max(get_l)
+    int max_L12 = 0;
+    int max_l3 = 0;
+    int max_J12 = 0;
+
+    for (int alpha = 0; alpha <= Jj_dim - 1; alpha++){
+        if (J12_Jj[alpha] > max_J12) max_J12 = J12_Jj[alpha];
+        if (L12_Jj[alpha] > max_L12) max_L12 = L12_Jj[alpha];
+        if (l3_Jj[alpha] > max_l3) max_l3 = l3_Jj[alpha];
+    }
+
+    // for F_local_matrix prestorage and F_interpolate
+    int lmax = GSL_MAX_INT(max_l3, max_L12) + 3; // for C4 it is possible to couple l=lmax with THREE Y_{1}^{mu}
+    int l_interpolate_max = l_interpolate_max = 2 * (lmax - 3) + 3;
+
+    std::cout << "lmax = " << lmax << ", l_interpolate_max = " << l_interpolate_max << "\n";
+
+    int Lmax = max_L12 + max_l3;
+    int kLegendremax = 2 * max_L12;
+
+    int two_jmax_Clebsch = 2 * lmax;
+    int jmax_Clebsch = lmax;
+    int two_jmax_SixJ = 2 * lmax; // do we need to prestore 6j??
+
+    // prestore Clebsch Gordan coefficients
+    std::cout << "prestore ClebschGordan...\n";
+    double *ClebschGordan_data = new double[(two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (2 * two_jmax_Clebsch + 1)];
+
+    #pragma omp parallel
+    {
+        #pragma omp for collapse(3)
+
+        for (int two_j1 = 0; two_j1 <= two_jmax_Clebsch; two_j1++){
+            for (int two_j2 = 0; two_j2 <= two_jmax_Clebsch; two_j2++){
+                for (int two_j3 = 0; two_j3 <= 2 * two_jmax_Clebsch; two_j3++){
+                    for (int two_m1 = -two_j1; two_m1 <= two_j1; two_m1++){
+                        for (int two_m2 = -two_j2; two_m2 <= two_j2; two_m2++){
+                            ClebschGordan_data[((two_j1 + 1) * (two_j1 + 1) + two_m1 - two_j1 - 1) * (two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (2 * two_jmax_Clebsch + 1)
+                                               + ((two_j2 + 1) * (two_j2 + 1) + two_m2 - two_j2 - 1) * (2 * two_jmax_Clebsch + 1)
+                                               + two_j3]
+                                = ClebschGordan(two_j1, two_j2, two_j3, two_m1, two_m2, two_m1 + two_m2);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    std::cout << "prestore ClebschGordan_int...\n";
+    double *ClebschGordan_int_data = new double[(jmax_Clebsch + 1) * (jmax_Clebsch + 1) * (jmax_Clebsch + 1) * (jmax_Clebsch + 1) * (2 * jmax_Clebsch + 1)];
+
+    #pragma omp parallel
+    {
+        #pragma omp for collapse(3)
+
+        for (int j1 = 0; j1 <= jmax_Clebsch; j1++){
+            for (int j2 = 0; j2 <= jmax_Clebsch; j2++){
+                for (int j3 = 0; j3 <= 2 * jmax_Clebsch; j3++){
+                    for (int m1 = -j1; m1 <= j1; m1++){
+                        for (int m2 = -j2; m2 <= j2; m2++){
+                            ClebschGordan_int_data[((j1 + 1) * (j1 + 1) + m1 - j1 - 1) * (jmax_Clebsch + 1) * (jmax_Clebsch + 1) * (2 * jmax_Clebsch + 1)
+                                                   + ((j2 + 1) * (j2 + 1) + m2 - j2 - 1) * (2 * jmax_Clebsch + 1)
+                                                   + j3]
+                                = ClebschGordan(2 * j1, 2 * j2, 2 * j3, 2 * m1, 2 * m2, 2 * m1 + 2 * m2);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    int shat_dim = 1000;
+    double *shat_data = new double[shat_dim];
+    for (int j = 0; j <= shat_dim - 1; j++)
+    {
+        shat_data[j] = sqrt(2 * j + 1);
+    }
+
+    MKL_INT64 Pdim = Np_3N * Nq_3N * Jj_dim;
+    double *P123_store = new double[Pdim * Pdim];
+
+    for (MKL_INT64 i = 0; i <= Pdim * Pdim - 1; i++){
+        P123_store[i] = 0.0;
+    }
+
+    // for angular integration in Gtilde
+    double x_Gtilde[Nx_Gtilde];
+    double wx_Gtilde[Nx_Gtilde];
+
+    calc_gauss_points (x_Gtilde, wx_Gtilde, -1.0, 1.0, Nx_Gtilde);
+
+    MKL_INT64 g_N = (kLegendremax + 1) * (Lmax + 1) * (Lmax + 1) * Jj_dim * Jj_dim;
+    double *gtilde_array = new double[g_N];
+
+    MKL_INT64 Gtilde_N = Jj_dim * Jj_dim * Np_3N * Nq_3N * Nx_Gtilde;
+    MKL_INT64 Atilde_N = Jj_dim * Jj_dim * (Lmax + 1);
+
+    double *Gtilde_store = new double[Gtilde_N];
+    double *Atilde_store = new double[Atilde_N];
+
+    for (MKL_INT64 i = 0; i <= Atilde_N - 1; i++)
+    {
+        Atilde_store[i] = 0.0;
+    }
+
+    std::cout << "prestore SixJ...\n";
+    double *SixJ_array = new double[(two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1)];
+    std::cout << "SixJ_test (>0?):" << (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) << "\n";
+
+    #pragma omp parallel for collapse(3)
+
+    for (int two_l1 = 0; two_l1 <= two_jmax_SixJ; two_l1++){
+        for (int two_l2 = 0; two_l2 <= two_jmax_SixJ; two_l2++){
+            for (int two_l3 = 0; two_l3 <= two_jmax_SixJ; two_l3++){
+                for (int two_l4 = 0; two_l4 <= two_jmax_SixJ; two_l4++){
+                    for (int two_l5 = 0; two_l5 <= two_jmax_SixJ; two_l5++){
+                        for (int two_l6 = 0; two_l6 <= two_jmax_SixJ; two_l6++){
+                            SixJ_array[
+                                two_l1 * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1)
+                                + two_l2 * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1)
+                                + two_l3 * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1)
+                                + two_l4 * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1)
+                                + two_l5 * (two_jmax_SixJ + 1)
+                                + two_l6
+                            ]
+                            // implement checks for quantum numbers because of bug in gsl library
+                                = gsl_sf_coupling_6j(two_l1, two_l2, two_l3, two_l4, two_l5, two_l6);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    std::cout << "calculate matrix elements of permutation operator P123\n";
+    
+    pmax_3N = 0.0;
+    qmax_3N = 0.0;
+
+    for (int alpha = 0; alpha <= Jj_dim - 1; alpha++){
+        for (int alphaprime = 0; alphaprime <= Jj_dim - 1; alphaprime++){
+            for (int Ltotal = 0; Ltotal <= Lmax; Ltotal++){
+                Atilde_store[alpha * Jj_dim * (Lmax + 1) + alphaprime * (Lmax + 1) + Ltotal] = Atilde (alpha, alphaprime, Ltotal, Jj_dim, L12_Jj, l3_Jj, J12_Jj, two_j3_Jj, S12_Jj, T12_Jj, two_J, two_T, SixJ_array, two_jmax_SixJ);
+            }
+        }
+    }
+
+    std::cout << "Gtilde\n";
+    long int fullsize = Np_3N*Nq_3N*Nx_Gtilde*Jj_dim*(Jj_dim - 1);
+    long int counter = 0;
+    int frac_n, frac_o=0;
+    #pragma omp parallel
+    {
+        #pragma omp for
+
+        for (MKL_INT64 p_index = 0; p_index <= Np_3N - 1; p_index++){
+            for (MKL_INT64 q_index = 0; q_index <= Nq_3N - 1; q_index++){
+                for (MKL_INT64 x_index = 0; x_index <= Nx_Gtilde - 1; x_index++){
+                    for (MKL_INT64 alpha = 0; alpha <= Jj_dim - 1; alpha++){
+                        for (MKL_INT64 alphaprime = 0; alphaprime <= Jj_dim - 1; alphaprime++){
+                            Gtilde_store[alpha * Jj_dim * Np_3N * Nq_3N * Nx_Gtilde + alphaprime * Np_3N * Nq_3N * Nx_Gtilde + p_index * Nq_3N * Nx_Gtilde + q_index * Nx_Gtilde + x_index]
+                                = Gtilde_new (p_3N[p_index], q_3N[q_index], x_Gtilde[x_index], alpha, alphaprime, Jj_dim, Lmax, L12_Jj, l3_Jj, Atilde_store, two_J);
+                            
+                            counter += 1;
+                            frac_n = (100*counter)/fullsize;
+                            if (frac_n>frac_o){std::cout << frac_n << "%" << std::endl; frac_o=frac_n;}
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    calculate_Ptilde_no_spline (P123_store, Pdim, (MKL_INT64) Np_3N, p_3N, (MKL_INT64) Nq_3N, q_3N, (MKL_INT64) Nx_Gtilde, x_Gtilde, wx_Gtilde, (MKL_INT64) Jj_dim, pmax_3N, qmax_3N, L12_Jj, l3_Jj, J12_Jj, two_j3_Jj, S12_Jj, T12_Jj, (MKL_INT64) Lmax, (MKL_INT64) max_L12, (MKL_INT64) max_l3, (MKL_INT64) two_J, (MKL_INT64) two_T, SixJ_array, two_jmax_SixJ, Gtilde_store);
+}
+
 void calculate_antisymmetrization_operator(std::string file_path, int &Np, int &Nq, int& Nalpha, double** A123, double* q_array, double* p_array){
     
     int D123_dim = Np * Nq * Nalpha;

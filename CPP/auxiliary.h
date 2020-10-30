@@ -107,13 +107,25 @@ double pi1_prime_tilde(double p, double q, double x);
 
 double pi2_prime_tilde(double p, double q, double x);
 
-void generate_Ptilde_new (double *P123_store, MKL_INT64 Pdim, MKL_INT64 N_p,
-                          double *p, MKL_INT64 N_q, double *q, MKL_INT64 N_x,
-                          double *x, double *wx, MKL_INT64 Jj_dim, double pmax,
-                          double qmax, int *L12_Jj, int *l3_Jj, int *J12_Jj,
-                          int *two_j3_Jj, int *S12_Jj, int *T12_Jj, MKL_INT64 Lmax,
-                          MKL_INT64 max_L12, MKL_INT64 max_l3, MKL_INT64 two_J, MKL_INT64 two_T,
-                          double *SixJ_array, int two_jmax_SixJ, double* Gtilde_store);
+void generate_Ptilde_new(double *P123_store, MKL_INT64 Pdim,
+                         MKL_INT64 N_p, double *p,
+                         MKL_INT64 N_q, double *q,
+                         MKL_INT64 N_x, double *x, double *wx,
+                         MKL_INT64 Jj_dim, double pmax, double qmax,
+                         int *L12_Jj, int *l3_Jj, int *J12_Jj, int *two_j3_Jj, int *S12_Jj, int *T12_Jj,
+                         MKL_INT64 Lmax, MKL_INT64 max_L12, MKL_INT64 max_l3, MKL_INT64 two_J, MKL_INT64 two_T,
+                         double *SixJ_array, int two_jmax_SixJ, double* Gtilde_store);
+
+/* Function defined for WPCD method, adapted simply from generate_Ptilde_new */
+void calculate_Ptilde_no_spline(double *P123_store, MKL_INT64 Pdim,
+                                MKL_INT64 N_p, double *p,
+                                MKL_INT64 N_q, double *q,
+                                MKL_INT64 N_x, double *x, double *wx,
+                                MKL_INT64 Jj_dim, double pmax, double qmax,
+                                int *L12_Jj, int *l3_Jj, int *J12_Jj, int *two_j3_Jj, int *S12_Jj, int *T12_Jj,
+                                MKL_INT64 Lmax, MKL_INT64 max_L12, MKL_INT64 max_l3, MKL_INT64 two_J, MKL_INT64 two_T,
+                                double *SixJ_array, int two_jmax_SixJ, double* Gtilde_store);
+
 
 double Atilde (int alpha, int alphaprime, int Ltotal, int Jj_dim, int *L12_Jj, int *l3_Jj,
                int *J12_Jj, int *two_j3_Jj, int *S12_Jj, int *T12_Jj, int two_J, int two_T,

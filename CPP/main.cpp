@@ -15,6 +15,7 @@
 //#include "faddeev_iterator.h"
 #include "General_functions/gauss_legendre.h"
 #include "Interactions/potential_model.h"
+#include "make_potential_matrix.h"
 //#include "Triton_states/read_psi.h"
 
 //#include "lippmann_schwinger_solver.h"
@@ -104,8 +105,6 @@ int main(int argc, char* argv[]){
 	}
 	else{
 		P123_array = new double [Np*Nq*Nalpha * Np*Nq*Nalpha];
-
-
 	}
 
 		

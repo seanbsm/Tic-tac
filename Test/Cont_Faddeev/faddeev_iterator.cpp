@@ -424,13 +424,16 @@ void calculate_potential_matrices_array(double* V_unco_array,
                             pot_ptr_np->V(p_in, p_out, coupled, S_r, J_r, T_r, V_IS_elements);
                         }
 
-	                    /* Write element to potential matrix V_array */
+                        //double norm_fac = (M_PI/2);
+                        double norm_fac = 1;
+	                    
+                        /* Write element to potential matrix V_array */
                         if (coupled){
                             int step_V_coup = J_r-1;
-			            	V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c]	   = extract_potential_element_from_array(J_r-1, J_r-1, J_r, S_r, coupled, V_IS_elements);
-			            	V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c + Np] = extract_potential_element_from_array(J_r-1, J_r+1, J_r, S_r, coupled, V_IS_elements);
-			            	V_coup_array[step_V_coup*4*Np*Np + (idx_p_r + Np)*2*Np + idx_p_c]	   = extract_potential_element_from_array(J_r+1, J_r-1, J_r, S_r, coupled, V_IS_elements);
-			            	V_coup_array[step_V_coup*4*Np*Np + (idx_p_r + Np)*2*Np + idx_p_c + Np] = extract_potential_element_from_array(J_r+1, J_r+1, J_r, S_r, coupled, V_IS_elements);
+			            	V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c]	   = norm_fac*extract_potential_element_from_array(J_r-1, J_r-1, J_r, S_r, coupled, V_IS_elements);
+			            	V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c + Np] = norm_fac*extract_potential_element_from_array(J_r-1, J_r+1, J_r, S_r, coupled, V_IS_elements);
+			            	V_coup_array[step_V_coup*4*Np*Np + (idx_p_r + Np)*2*Np + idx_p_c]	   = norm_fac*extract_potential_element_from_array(J_r+1, J_r-1, J_r, S_r, coupled, V_IS_elements);
+			            	V_coup_array[step_V_coup*4*Np*Np + (idx_p_r + Np)*2*Np + idx_p_c + Np] = norm_fac*extract_potential_element_from_array(J_r+1, J_r+1, J_r, S_r, coupled, V_IS_elements);
 			            
                             //if (J_r==1){
                             //    std::cout << V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c]	    << std::endl;
@@ -442,7 +445,7 @@ void calculate_potential_matrices_array(double* V_unco_array,
                         }
 			            else{
                             int step_V_unco = L_r + S_r + (J_r!=0) - (J_r==0 and L_r!=J_r);   // This indexing gives room for the 3P0-wave
-			            	V_unco_array[step_V_unco*Np*Np + idx_p_r*Np + idx_p_c] = extract_potential_element_from_array(L_r, L_c, J_r, S_r, coupled, V_IS_elements);
+			            	V_unco_array[step_V_unco*Np*Np + idx_p_r*Np + idx_p_c] = norm_fac*extract_potential_element_from_array(L_r, L_c, J_r, S_r, coupled, V_IS_elements);
 
                             //if (S_r==0 and J_r==0){
                             //    std::cout << V_unco_array[step_V_unco*Np*Np + idx_p_r*Np + idx_p_c] << std::endl;
@@ -505,7 +508,7 @@ void calculate_faddeev_convergence(double* state_array,
     double *psi_array = new double [basis_size * basis_size];
 
     /* Triton ground-state energy (to be determined) */
-    double Z = 0, E=Z, lambda=0, Z_step_length=0.5;
+    double Z = 0, E=Z, lambda=0, Z_step_length=1;
 
     bool lambda_equals_one = false;
     bool Z_too_negative    = false;
@@ -625,6 +628,9 @@ void iterate_faddeev(double* K_array,
             for (int idx_p_r=0; idx_p_r<Np; idx_p_r++){
                 int idx_K_row = idx_alpha_r*Nq*Np + idx_q_r*Np + idx_p_r;
 
+                double q_kin_term = 0.75*q_array[idx_q_r]*q_array[idx_q_r]/MN;
+                double p_kin_term =      p_array[idx_p_r]*p_array[idx_p_r]/MN;
+
                 /* Loop over alpha prime summation */
                 for (int idx_alpha_p=0; idx_alpha_p<Nalpha; idx_alpha_p++){
                     int L_p     = L_2N_array[idx_alpha_p];
@@ -639,7 +645,7 @@ void iterate_faddeev(double* K_array,
                         bool coupled = L_r!=L_p or (L_r==L_p and L_r!=J_p and J_r!=0);
 
                         /* Energy for LS-solver */
-                        double E_LS = Z - q_array[idx_q_r]*q_array[idx_q_r] / (2 * mu2);
+                        double E_LS = Z - q_kin_term;
                         double* V_mat_array_ptr = NULL;
                         double* t_mat_array_ptr = NULL;
 	                    if (coupled){ // coupled interaction
@@ -702,7 +708,7 @@ void iterate_faddeev(double* K_array,
                 }
 
                 /* 3-nucleon free Green's function */
-                double G0 = 1./(Z - 0.5*p_array[idx_p_r]*p_array[idx_p_r]/mu1 - 0.5*q_array[idx_q_r]*q_array[idx_q_r]/mu2 );
+                double G0 = 1./(Z - p_kin_term - q_kin_term );
 
                 for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
                     for (int idx_q_c=0; idx_q_c<Nq; idx_q_c++){

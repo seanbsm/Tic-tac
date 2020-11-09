@@ -37,7 +37,8 @@ void calculate_angular_quadrature_grids(double* x_array, double* wx_array, int N
 
 double extract_potential_element_from_array(int L, int Lp, int J, int S, bool coupled, double* V_array);
 
-void calculate_potential_matrices_array(double* V_mat_array,
+void calculate_potential_matrices_array(double* V_unco_array,
+                                        double* V_coup_array,
                                         int Np, double* p_array, double* wp_array,
                                         int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array,
                                         potential_model* pot_ptr_nn,

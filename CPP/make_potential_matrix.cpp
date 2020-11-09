@@ -93,13 +93,13 @@ void calculate_potential_matrices_array(double* V_WP_unco_array,
                 for (int idx_bin_r=0; idx_bin_r<Np_WP; idx_bin_r++){
                     double bin_r_lower = p_WP_array[idx_bin_r];
                     double bin_r_upper = p_WP_array[idx_bin_r + 1];
-                    double N_r = wp_normalisation(bin_r_lower, bin_r_upper);
+                    double N_r = p_normalisation(bin_r_lower, bin_r_upper);
                     
                     /* Column index loop */
                     for (int idx_bin_c=0; idx_bin_c<Np_WP; idx_bin_c++){
                         double bin_c_lower = p_WP_array[idx_bin_c];
                         double bin_c_upper = p_WP_array[idx_bin_c + 1];
-                        double N_c = wp_normalisation(bin_c_lower, bin_c_upper);
+                        double N_c = p_normalisation(bin_c_lower, bin_c_upper);
 
                         /* Potential matrix indexing */
                         if (coupled){

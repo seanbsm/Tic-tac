@@ -7,6 +7,7 @@
 #include "chiral_LO_internal.h"
 #include "chiral_N2LOopt.h"
 #include "chiral_Idaho_N3LO.h"
+#include "chiral_EM500.h"
 
 
 potential_model::potential_model(){
@@ -57,6 +58,13 @@ potential_model *potential_model::fetch_potential_ptr(std::string model, std::st
 	}
 	else if (model=="Idaho_N3LO"){
 		chiral_Idaho_N3LO *pot_ptr = new chiral_Idaho_N3LO();
+		
+		pot_ptr->setSystem(Tz);
+		
+		return pot_ptr;
+	}
+	else if (model=="Idaho_EM500"){
+		chiral_EM500 *pot_ptr = new chiral_EM500();
 		
 		pot_ptr->setSystem(Tz);
 		

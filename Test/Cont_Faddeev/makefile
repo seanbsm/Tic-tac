@@ -2,6 +2,7 @@
 # the compiler to use
 CC  := g++ 
 XLF := gfortran -O2 -fdefault-real-8 -fdefault-double-8 -cpp -ffree-form -ffree-line-length-1000 -fPIC
+#XLF_77 := gfortran -std=legacy -O2 -fdefault-real-8 -fdefault-double-8 -cpp -ffree-form -ffree-line-length-1000 -fPIC
 
 TARGET    := run
 #H_FILES   := $(shell find ./ -regex [^\#]*\\.h$)
@@ -11,6 +12,9 @@ DEP_FILES := $(SRC_FILES:.cpp=.d)
 
 SRCFORT_FILES := $(shell find ./ -regex [^\#]*\\.f90$)
 OBJFORT_FILES := $(SRCFORT_FILES:.f90=.o)
+
+#SRCFORT_FILES_77 := $(shell find ./ -regex [^\#]*\\.f$)
+#OBJFORT_FILES_77 := $(SRCFORT_FILES_77:.f=.o)
 
 #CPPFLAGS := -Wall -O2 -std=c++11 
 #LDFLAGS := -lblas -llapack -lm
@@ -34,7 +38,7 @@ LDLIBS += -L$(MKLROOT)/lib/intel64 -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core
 # Include the .d files
 -include $(DEP_FILES)
 
-$(TARGET): $(OBJ_FILES) $(OBJFORT_FILES)
+$(TARGET): $(OBJ_FILES) $(OBJFORT_FILES) #$(OBJFORT_FILES_77)
 	$(CC) $^ -o $@ $(LDFLAGS) $(LDLIBS) 
 
 %.o: %.cpp Makefile
@@ -43,8 +47,17 @@ $(TARGET): $(OBJ_FILES) $(OBJFORT_FILES)
 %.o: %.f90
 	$(XLF) -c $< -o $@
 
+#%.o: %.f
+#	$(XLF) -c $< -o $@
 
-.PHONY: clean
+
+.PHONY: clean cleanall
+
+# Clean everything but FORTRAN files
 clean:
+	rm -f $(TARGET) $(OBJ_FILES) $(DEP_FILES) *.o *.exe
+
+# Clean everything
+cleanall:
 	rm -f $(TARGET) $(OBJ_FILES) $(OBJFORT_FILES) $(DEP_FILES) *.o *.mod *.exe
 

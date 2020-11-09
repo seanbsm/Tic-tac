@@ -72,9 +72,12 @@ void make_denominator_array(cfloatType* D_array, int Nk, double* k_array, double
 		D_array[i] = 0;
 	}
 	
+	double norm_fac = 1;
+	//double norm_fac = 2/M_PI;
+
 	double temp = 0;
 	for (int i=0; i<Nk; i++){
-		temp = 2*wk_array[i] / (M_PI*(k_array[i]*k_array[i]/M - E));
+		temp = norm_fac*wk_array[i] / (k_array[i]*k_array[i]/M - E);
 		/* LS integral summation */
 		D_array[i]  = temp * k_array[i] * k_array[i];
 

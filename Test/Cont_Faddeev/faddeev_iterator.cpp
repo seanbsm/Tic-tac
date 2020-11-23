@@ -595,9 +595,6 @@ void iterate_faddeev(double* K_array,
                        potential_model* pot_ptr_np){
 
     int basis_size = Nalpha*Np*Nq;
-    double mu1 = 0.50*MN;
-    double mu2 = 0.75*MN;
-
 
     /* P123-matrix element of interest */
     double P123_element = 0;
@@ -605,8 +602,8 @@ void iterate_faddeev(double* K_array,
     double t_element = 0;
 
     /* t-matrix arrays. These are fully rewritten on a call to calculate_t_element */
-    double* t_unco_array = new double [  (Np+1)*(Np+1)];
-    double* t_coup_array = new double [4*(Np+1)*(Np+1)];
+    cfloatType* t_unco_array = new cfloatType [  (Np+1)*(Np+1)];
+    cfloatType* t_coup_array = new cfloatType [4*(Np+1)*(Np+1)];
 
     /* K-matrix summation terms for each column-state */
     double* K_summation_terms = new double [basis_size];
@@ -647,7 +644,7 @@ void iterate_faddeev(double* K_array,
                         /* Energy for LS-solver */
                         double E_LS = Z - q_kin_term;
                         double* V_mat_array_ptr = NULL;
-                        double* t_mat_array_ptr = NULL;
+                        cfloatType* t_mat_array_ptr = NULL;
 	                    if (coupled){ // coupled interaction
                             int step_V_coup = J_r-1;
 	                    	V_mat_array_ptr = &V_coup_array[step_V_coup*4*Np*Np];
@@ -660,33 +657,32 @@ void iterate_faddeev(double* K_array,
                         }
 
                         /* Solve Lippmann-Schwinger equation */
-                        t_element = calculate_t_element(V_mat_array_ptr,
+                         calculate_t_element(V_mat_array_ptr,
                                                         t_mat_array_ptr,
-                                                        L_r, L_p, S_r, J_r, T_r,
+                                                        coupled,
 		                			                    E_LS, MN,
 		                			                    Np, p_array, wp_array,
-		                			                    0, 0,
-		                			                    pot_ptr_nn, pot_ptr_np);
+		                			                    0, 0);
                                                         
                         /* Loop over integration momenta */
                         for (int idx_p_p=0; idx_p_p<Np; idx_p_p++){
                             /* Extract correct matrix element */
                             if (coupled){
                                 if(L_r<L_p){        // Upper right
-                                    t_element = t_mat_array_ptr[ idx_p_r      *2*(Np+1) + idx_p_p + Np+1];
+                                    t_element = t_mat_array_ptr[ idx_p_r      *2*(Np+1) + idx_p_p + Np+1].real();
                                 }
                                 else if (L_r>L_p){  // Lower left
-                                    t_element = t_mat_array_ptr[(idx_p_r+Np+1)*2*(Np+1) + idx_p_p];
+                                    t_element = t_mat_array_ptr[(idx_p_r+Np+1)*2*(Np+1) + idx_p_p].real();
                                 }
                                 else if (L_r<J_r){  // Upper left
-                                    t_element = t_mat_array_ptr[ idx_p_r      *2*(Np+1) + idx_p_p];
+                                    t_element = t_mat_array_ptr[ idx_p_r      *2*(Np+1) + idx_p_p].real();
                                 }
                                 else{               // Lower right
-                                    t_element = t_mat_array_ptr[(idx_p_r+Np+1)*2*(Np+1) + idx_p_p + Np+1];
+                                    t_element = t_mat_array_ptr[(idx_p_r+Np+1)*2*(Np+1) + idx_p_p + Np+1].real();
                                 }
                             }
                             else{
-                                t_element = t_mat_array_ptr[idx_p_r*(Np+1) + idx_p_p];
+                                t_element = t_mat_array_ptr[idx_p_r*(Np+1) + idx_p_p].real();
                             }
 
                             /* Column state */
@@ -696,7 +692,8 @@ void iterate_faddeev(double* K_array,
                                         int idx_K_col = idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c;
 
                                         /* Retrieve P123 from pre-calculated P123_array - this INCLUDES spline-functionality*/ 
-                                        int P123_idx = (idx_alpha_p*Nq*Np + idx_q_r*Np + idx_p_p)*Np*Nq*Nalpha + idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c;
+                                        //int P123_idx = (idx_alpha_p*Nq*Np + idx_q_r*Np + idx_p_p)*Np*Nq*Nalpha + idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c;
+                                        int P123_idx = (idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c)*Np*Nq*Nalpha + idx_alpha_p*Nq*Np + idx_q_r*Np + idx_p_p;
                                         P123_element = P123_array[P123_idx];
 
                                         K_summation_terms[idx_K_col] += wp_array[idx_p_p] * p_array[idx_p_p] * p_array[idx_p_p] * t_element * P123_element;

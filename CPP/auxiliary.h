@@ -19,6 +19,8 @@
 #include <gsl/gsl_roots.h>
 #include <gsl/gsl_sf.h>
 
+#include "make_wp_states.h"
+
 using namespace std;
 
 double P (double x, void *params);
@@ -117,14 +119,15 @@ void generate_Ptilde_new(double *P123_store, MKL_INT64 Pdim,
                          double *SixJ_array, int two_jmax_SixJ, double* Gtilde_store);
 
 /* Function defined for WPCD method, adapted simply from generate_Ptilde_new */
-void calculate_Ptilde_no_spline(double *P123_store, MKL_INT64 Pdim,
-                                MKL_INT64 N_p, double *p,
-                                MKL_INT64 N_q, double *q,
-                                MKL_INT64 N_x, double *x, double *wx,
-                                MKL_INT64 Jj_dim, double pmax, double qmax,
-                                int *L12_Jj, int *l3_Jj, int *J12_Jj, int *two_j3_Jj, int *S12_Jj, int *T12_Jj,
-                                MKL_INT64 Lmax, MKL_INT64 max_L12, MKL_INT64 max_l3, MKL_INT64 two_J, MKL_INT64 two_T,
-                                double *SixJ_array, int two_jmax_SixJ, double* Gtilde_store);
+double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  q_idx_WP, 
+                                            int alphap_idx, int pp_idx_WP, int qp_idx_WP, 
+                                            int Np_per_WP, double *p_array, double *wp_array,
+                                            int Nq_per_WP, double *q_array, double *wq_array,
+                                            int Nx,        double *x_array, double *wx_array,
+                                            int Np_WP,     double *p_array_WP_bounds,
+                                            int Nq_WP,     double *q_array_WP_bounds,
+                                            int Nalpha,
+                                            double* Gtilde_store );
 
 
 double Atilde (int alpha, int alphaprime, int Ltotal, int Jj_dim, int *L12_Jj, int *l3_Jj,

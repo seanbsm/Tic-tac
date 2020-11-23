@@ -78,8 +78,8 @@ void read_P123_h5_data_file(std::string file_path, double* P123, int Nq_3N, doub
 void get_h5_P123_dimensions(std::string file_path, int& Nalpha, int& Np, int& Nq);
 
 void calculate_permutation_operator(double* P123_array,
-                                    int Nq, double* q_array, double* wq_array,
-                                    int Np, double* p_array, double* wp_array,
+                                    int Nq, double* q_array, double* wq_array, int Np_per_WP, int Np_WP, double *p_array_WP_bounds,
+                                    int Np, double* p_array, double* wp_array, int Nq_per_WP, int Nq_WP, double *q_array_WP_bounds,
                                     int Nx, double* x_array, double* wx_array,
                                     int Nalpha,
                                     int* L_2N_array,

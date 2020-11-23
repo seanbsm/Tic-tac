@@ -302,8 +302,8 @@ void get_h5_P123_dimensions(std::string file_path, int& Nalpha, int& Np, int& Nq
 }
 
 void calculate_permutation_operator(double* P123_array,
-                                    int Nq, double* q_array, double* wq_array,
-                                    int Np, double* p_array, double* wp_array,
+                                    int Nq, double* q_array, double* wq_array, int Np_per_WP, int Np_WP, double *p_array_WP_bounds,
+                                    int Np, double* p_array, double* wp_array, int Nq_per_WP, int Nq_WP, double *q_array_WP_bounds,
                                     int Nx, double* x_array, double* wx_array,
                                     int Nalpha,
                                     int* L_2N_array,
@@ -313,9 +313,6 @@ void calculate_permutation_operator(double* P123_array,
                                     int* l_3N_array,
                                     int* two_j_3N_array,
                                     int two_J_3N, int two_T_3N, int parity_3N){
-    
-    int P123_dim = Np * Nq * Nalpha;
-    int P123_dim_sq = P123_dim * P123_dim;
     
     /* Notation change */
     int two_T = two_T_3N;
@@ -336,6 +333,9 @@ void calculate_permutation_operator(double* P123_array,
     double* p_3N = p_array;
     double* q_3N = q_array;
     /* End of notation change */
+
+    /* START OF OLD CODE SEGMENT WITH OLD VARIABLE-NOTATION */
+    /* This code calculates the geometric function Gtilde_{alpha,alpha'}(p',q',x) as an array */
 
     int J12_max;
     double pmax_3N;
@@ -520,44 +520,39 @@ void calculate_permutation_operator(double* P123_array,
         }
     }
 
-    calculate_Ptilde_no_spline (P123_store, Pdim, (MKL_INT64) Np_3N, p_3N, (MKL_INT64) Nq_3N, q_3N, (MKL_INT64) Nx_Gtilde, x_Gtilde, wx_Gtilde, (MKL_INT64) Jj_dim, pmax_3N, qmax_3N, L12_Jj, l3_Jj, J12_Jj, two_j3_Jj, S12_Jj, T12_Jj, (MKL_INT64) Lmax, (MKL_INT64) max_L12, (MKL_INT64) max_l3, (MKL_INT64) two_J, (MKL_INT64) two_T, SixJ_array, two_jmax_SixJ, Gtilde_store);
-}
+    /* END OF OLD CODE SEGMENT WITH OLD VARIABLE-NOTATION */
 
-void calculate_antisymmetrization_operator(std::string file_path, int &Np, int &Nq, int& Nalpha, double** A123, double* q_array, double* p_array){
-    
-    int D123_dim = Np * Nq * Nalpha;
-    int D123_dim_sq = D123_dim * D123_dim;
+    int P123_dim = Np_WP * Nq_WP * Nalpha;
+    int P123_dim_sq = P123_dim * P123_dim;
 
-    *A123 = new double [D123_dim_sq];
-    
-    //read_P123_bin_data_file(*A123, D123_dim_sq);
-    //read_P123_csv_data_file(*A123);
-    read_P123_h5_data_file(file_path, *A123, Nq, q_array, Np, p_array);
-    
-    /* Add square P123-term */
-    #pragma omp parallel for 
-    for (int idx=0; idx<D123_dim_sq; idx++){
-        (*A123)[idx] *= 2;
-    }
+    /* <X_i'j'^alpha'| - loops */
+    for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
+        for (int pp_idx_WP = 0; pp_idx_WP < Np_WP; pp_idx_WP++){
+            for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
 
-    
-    /* Add identity term */
-    #pragma omp parallel for 
-    for (int alpha_idx=0; alpha_idx<Nalpha; alpha_idx++){
-        int A123_diag_idx;
-        for (int q_idx=0; q_idx<Nq; q_idx++){
-            for (int p_idx=0; p_idx<Np; p_idx++){
-                            
-                A123_diag_idx = (int) (alpha_idx*Nq*Np + q_idx*Np + p_idx)*D123_dim +
-                                       alpha_idx*Nq*Np + q_idx*Np + p_idx;
+                /* |X_ij^alpha> - loops */
+                for (int alpha_idx = 0; alpha_idx < Nalpha; alpha_idx++){
+                    for (int p_idx_WP = 0; p_idx_WP < Np_WP; p_idx_WP++){
+                        for (int q_idx_WP = 0; q_idx_WP < Nq_WP; q_idx_WP++){
 
-                (*A123)[A123_diag_idx] += 1;
+                            double P123_element = calculate_P123_element_in_WP_basis (  alpha_idx,  p_idx_WP,  q_idx_WP, 
+                                                                                       alphap_idx, pp_idx_WP, qp_idx_WP, 
+                                                                                       Np_per_WP, p_array, wp_array,
+                                                                                       Nq_per_WP, q_array, wq_array,
+                                                                                       Nx,    x_array, wx_array,
+                                                                                       Np_WP, p_array_WP_bounds,
+                                                                                       Nq_WP, q_array_WP_bounds,
+                                                                                       Nalpha,
+                                                                                       Gtilde_store );
+
+                            int P123_idx = (int) ( alpha_idx*Nq_WP*Np_WP +  q_idx_WP*Np_WP +  p_idx_WP)*P123_dim +
+                                                  alphap_idx*Nq_WP*Np_WP + qp_idx_WP*Np_WP + pp_idx_WP;
+
+                            P123_array[P123_idx] = P123_element;
+                        }
+                    }
+                }
             }
         }
-    }
-
-    #pragma omp parallel for 
-    for (int idx=0; idx<D123_dim_sq; idx++){
-        (*A123)[idx] /= 6;
     }
 }

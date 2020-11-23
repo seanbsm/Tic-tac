@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <fstream>
+
 /* Time-keeping modules */
 #include <chrono>
 #include <ctime>
@@ -22,6 +24,151 @@
 #include "auxiliary.h"
 
 using namespace std;
+
+void open_file(std::ofstream &file,
+			   std::string file_path){
+	bool rewrite_file = true;
+	if (rewrite_file){
+		/* Overwrite file */
+		file.open(file_path);
+	}
+	else{
+		/* Append to file */
+		file.open(file_path, std::ios_base::app);
+	}
+}
+
+void lin_interpolate_matrix(double* ref_matrix,
+						    double* spln_matrix,
+						    double* ref_p_array,
+						    double* spln_p_array,
+						    int ref_N,
+						    int N){
+
+	for (int i = 0; i<N; i++){
+		for (int j = 0; j<N; j++){
+
+			double pi = spln_p_array[i];
+            double pj = spln_p_array[j];
+
+        	int pi1_index = 0; while ((ref_p_array[pi1_index] < pi) && (pi1_index < ref_N - 1)) pi1_index++; if (pi1_index > 0) pi1_index--;
+        	int pj1_index = 0; while ((ref_p_array[pj1_index] < pj) && (pj1_index < ref_N - 1)) pj1_index++; if (pj1_index > 0) pj1_index--;
+			
+			int pi2_index = pi1_index + 1;
+			int pj2_index = pj1_index + 1;
+		
+			double pi1 = ref_p_array[pi1_index]; double pi2 = ref_p_array[pi2_index];
+			double pj1 = ref_p_array[pj1_index]; double pj2 = ref_p_array[pj2_index];
+
+			double M11 = ref_matrix[pi1_index*ref_N + pj1_index];
+			double M12 = ref_matrix[pi1_index*ref_N + pj2_index];
+			double M21 = ref_matrix[pi2_index*ref_N + pj1_index];
+			double M22 = ref_matrix[pi2_index*ref_N + pj2_index];
+
+			double x2x  = pi2 - pi;
+			double xx1  = pi  - pi1;
+			double x2x1 = pi2 - pi1;
+			double y2y  = pj2 - pj;
+			double yy1  = pj  - pj1;
+			double y2y1 = pj2 - pj1;
+
+			double lin_interpolated_element = (M11*x2x*y2y + M21*xx1*y2y + M12*x2x*yy1 + M22*xx1*yy1)/(x2x1*y2y1);
+			
+			spln_matrix[i*N + j] = lin_interpolated_element;
+		}
+	}
+}
+
+void update_potential_matrix(double* V_array,
+							 double* p_array,
+							 double E,
+							 int Nk,
+							 int L, int Lp, int S, int J, int T,
+							 bool coupled,
+							 potential_model* pot_ptr){
+	int Nk1 = Nk + 1;
+	int Nk2 = 2*Nk1;
+
+	bool E_positive = (E>=0);
+	double p = 0;
+	if (E_positive){
+		p = sqrt(E*MN);
+	}
+
+	/* Construct 2N potential matrix <k|v|k_p> */
+	double V_elements [6];
+	double k=0, k_in=0, k_p=0, k_out=0;
+	for (int i=0; i<Nk; i++){
+
+        k  = p_array[i];//*hbarc;
+
+        if(E_positive){pot_ptr->V(k, p, coupled, S, J, T, V_elements);}
+
+		if (coupled){
+			/* Set end-column <ki|v|p> */
+			V_array[ i	   *Nk2 +  Nk] 		= extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_elements);
+			V_array[(i+Nk1)*Nk2 +  Nk] 		= extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_elements);
+			V_array[ i	   *Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_elements);
+			V_array[(i+Nk1)*Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_elements);
+			/* Set end-row <p'|v|ki> */
+			V_array[ Nk		*Nk2 +  i] 		= extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_elements);
+			V_array[(Nk+Nk1)*Nk2 +  i] 		= extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_elements);
+			V_array[ Nk		*Nk2 + (i+Nk1)] = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_elements);
+			V_array[(Nk+Nk1)*Nk2 + (i+Nk1)] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_elements);
+		}
+		else{
+			/* Set end-column <ki|v|p> */
+			V_array[i*Nk1 + Nk] = extract_potential_element_from_array(L, Lp, J, S, coupled, V_elements);
+			/* Set end-row <p'|v|ki> */
+			V_array[Nk*Nk1 + i] = extract_potential_element_from_array(L, Lp, J, S, coupled, V_elements);
+		}
+	}
+
+	if(E_positive){pot_ptr->V(p, p, coupled, S, J, T, V_elements);}
+	if (coupled){
+		V_array[ Nk	    *Nk2 +  Nk] 	 = extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_elements);
+		V_array[(Nk+Nk1)*Nk2 +  Nk] 	 = extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_elements);
+		V_array[ Nk	    *Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_elements);
+		V_array[(Nk+Nk1)*Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_elements);
+	}
+	else{
+		/* Set last element <p'|v|p> */
+		V_array[Nk1*Nk1 - 1] = extract_potential_element_from_array(L, Lp, J, S, coupled, V_elements);
+	}
+}
+
+void store_array(double *arrays,
+				 int num_rows,
+				 int num_cols,
+				 std::string folder_name){
+	
+	std::string file_path  = folder_name + ".csv";
+	
+	/* Open file*/
+	std::ofstream result_file;
+	open_file(result_file, file_path);
+	
+	/* Fixes formatting of stored numbers */
+	result_file << std::fixed
+				<< std::showpos
+				<< std::setprecision(8);
+	
+	/* Append cross-sections */
+	for (int i=0; i<num_rows; i++){
+		for (int j=0; j<num_cols; j++){
+			/* Append vector element */
+			result_file << arrays[i*num_cols + j] << ",";
+		}
+		result_file << "\n";
+	}
+	
+	/* Close writing session */
+	result_file << std::endl;
+	
+	/* Close files */
+	result_file.close();
+}
+
 
 int main(int argc, char* argv[]){
 
@@ -206,16 +353,22 @@ int main(int argc, char* argv[]){
 		return 0;*/
 
 		/* Test T-matrix elements */
-		/*int N=30;
+		int N=30;
 		double* p_par = new double [N]; double* p_mom = new double [N];
-		double* w_par = new double [N];
+		double* w_par = new double [N]; double* w_mom = new double [N];
 		double min = 0; double max=5;
+		//gauss(p_mom, w_mom, N);
+		//rangeChange_0_inf(p_mom, w_mom, 1000., N);
+		//rangeChange_0_inf(p_mom, w_mom, max*hbarc, N);
+		//updateRange_a_b(p_mom, w_mom, min*hbarc, max*hbarc, N);
 		calc_gauss_points (p_par, w_par, min, max, N);
 		for (int i = 0; i<N; i++){
-			//cout << p_par[i] << endl;
 			p_mom[i] = p_par[i]*hbarc;
+			w_mom[i] = w_par[i]*hbarc;
+			//p_par[i] = p_mom[i]/hbarc;
+			//w_par[i] = w_mom[i]/hbarc;
 		}
-		
+
 		double* V_unco_array = new double [N*N   * 2*J_2N_max];
 		double* V_coup_array = new double [N*N*4 *   J_2N_max];
 		calculate_potential_matrices_array(V_unco_array,
@@ -231,94 +384,141 @@ int main(int argc, char* argv[]){
 			}
 		}
 
-		int N_p=100;
-		double* p = new double [N_p];
-		double* w = new double [N_p];
-		min = 0; max=6.5;
-		calc_gauss_points (p, w, min, max, N_p);
+		//int N_p=100;
+		//double* p = new double [N_p];
+		//double* w = new double [N_p];
+		//min = 0; max=6.5;
+		//calc_gauss_points (p, w, min, max, N_p);
 		double* V_1S0_interpolated = new double [N*N];
 		
 		double extern_to_local_conversion = 2/(hbarc*MN*M_PI);
 		double local_to_extern_conversion = hbarc*MN*M_PI/2;
 		for (int i = 0; i<N; i++){
+			//printf("%.8f %.8f \n", p_mom[i], w_mom[i]);
 			for (int j = 0; j<N; j++){
-
-				double pi = p_par[i];
-                double pj = p_par[j];
-
-            	int pi1_index = 0; while ((p[pi1_index] < pi) && (pi1_index < N_p - 1)) pi1_index++; if (pi1_index > 0) pi1_index--;
-            	int pj1_index = 0; while ((p[pj1_index] < pj) && (pj1_index < N_p - 1)) pj1_index++; if (pj1_index > 0) pj1_index--;
-				
-				int pi2_index = pi1_index + 1;
-				int pj2_index = pj1_index + 1;
-			
-				double pi1 = p[pi1_index]; double pi2 = p[pi2_index];
-				double pj1 = p[pj1_index]; double pj2 = p[pj2_index];
-
-				double V11 = V1S0[pi1_index*N_p + pj1_index];
-				double V12 = V1S0[pi1_index*N_p + pj2_index];
-				double V21 = V1S0[pi2_index*N_p + pj1_index];
-				double V22 = V1S0[pi2_index*N_p + pj2_index];
-
-				double x2x  = pi2 - pi;
-				double xx1  = pi  - pi1;
-				double x2x1 = pi2 - pi1;
-				double y2y  = pj2 - pj;
-				double yy1  = pj  - pj1;
-				double y2y1 = pj2 - pj1;
-
-				double lin_interpolate = (V11*x2x*y2y + V21*xx1*y2y + V12*x2x*yy1 + V22*xx1*yy1)/(x2x1*y2y1);
-				
-				
 				int S=0;
 				int J=0;
-				int T=0; double V [6];
+				int T=1; double V [6];
 				pot_ptr_np->V(p_mom[i], p_mom[j],false,S,J,T,V);
 
-				//V_1S0_interpolated[i*N + j] = V[0];
-				V_1S0_interpolated[i*N + j] = lin_interpolate * extern_to_local_conversion;
-
-				//if (pi>5 or pj>5){
-				//	V_1S0_interpolated[i*N + j] = lin_interpolate * extern_to_local_conversion;
-				//}
-				//else{
-				//	V_1S0_interpolated[i*N + j] = V[0] ;//* local_to_extern_conversion;
-				//}
-
-				//V_1S0_interpolated[i*N + j] = lin_interpolate * 2/(hbarc*MN*M_PI);
-
-				//printf("%.5e %.5e        %.5e %.5e %.5e %.5e       %.5e %.5e %.5e\n", p_par[i], p_par[j], V11, V12, V21, V22, lin_interpolate, V_1S0_interpolated[i*N + j], V[0] * local_to_extern_conversion);
-				//printf("%.5e %.5e %.5e\n", p_par[i], p_par[j], V_1S0_interpolated[i*N + j]);
+				V_1S0_interpolated[i*N + j] = V[0];
 				V[0] = 0;
 			}
 		}
 
-		double* t_unco_array = new double [  (N+1)*(N+1)];
-		double Z = -8;
-		double q = 0.00854292*hbarc;
-		double E_LS = Z - 0.75*q*q/MN;
-		//double E_LS = Z*MN/(hbarc*hbarc) - 0.75*q*q;
-		//double t_element = calculate_t_element(&(V_unco_array[0]),
-        //                                       t_unco_array,
-        //                                       0, 0, 0, 0, 1,
-		//                			           E_LS, MN,
-		//                			           N, p_mom, w_par,
-		//                			           0, 0,
-		//                			           pot_ptr_nn, pot_ptr_np);
-		double t_element = calculate_t_element(V_1S0_interpolated,
-                                               t_unco_array,
-                                               0, 0, 0, 0, 1,
-		                			           E_LS, MN,
-		                			           N, p_mom, w_par,
-		                			           0, 0,
-		                			           pot_ptr_nn, pot_ptr_np);
-		for (int i = 0; i<1; i++){
+		double T_lab = 10;
+		double q_com = sqrt( Mn*Mn*T_lab*(T_lab + 2*Mp) / ( (Mp+Mn)*(Mp+Mn) + 2*T_lab*Mn ) );
+		double Z1 = -7.5; double Z2 = -8;//q_com*q_com/MN;
+		double q_fm = 0;//0.00854292;
+		double q_MeV = q_fm*hbarc;
+		//double E_LS1 = Z1*MN/(hbarc*hbarc)  - 0.75*q_fm*q_fm; double E_LS2 = Z2*MN/(hbarc*hbarc)  - 0.75*q_fm*q_fm;
+		double E_LS1 = Z1  - 0.75*q_MeV*q_MeV/MN; double E_LS2 = Z2  - 0.75*q_MeV*q_MeV/MN;
+
+		double* V_array = new double [(N+1)*(N+1)];
+		for (int i = 0; i<N; i++){
 			for (int j = 0; j<N; j++){
-				//printf("%.5e %.5e %.5e\n", p_par[i], p_par[j], hbarc*MN*V_1S0_interpolated[i*N+j]);
-				printf("%.5e %.5e %.5e\n", p_par[i], p_par[j], hbarc*MN*t_unco_array[i*(N+1)+j]);
+				V_array[i*(N+1)+j] = V_1S0_interpolated[i*N+j];
 			}
 		}
-		return 0;*/
+		update_potential_matrix(V_array,
+								p_mom,
+								E_LS2,
+								N,
+								0,0,0,0,1,
+								false,
+								pot_ptr_np);
+		
+		cfloatType* t_unco_array1_complex = new cfloatType [(N+1)*(N+1)];
+		cfloatType* t_unco_array2_complex = new cfloatType [(N+1)*(N+1)];
+		calculate_t_element(V_array,
+                            t_unco_array1_complex,
+                            false,
+		                	E_LS1, MN,
+		                	N, p_mom, w_mom,
+							0, 0);
+		calculate_t_element(V_array,
+                            t_unco_array2_complex,
+                            false,
+		                	E_LS2, MN,
+		                	N, p_mom, w_mom,
+							0, 0);
+		
+		double* t_unco_array1 = new double [(N+1)*(N+1)];
+		double* t_unco_array2 = new double [(N+1)*(N+1)];
+		for (int i=0; i<(N+1)*(N+1); i++){
+			t_unco_array1[i] = t_unco_array1_complex[i].real();
+			t_unco_array2[i] = t_unco_array2_complex[i].real();
+		}
+
+		floatType b = 2*(Mp - q_com*q_com/Mn);
+		floatType c = -q_com*q_com*(Mp+Mn)*(Mp+Mn)/(Mn*Mn);
+		T_lab = 0.5*(-b + sqrt(b*b - 4*c));
+		printf("%.5f \n", T_lab);
+
+		if (E_LS2>=0){
+			const floatType divTwo	= 0.5;				// factor 0.5
+			const floatType one		= 1.;				// factor 1.0
+			const floatType two		= 2.;				// factor 2.0
+			const floatType radToDeg = 180/pi;
+			const cfloatType I {0.0, 1.0};
+			double q_on_shell = sqrt(E_LS2*MN);
+			cfloatType T_on_shell = t_unco_array2_complex[(N+1)*(N+1)-1];
+			cfloatType Z = -MN*q_on_shell*I*T_on_shell*M_PI + one;
+			cfloatType delta = (-divTwo*I*log(Z)*radToDeg).real();
+			//printf(delta, "\n");
+			printf("%.5f %.5f\n", delta.real(), delta.imag());
+		}
+
+		//int spln_N=30;
+		//double* spln_p_array_fm = new double [spln_N]; double* spln_p_array_MeV = new double [spln_N];
+		//double* spln_w_array_fm = new double [spln_N]; double* spln_w_array_MeV = new double [spln_N];
+		//min = 0; max=5;
+		//calc_gauss_points (spln_p_array_fm, spln_w_array_fm, min, max, spln_N);
+		//for (int i = 0; i<N; i++){
+		//	spln_p_array_MeV[i] = spln_p_array_fm[i]*hbarc;
+		//	spln_w_array_MeV[i] = spln_w_array_fm[i]*hbarc;
+		//}
+		//double* t_mat = new double [spln_N*spln_N]; 
+		//lin_interpolate_matrix(t_unco_array2,
+		//				       t_mat,
+		//				       p_mom,
+		//				       spln_p_array_MeV,
+		//				       N,
+		//				       spln_N);
+		
+		// PRINTS SPLINED T-MATRIX
+		//for (int i = 0; i<1; i++){
+		//	for (int j = 0; j<spln_N; j++){
+		//		printf("%.5e %.5e %.5e\n", spln_p_array_fm[i], spln_p_array_fm[j], t_mat[i*spln_N+j]*local_to_extern_conversion);
+		//	}
+		//}
+
+		// PRINTS EXACT T-MATRIX
+		//for (int i = 0; i<1; i++){
+		//	for (int j = 0; j<N; j++){
+		//		printf("%.5e %.5e %.5e\n", p_par[i], p_par[j], t_unco_array2[i*(N+1)+j]*local_to_extern_conversion);
+		//	}
+		//}
+
+		// PRINTS TWO T-MATRICES (EXACT)
+		//for (int i = 0; i<1; i++){
+		//	for (int j = 0; j<N; j++){
+		//		printf("%.5e %.5e %.5e %.5e\n", p_par[i], p_par[j], t_unco_array1[i*(N+1)+j]*local_to_extern_conversion, t_unco_array2[i*(N+1)+j]*local_to_extern_conversion);
+		//	}
+		//}
+
+		double* arrays = new double [N*N*3];
+		for (int i=0; i<N; i++){
+			for (int j=0; j<N; j++){
+				arrays[(i*N+j)*3 + 0] = p_par[i];
+				arrays[(i*N+j)*3 + 1] = p_par[j];
+				//arrays[(i*N+j)*3 + 2] = V_array[i*(N+1)+j]*local_to_extern_conversion;//
+				arrays[(i*N+j)*3 + 2] = t_unco_array1[i*(N+1)+j]*hbarc*MN;
+			}
+		}
+		store_array(arrays, N*N, 3, "t_elements");
+		//store_array(arrays, N*N, 3, "V_elements");
+		return 0;
 
 		cout << "Starting Faddeev Iterator" << endl;
 		calculate_faddeev_convergence(state_3N_asym_array,

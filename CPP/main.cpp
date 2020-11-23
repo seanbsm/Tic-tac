@@ -72,7 +72,7 @@ int main(int argc, char* argv[]){
 	//potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
 	potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
 	potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
-	
+	 
 	cout << "Constructing 3N partial-wave basis" << endl;
 	construct_symmetric_pw_states(two_J_3N, two_T_3N, parity_3N,
 								  two_J_1N_min, two_J_1N_max, J_2N_min, J_2N_max,

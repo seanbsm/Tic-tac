@@ -657,72 +657,78 @@ void generate_Ptilde_new (double *P123_store, MKL_INT64 Pdim, MKL_INT64 N_p, dou
     } // pragma
 }
 
-void calculate_Ptilde_no_spline (double *P123_store, MKL_INT64 Pdim,
-                                 MKL_INT64 N_p, double *p,
-                                 MKL_INT64 N_q, double *q,
-                                 MKL_INT64 N_x, double *x, double *wx,
-                                 MKL_INT64 Jj_dim, double pmax, double qmax,
-                                 int *L12_Jj, int *l3_Jj, int *J12_Jj, int *two_j3_Jj, int *S12_Jj, int *T12_Jj,
-                                 MKL_INT64 Lmax, MKL_INT64 max_L12, MKL_INT64 max_l3, MKL_INT64 two_J, MKL_INT64 two_T,
-                                 double *SixJ_array, int two_jmax_SixJ, double* Gtilde_store){
+double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  q_idx_WP, 
+                                            int alphap_idx, int pp_idx_WP, int qp_idx_WP, 
+                                            int Np_per_WP, double *p_array, double *wp_array,
+                                            int Nq_per_WP, double *q_array, double *wq_array,
+                                            int Nx,        double *x_array, double *wx_array,
+                                            int Np_WP,     double *p_array_WP_bounds,
+                                            int Nq_WP,     double *q_array_WP_bounds,
+                                            int Nalpha,
+                                            double* Gtilde_store ){
 
-    for (MKL_INT64 index = 0; index <= Pdim * Pdim - 1; index++)
-    {
-        P123_store[index] = 0.0;
-    }
+    bool run_tests = true;
+    double integral_sum = 0;
 
-    #pragma omp parallel
-    {
-        #pragma omp for
+    double WP_q_bound_lower = q_array_WP_bounds[q_idx_WP];
+    double WP_q_bound_upper = q_array_WP_bounds[q_idx_WP+1];
+    double WP_p_bound_lower = p_array_WP_bounds[p_idx_WP];
+    double WP_p_bound_upper = p_array_WP_bounds[p_idx_WP+1];
 
-        for (MKL_INT64 c = 0; c <= Pdim - 1; c++){
+    int pp_idx_lower = Np_per_WP* pp_idx_WP;
+    int pp_idx_upper = Np_per_WP*(pp_idx_WP+1);
 
-            int c_fortran = c + 1;
-            int c_global = c_fortran - 1;
+    int qp_idx_lower = Nq_per_WP* qp_idx_WP;
+    int qp_idx_upper = Nq_per_WP*(qp_idx_WP+1);
 
-            int alphaprime = (int) (c_global / (N_q * N_p));
-            c_global = c_global - alphaprime * N_q * N_p;
+    int Np = Np_per_WP*Np_WP;
+    int Nq = Nq_per_WP*Nq_WP;
 
-            int qprime_index = (int) (c_global / (N_p));
-            c_global = c_global - qprime_index * N_p;
+    for (int pp_idx=pp_idx_lower; pp_idx<pp_idx_upper; pp_idx++){
+        for (int qp_idx=qp_idx_lower; qp_idx<qp_idx_upper; qp_idx++){
 
-            int pprime_index = c_global;
+            double wp_p2 = wp_array[pp_idx]*p_array[pp_idx]*p_array[pp_idx];
+            double wq_q2 = wq_array[qp_idx]*q_array[qp_idx]*q_array[qp_idx];
+            double integral_factors = wp_p2 * wq_q2;
 
-            for (MKL_INT64 r = 0; r <= Pdim - 1; r++){
+            for (int x_idx = 0; x_idx <= Nx - 1; x_idx++){
 
-                int r_fortran = r + 1;
-                int r_global = r_fortran - 1;
-
-                int alpha = (int) (r_global / (N_q * N_p));
-                r_global = r_global - alpha * N_q * N_p;
-
-                int q_index = (int) (r_global / (N_p));
-                r_global = r_global - q_index * N_p;
-
-                int p_index = r_global;
-
-                double x_integral_sum = 0;
-                for (int x_index = 0; x_index <= N_x - 1; x_index++){
-
-                    double pi1 = pi1_tilde(p[p_index], q[q_index], x[x_index]);
-                    double pi2 = pi2_tilde(p[p_index], q[q_index], x[x_index]);
-
-                    int pi1_index = 0; while ((p[pi1_index] < pi1) && (pi1_index < N_p - 1)) pi1_index++; if (pi1_index > 0) pi1_index--;
-                    int pi2_index = 0; while ((q[pi2_index] < pi2) && (pi2_index < N_q - 1)) pi2_index++; if (pi2_index > 0) pi2_index--;
-
-                    double costheta1 = -(0.5 * p[p_index] + 0.75 * q[q_index] * x[x_index]) / pi1;
-                    double costheta2 = (p[p_index] - 0.5 * q[q_index] * x[x_index]) / pi2;
-
+                double p_bar = pi1_tilde(p_array[pp_idx], q_array[qp_idx], x_array[x_idx]);
+                double q_bar = pi2_tilde(p_array[pp_idx], q_array[qp_idx], x_array[x_idx]);
+                /* Check if p_bar is in bin p_idx_WP, if not then move on to next loop iteration */
+                if ( p_bar<WP_p_bound_lower or WP_p_bound_upper<p_bar ){
+                    continue;
+                }
+                /* Check if q_bar is in bin q_idx_WP, if not then move on to next loop iteration */
+                if ( q_bar<WP_q_bound_lower or WP_q_bound_upper<q_bar ){
+                    continue;
+                }
+                
+                if (run_tests){
+                    double costheta1 = -(0.5 * p_array[pp_idx] + 0.75 * q_array[qp_idx] * x_array[x_idx]) / p_bar;
+                    double costheta2 =        (p_array[pp_idx] - 0.5  * q_array[qp_idx] * x_array[x_idx]) / q_bar;
                     if (fabs(costheta1) > 1) cout << "costheta1 problem: " << costheta1 << "\n";
                     if (fabs(costheta2) > 1) cout << "costheta2 problem: " << costheta2 << "\n";
-                    
-                    x_integral_sum += wx[x_index] * Gtilde_store[alpha*Jj_dim*N_p*N_q*N_x + alphaprime*N_p*N_q*N_x + p_index*N_q*N_x + q_index*N_x + x_index];
-                } // x_index
+                }
+                
+                /* BEWARE: I'M NOT 100% SURE ON THE GTILDE ALPHA-INDEXING */
+                integral_sum += integral_factors * wx_array[x_idx] * Gtilde_store[alphap_idx*Nalpha*Np*Nq*Nx + alpha_idx*Np*Nq*Nx + pp_idx*Nq*Nx + qp_idx*Nx + x_idx];
+            } // x_idx
+        } // qp_idx
+    } // pp_idx
 
-                P123_store[r * Pdim + c] = x_integral_sum;
-            } // j
-        } // i
-    } // pragma
+
+    double WP_qp_bound_lower = q_array_WP_bounds[qp_idx_WP];
+    double WP_qp_bound_upper = q_array_WP_bounds[qp_idx_WP+1];
+    double WP_pp_bound_lower = p_array_WP_bounds[pp_idx_WP];
+    double WP_pp_bound_upper = p_array_WP_bounds[pp_idx_WP+1];
+
+    double norm_WP = q_normalisation( WP_q_bound_lower,  WP_q_bound_upper)
+                    *p_normalisation( WP_p_bound_lower,  WP_p_bound_upper)
+                    *q_normalisation(WP_qp_bound_lower, WP_qp_bound_upper)
+                    *p_normalisation(WP_pp_bound_lower, WP_pp_bound_upper);
+
+    return integral_sum / norm_WP;
 }
 
 double Atilde (int alpha, int alphaprime, int Ltotal, int Jj_dim, int *L12_Jj, int *l3_Jj, int *J12_Jj, int *two_j3_Jj, int *S12_Jj, int *T12_Jj, int two_J, int two_T, double *SixJ_array, int two_jmax_SixJ)

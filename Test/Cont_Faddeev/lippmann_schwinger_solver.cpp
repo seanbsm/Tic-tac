@@ -22,44 +22,38 @@ void solve_MM_lin_eq(std::complex<double>* A, std::complex<double>* B, int N){
 	LAPACKE_zgetrf(LAPACK_ROW_MAJOR, N, N, A, N, ipiv);
     LAPACKE_zgetrs(LAPACK_ROW_MAJOR, trans, N, N, A, N, ipiv, B, N);
 }
+void M_invert(std::complex<float>* A, int N){
+	long long int ipiv [N];
 
-/*double extract_potential_element_from_array(int L, int Lp, int J, int S, bool coupled, double* V_array){
-    
-	if (J<abs(S-L) or J>S+L or J<abs(S-Lp) or J>S+Lp){
-		std::cout << L <<" "<< Lp <<" "<< J <<" "<< S << std::endl;
-		raise_error("Encountered unphysical state in LS-solver");
-	}
+	//int info = 0;
+	//int lwork = N*N;
+	//std::complex<float> work [lwork];
+	
+	LAPACKE_cgetrf(LAPACK_ROW_MAJOR, N, N, A, N, ipiv);
+    LAPACKE_cgetri(LAPACK_ROW_MAJOR, N, A, N, ipiv);
+}
+void M_invert(std::complex<double>* A, int N){
+	long long int ipiv [N];
 
-    double potential_element = NAN;
+	//int info = 0;
+	//int lwork = N*N;
+	//std::complex<double> work [lwork];
+	
+	LAPACKE_zgetrf(LAPACK_ROW_MAJOR, N, N, A, N, ipiv);
+    LAPACKE_zgetri(LAPACK_ROW_MAJOR, N, A, N, ipiv);
+}
+/* Dot product for C := alpha*A*B + beta*C for dimensions C(N,M), A(N,K), and B(K,M) (row-major) */
+void cdot_MM(std::complex<float> *A, std::complex<float> *B, std::complex<float> *C, int N, int K, int M){
+	float beta = 0;
+	float alpha = 1;
+	cblas_cgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, &alpha, A, K, B, M, &beta, C, M);
+}
+void cdot_MM(std::complex<double> *A, std::complex<double> *B, std::complex<double> *C, int N, int K, int M){
+	double beta = 0;
+	double alpha = 1;
+	cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, &alpha, A, K, B, M, &beta, C, M);
+}
 
-    if (coupled){
-        if (L==Lp and L<J){         // --
-            potential_element = V_array[2];
-        }
-        else if (L==Lp and L>J){    // ++
-            potential_element = V_array[5];
-        }
-        else if (L<Lp){             // +-
-            potential_element = V_array[3];
-        }
-        else{                       // -+
-            potential_element = V_array[4];
-        }
-    }
-    else{
-        if (J==0 and L!=J){         // 3P0 (++)
-            potential_element = V_array[5];
-        }
-        else if (S==0){             // S=0
-            potential_element = V_array[0];
-        }
-        else{                       // S=1
-            potential_element = V_array[1];
-        }
-    }
-
-    return potential_element;
-}*/
 
 void make_denominator_array(cfloatType* D_array, int Nk, double* k_array, double* wk_array, double E, double M){
 
@@ -72,12 +66,14 @@ void make_denominator_array(cfloatType* D_array, int Nk, double* k_array, double
 		D_array[i] = 0;
 	}
 	
-	double norm_fac = 1;
-	//double norm_fac = 2/M_PI;
+	floatType norm_fac = 1;
+	//floatType norm_fac = 2/M_PI;
 
 	double temp = 0;
 	for (int i=0; i<Nk; i++){
-		temp = norm_fac*wk_array[i] / (k_array[i]*k_array[i]/M - E);
+		//temp = norm_fac*wk_array[i] / (E - k_array[i]*k_array[i]);
+		temp = norm_fac*wk_array[i] / (k_array[i]*k_array[i]/MN - E);
+
 		/* LS integral summation */
 		D_array[i]  = temp * k_array[i] * k_array[i];
 
@@ -88,14 +84,12 @@ void make_denominator_array(cfloatType* D_array, int Nk, double* k_array, double
 	}
 
 	if (E_positive){
-		double q = sqrt(E*M);
+		floatType q = sqrt(E*M);
 		D_array[Nk] *= q*q;
 
 		/* Complex integration term. Only required in on-shell calculations */
-		D_array[Nk] += 0.5*J*q*pi*M;
-	}
-	else{
-		D_array[Nk] = 0;
+		floatType mu = 0.5*M;
+		D_array[Nk] += J*q*M_PI*mu;
 	}
 }
 
@@ -123,16 +117,12 @@ void make_wave_matrix(cfloatType* F_array, cfloatType* D_array, int Nk1, bool co
 	}
 }
 
-/* Calculates half off-shell matrix t(q,p;E) where E=q^2/M (i.e. q is on-shell).
- * Returns matrix element given by idx_row and idx_col */
-double calculate_t_element(double* V_prestored_array,
-						   double* t_array,
-						   int L, int L_p, int S, int J, int T,
+void calculate_t_element(double* V_prestored_array,
+						   cfloatType* T_array,
+						   bool coupled,
 						   double E, double M,
 						   int Nk, double* k_array, double* wk_array,
-						   int idx_row, int idx_col,
-						   potential_model* pot_ptr_nn,
-						   potential_model* pot_ptr_np){
+						   int idx_row, int idx_col){
 
 	/* Number of quadrature points plus on-shell momentum (x2 for coupled matrices) */
 	int Nk1 = Nk+1;
@@ -142,64 +132,15 @@ double calculate_t_element(double* V_prestored_array,
 	int mat_dim = Nk1;
 
 	/* Detemine if this is a coupled channel */
-	bool coupled = false;
-	if (L!=L_p or (L==L_p and L!=J and J!=0)){
-		coupled  = true;
+	if (coupled){
 		mat_dim *= 2;
 	}
 	int mat_dim_sq = mat_dim * mat_dim;
 
-	double* 	V_array = new double 	 [mat_dim_sq];								// Potential matrix
-	cfloatType* D_array = new cfloatType [Nk1];		// Denominator vector
+	floatType* 	V_array = V_prestored_array;			// Potential matrix
+	cfloatType* D_array = new cfloatType [Nk1];			// Denominator vector
 	cfloatType* F_array = new cfloatType [mat_dim_sq];	// Wave matrix
-	cfloatType* T_array = new cfloatType [mat_dim_sq];	// T-matrix
-
-	
-	for (int i=0; i<Nk; i++){
-		/* Copy matrix quadrature gridpoints */
-		for (int j=0; j<Nk; j++){
-			if (coupled){
-				V_array[ i	   *Nk2 +  j] 	   = V_prestored_array[ i	 *2*Nk +  j];
-				V_array[(i+Nk1)*Nk2 +  j] 	   = V_prestored_array[(i+Nk)*2*Nk +  j];
-				V_array[ i	   *Nk2 + (j+Nk1)] = V_prestored_array[ i	 *2*Nk + (j+Nk)];
-				V_array[(i+Nk1)*Nk2 + (j+Nk1)] = V_prestored_array[(i+Nk)*2*Nk + (j+Nk)];
-			}
-			else{
-				V_array[i*Nk1 + j] = V_prestored_array[i*Nk + j];
-			}
-		}
-
-		/* Copy elements for end row and column */
-		if (coupled){
-			/* Set end-column <ki|v|p> */
-			V_array[ i	   *Nk2 +  Nk] 		= V_prestored_array[ i	  *2*Nk +  idx_col];
-			V_array[(i+Nk1)*Nk2 +  Nk] 		= V_prestored_array[(i+Nk)*2*Nk +  idx_col];
-			V_array[ i	   *Nk2 + (Nk+Nk1)] = V_prestored_array[ i	  *2*Nk + (idx_col+Nk)];
-			V_array[(i+Nk1)*Nk2 + (Nk+Nk1)] = V_prestored_array[(i+Nk)*2*Nk + (idx_col+Nk)];
-			/* Set end-row <p'|v|ki> */
-			V_array[ Nk		*Nk2 +  i] 		= V_prestored_array[ idx_row	*2*Nk +  i];
-			V_array[(Nk+Nk1)*Nk2 +  i] 		= V_prestored_array[(idx_row+Nk)*2*Nk +  i];
-			V_array[ Nk		*Nk2 + (i+Nk1)] = V_prestored_array[ idx_row	*2*Nk + (i+Nk)];
-			V_array[(Nk+Nk1)*Nk2 + (i+Nk1)] = V_prestored_array[(idx_row+Nk)*2*Nk + (i+Nk)];
-		}
-		else{
-			/* Set end-column <ki|v|p> */
-			V_array[i*mat_dim + Nk] = V_prestored_array[i*Nk + idx_col];
-			/* Set end-row <p'|v|ki> */
-			V_array[Nk*mat_dim + i] = V_prestored_array[idx_row*Nk + i];
-		}
-	}
-	if (coupled){
-		V_array[ Nk		*Nk2 +  Nk] 	 = V_prestored_array[ idx_row	 *2*Nk +  idx_col];
-		V_array[(Nk+Nk1)*Nk2 +  Nk] 	 = V_prestored_array[(idx_row+Nk)*2*Nk +  idx_col];
-		V_array[ Nk		*Nk2 + (Nk+Nk1)] = V_prestored_array[ idx_row	 *2*Nk + (idx_col+Nk)];
-		V_array[(Nk+Nk1)*Nk2 + (Nk+Nk1)] = V_prestored_array[(idx_row+Nk)*2*Nk + (idx_col+Nk)];
-	}
-	else{
-		/* Set last element <p'|v|p> */
-		V_array[mat_dim_sq - 1] = V_prestored_array[idx_row*Nk + idx_col];
-	}
-
+	//cfloatType* T_array = new cfloatType [mat_dim_sq];	// T-matrix
 
 	/* Set resolvent array pointer to pre-calculated arrays */
 	make_denominator_array(D_array, Nk, k_array, wk_array, E, M);
@@ -216,25 +157,15 @@ double calculate_t_element(double* V_prestored_array,
 	
 	/* Solve LS */
 	solve_MM_lin_eq(F_array, T_array, mat_dim);
-	
-	cfloatType T_element = NAN;
-	if (coupled){
-		if (L>L_p){		 // upper-right block of coupled T-matrix
-			T_element = T_array[idx_row*Nk2 + idx_col + Nk1]; 
-		}
-		else if (L<L_p){ // lower-left block of coupled T-matrix
-			T_element = T_array[(idx_row + Nk1)*Nk2 + idx_col];
-		}
-		else if (L<J){	 // upper-left block of coupled T-matrix
-			T_element = T_array[idx_row*Nk1 + idx_col];
-		}
-		else{			 // lower-right block of coupled T-matrix
-			T_element = T_array[(idx_row + Nk1)*Nk2 + idx_col + Nk1];
-		}
-	}
-	else{
-		T_element = T_array[idx_row*Nk1 + idx_col];
-	}
+
+	//M_invert(F_array, mat_dim);
+	//cfloatType* V_array_complex_cast = new cfloatType [mat_dim_sq];
+	//for (int i=0; i<mat_dim_sq; i++){
+	//	V_array_complex_cast[i] = V_array[i];
+	//}
+	//cdot_MM(F_array, V_array_complex_cast, T_array, Nk1, Nk1, Nk1);
+	//delete [] V_array_complex_cast;
+
 
 /*
 	if (coupled){
@@ -249,17 +180,13 @@ double calculate_t_element(double* V_prestored_array,
 	}
 */
 
-	for (int i=0; i<mat_dim_sq; i++){
-		t_array[i] = T_array[i].real();
-	}
-
-	double T_element_real = T_element.real();
+	//for (int i=0; i<mat_dim_sq; i++){
+	//	t_array[i] = T_array[i].real();
+	//}
 	
 	/* Delete temporary wave matrix */
-	delete [] V_array;
+	//delete [] V_array;
 	delete [] D_array;
 	delete [] F_array;
-	delete [] T_array;
-
-	return T_element_real;
+	//delete [] T_array;
 }

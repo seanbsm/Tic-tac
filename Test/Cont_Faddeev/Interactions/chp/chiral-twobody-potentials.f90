@@ -1487,10 +1487,10 @@ MODULE idaho_chiral_potential
     pinit2  = pinit*pinit
     pfinal2 = pfinal*pfinal
     
-    IF(pin > 2.0D0*chp_lambda%val .OR. pout > 2.0D0*chp_lambda%val) THEN
-       POT = 0.0D0
-       RETURN
-    END IF
+    !IF(pin > 2.0D0*chp_lambda%val .OR. pout > 2.0D0*chp_lambda%val) THEN
+    !   POT = 0.0D0
+    !   RETURN
+    !END IF
 
 ! squared momentum transfer
     q2 = pfinal2 + pinit2 - 2.0D0*pinit*pfinal*zmesh%pnt(:)%x

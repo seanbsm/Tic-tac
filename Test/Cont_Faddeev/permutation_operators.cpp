@@ -37,8 +37,7 @@ void read_P123_h5_data_file(double* P123, int Nq_3N, double *q_3N, int Np_3N, do
     //    P123[i] = 0.0;
     //}
 
-    //int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_J3_1_PAR_1_T3_1.h5");
-    int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_medium.h5");
+    int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_Jmax_3_Np_32_Nq_10_in_MeV.h5");
     if (i_file3 < 0){
         raise_error("Couldn't locate P123-matrix h5-file.");
     }
@@ -361,8 +360,7 @@ void get_h5_P123_dimensions(int& Nalpha, int& Np, int& Nq){
     hid_t   file_id_3, dataset_id_3;
     herr_t  ret_3;
 
-    //int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_J3_1_PAR_1_T3_1.h5");
-    int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_medium.h5");
+    int i_file3 = sprintf(filename, "../../../Data/3N_permutation_operator/P123_files/P123_Jmax_3_Np_32_Nq_10_in_MeV.h5");
     if (i_file3 < 0){
         raise_error("Couldn't locate P123-matrix h5-file.");
     }

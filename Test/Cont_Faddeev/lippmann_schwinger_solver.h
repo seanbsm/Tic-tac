@@ -28,7 +28,6 @@ void calculate_t_element(double* V_prestored_array,
 						   cfloatType* T_array,
 						   bool coupled,
 						   double E, double M,
-						   int Nk, double* k_array, double* wk_array,
-						   int idx_row, int idx_col);
+						   int Nk, double* k_array, double* wk_array);
 
 #endif // LIPPMANN_SCHWINGER_SOLVER_H

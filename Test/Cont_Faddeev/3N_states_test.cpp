@@ -183,10 +183,8 @@ int main(int argc, char* argv[]){
 
 	/* PWE truncation */
 	/* Maximum (max) and minimum (min) values for J_2N and J_1N */
-    int two_J_1N_min = 1;
-    int two_J_1N_max = 4;
     int J_2N_min 	 = 0;	// The LS-solver will fail if this is not zero - I haven't taken this into account in my indexing
-    int J_2N_max 	 = 3;
+    int J_2N_max 	 = 1;
 
 	/* Quadrature 3N momenta */
 	int Np	   		 = 32;
@@ -238,16 +236,37 @@ int main(int argc, char* argv[]){
 	else{
 		cout << "Constructing 3N partial-wave basis" << endl;
 		construct_symmetric_pw_states(two_J_3N, two_T_3N, parity_3N,
-									  two_J_1N_min, two_J_1N_max, J_2N_min, J_2N_max,
+									  J_2N_min, J_2N_max,
 									  Nalpha, &L_2N, &S_2N, &J_2N, &T_2N, &l_3N, &two_j_3N);
-		cout << "Constructing p mesh" << endl;
 		p_array  = new double [Np];
 		wp_array = new double [Np];
-		gauss(p_array, wp_array, Np); rangeChange_0_inf(p_array, wp_array, 1000., Np);
-		cout << "Constructing q mesh" << endl;
 		q_array  = new double [Nq];
 		wq_array = new double [Nq];
-		gauss(q_array, wq_array, Nq); rangeChange_0_inf(q_array, wq_array, 1000., Nq);
+		
+		bool use_trigonometric_distribution = false;
+        if (use_trigonometric_distribution){
+            cout << "Constructing p mesh" << endl;
+            gauss(p_array, wp_array, Np); rangeChange_0_inf(p_array, wp_array, 1000., Np);
+	        cout << "Constructing q mesh" << endl;
+	        gauss(q_array, wq_array, Nq); rangeChange_0_inf(q_array, wq_array, 1000., Nq);
+        }
+        else{
+            double min = 0; double max=5;
+            cout << "Constructing p mesh" << endl;
+            calc_gauss_points (p_array, wp_array, min, max, Np);
+	        cout << "Constructing q mesh" << endl;
+	        calc_gauss_points (q_array, wq_array, min, max, Nq);
+
+			/* Convert from fm^-1 to MeV */
+			for (int i = 0; i<Np; i++){
+				p_array[i]  *= hbarc;
+				wp_array[i] *= hbarc;
+			}
+			for (int i = 0; i<Nq; i++){
+				q_array[i]  *= hbarc;
+				wq_array[i] *= hbarc;
+			}
+        }
 	}
 
 	if (use_premade_antisymmetric_states == true){
@@ -264,9 +283,29 @@ int main(int argc, char* argv[]){
 		int Nq_P123 = 0;
 		get_h5_P123_dimensions(Nalpha_P123, Np_P123, Nq_P123);
     	P123_array = new double [Np_P123 * Nq_P123 * Nalpha_P123 * Np_P123 * Nq_P123 * Nalpha_P123];
+		
+		if (Np!=Np_P123){
+			raise_error("P123 Np-dimension does not match grid setup");
+		}
+		if (Nq!=Nq_P123){
+			raise_error("P123 Nq-dimension does not match grid setup");
+		}
+		if (Nalpha>Nalpha_P123){
+			raise_error("P123 Nalpha-dimension does not match grid setup");
+		}
 
 		cout << "Reading P123 from file" << endl;
 		read_P123_h5_data_file(P123_array, Nq, q_array, Np, p_array);
+
+		/* Convert from fm^-1 to MeV */
+		//for (int i = 0; i<Np; i++){
+		//	p_array[i]  *= hbarc;
+		//	wp_array[i] *= hbarc;
+		//}
+		//for (int i = 0; i<Nq; i++){
+		//	q_array[i]  *= hbarc;
+		//	wq_array[i] *= hbarc;
+		//}
 
 		/*for (int idx_p = 0; idx_p<Np; idx_p++){
 			p_array[idx_p] /= hbarc;
@@ -353,7 +392,7 @@ int main(int argc, char* argv[]){
 		return 0;*/
 
 		/* Test T-matrix elements */
-		int N=30;
+		/*int N=30;
 		double* p_par = new double [N]; double* p_mom = new double [N];
 		double* w_par = new double [N]; double* w_mom = new double [N];
 		double min = 0; double max=5;
@@ -467,7 +506,7 @@ int main(int argc, char* argv[]){
 			cfloatType delta = (-divTwo*I*log(Z)*radToDeg).real();
 			//printf(delta, "\n");
 			printf("%.5f %.5f\n", delta.real(), delta.imag());
-		}
+		}*/
 
 		//int spln_N=30;
 		//double* spln_p_array_fm = new double [spln_N]; double* spln_p_array_MeV = new double [spln_N];
@@ -507,22 +546,56 @@ int main(int argc, char* argv[]){
 		//	}
 		//}
 
+		//double* arrays = new double [N*N*3];
+		//for (int i=0; i<N; i++){
+		//	for (int j=0; j<N; j++){
+		//		arrays[(i*N+j)*3 + 0] = p_par[i];
+		//		arrays[(i*N+j)*3 + 1] = p_par[j];
+		//		//arrays[(i*N+j)*3 + 2] = V_array[i*(N+1)+j]*local_to_extern_conversion;//
+		//		arrays[(i*N+j)*3 + 2] = t_unco_array1[i*(N+1)+j]*hbarc*MN;
+		//	}
+		//}
+		//store_array(arrays, N*N, 3, "t_elements");
+		////store_array(arrays, N*N, 3, "V_elements");
+		//return 0;
+
+		/* CHECK POTENTIAL ARRAYS */
+		/*int N=100;
+		double* p_par = new double [N]; double* p_mom = new double [N];
+		double* w_par = new double [N]; double* w_mom = new double [N];
+		double min = 0; double max=6.5;
+		calc_gauss_points (p_par, w_par, min, max, N);
+		for (int i = 0; i<N; i++){
+			p_mom[i] = p_par[i]*hbarc;
+			w_mom[i] = w_par[i]*hbarc;
+			//p_par[i] = p_mom[i]/hbarc;
+			//w_par[i] = w_mom[i]/hbarc;
+		}
+		int Np1 = N+1;
+    	double* V_unco_array = new double [Np1*Np1   * 2*J_2N_max];
+    	double* V_coup_array = new double [Np1*Np1*4 *   J_2N_max];
+
+    	calculate_potential_matrices_array(V_unco_array,
+    	                                   V_coup_array,
+    	                                   N, p_mom, w_mom,
+    	                                   Nalpha, L_2N, S_2N, J_2N, T_2N,
+    	                                   pot_ptr_nn,
+    	                                   pot_ptr_np);
 		double* arrays = new double [N*N*3];
 		for (int i=0; i<N; i++){
 			for (int j=0; j<N; j++){
 				arrays[(i*N+j)*3 + 0] = p_par[i];
 				arrays[(i*N+j)*3 + 1] = p_par[j];
-				//arrays[(i*N+j)*3 + 2] = V_array[i*(N+1)+j]*local_to_extern_conversion;//
-				arrays[(i*N+j)*3 + 2] = t_unco_array1[i*(N+1)+j]*hbarc*MN;
+				arrays[(i*N+j)*3 + 2] = V_unco_array[i*(N+1)+j]*hbarc*MN*M_PI/2;
 			}
 		}
-		store_array(arrays, N*N, 3, "t_elements");
-		//store_array(arrays, N*N, 3, "V_elements");
-		return 0;
+		store_array(arrays, N*N, 3, "V_elements");
+		return 0;*/
+
 
 		cout << "Starting Faddeev Iterator" << endl;
 		calculate_faddeev_convergence(state_3N_asym_array,
-									  P123_array,
+									  P123_array, Nalpha_P123, Np_P123, Nq_P123,
                      				  Np, p_array, wp_array,
                      				  Nq, q_array, wq_array,
                      				  Nalpha, L_2N, S_2N, J_2N, T_2N, l_3N, two_j_3N,

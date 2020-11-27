@@ -374,6 +374,8 @@ void calculate_potential_matrices_array(double* V_unco_array,
 	double V_nn_elements [6];	// neutron-neutron (nn)
 	double V_np_elements [6];	// neutron-proton (np)
 
+    int Np1 = Np+1;
+
 	double p_r=0, p_in=0, p_c=0, p_out=0;
     /* Row state */
     for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
@@ -423,6 +425,7 @@ void calculate_potential_matrices_array(double* V_unco_array,
                         else{ 	   // Interaction must be np
                             pot_ptr_np->V(p_in, p_out, coupled, S_r, J_r, T_r, V_IS_elements);
                         }
+                        //pot_ptr_np->V(p_in, p_out, coupled, S_r, J_r, T_r, V_IS_elements);
 
                         //double norm_fac = (M_PI/2);
                         double norm_fac = 1;
@@ -430,10 +433,10 @@ void calculate_potential_matrices_array(double* V_unco_array,
                         /* Write element to potential matrix V_array */
                         if (coupled){
                             int step_V_coup = J_r-1;
-			            	V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c]	   = norm_fac*extract_potential_element_from_array(J_r-1, J_r-1, J_r, S_r, coupled, V_IS_elements);
-			            	V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c + Np] = norm_fac*extract_potential_element_from_array(J_r-1, J_r+1, J_r, S_r, coupled, V_IS_elements);
-			            	V_coup_array[step_V_coup*4*Np*Np + (idx_p_r + Np)*2*Np + idx_p_c]	   = norm_fac*extract_potential_element_from_array(J_r+1, J_r-1, J_r, S_r, coupled, V_IS_elements);
-			            	V_coup_array[step_V_coup*4*Np*Np + (idx_p_r + Np)*2*Np + idx_p_c + Np] = norm_fac*extract_potential_element_from_array(J_r+1, J_r+1, J_r, S_r, coupled, V_IS_elements);
+			            	V_coup_array[step_V_coup*4*Np1*Np1 +  idx_p_r       *2*Np1 + idx_p_c]	    = norm_fac*extract_potential_element_from_array(J_r-1, J_r-1, J_r, S_r, coupled, V_IS_elements);
+			            	V_coup_array[step_V_coup*4*Np1*Np1 +  idx_p_r       *2*Np1 + idx_p_c + Np1] = norm_fac*extract_potential_element_from_array(J_r-1, J_r+1, J_r, S_r, coupled, V_IS_elements);
+			            	V_coup_array[step_V_coup*4*Np1*Np1 + (idx_p_r + Np1)*2*Np1 + idx_p_c]	    = norm_fac*extract_potential_element_from_array(J_r+1, J_r-1, J_r, S_r, coupled, V_IS_elements);
+			            	V_coup_array[step_V_coup*4*Np1*Np1 + (idx_p_r + Np1)*2*Np1 + idx_p_c + Np1] = norm_fac*extract_potential_element_from_array(J_r+1, J_r+1, J_r, S_r, coupled, V_IS_elements);
 			            
                             //if (J_r==1){
                             //    std::cout << V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c]	    << std::endl;
@@ -441,11 +444,10 @@ void calculate_potential_matrices_array(double* V_unco_array,
 			            	//    std::cout << V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c + Np] << std::endl;
 			            	//    std::cout << V_coup_array[step_V_coup*4*Np*Np + (idx_p_r + Np)*2*Np + idx_p_c + Np] << std::endl;
                             //}
-                        
                         }
 			            else{
-                            int step_V_unco = L_r + S_r + (J_r!=0) - (J_r==0 and L_r!=J_r);   // This indexing gives room for the 3P0-wave
-			            	V_unco_array[step_V_unco*Np*Np + idx_p_r*Np + idx_p_c] = norm_fac*extract_potential_element_from_array(L_r, L_c, J_r, S_r, coupled, V_IS_elements);
+                            int step_V_unco = 2*J_r + S_r;
+			            	V_unco_array[step_V_unco*Np1*Np1 + idx_p_r*Np1 + idx_p_c] = norm_fac*extract_potential_element_from_array(L_r, L_c, J_r, S_r, coupled, V_IS_elements);
 
                             //if (S_r==0 and J_r==0){
                             //    std::cout << V_unco_array[step_V_unco*Np*Np + idx_p_r*Np + idx_p_c] << std::endl;
@@ -458,8 +460,30 @@ void calculate_potential_matrices_array(double* V_unco_array,
     }
 }
 
+
+double lanczos_solver_caller(double* matrix, int dim){
+    int n = dim;
+    
+    // the matrix-vector multiplication routine
+    auto mv_mul = [&](const std::vector<double>& in, std::vector<double>& out) {
+        for(int i = 0;i < n;i++) {
+            for(int j = 0;j < n;j++) {
+                out[i] += matrix[i*n+j]*in[j];
+            }
+        } 
+    };
+
+    lambda_lanczos::LambdaLanczos<double> engine(mv_mul, n, true); // false means to calculate the smallest eigenvalue.
+    double eigenvalue;
+    std::vector<double> eigenvector(n);
+    //engine.eigenvalue_offset=10;
+    int itern = engine.run(eigenvalue, eigenvector);
+
+    return eigenvalue;
+}   
+
 void calculate_faddeev_convergence(double* state_array,
-                                   double* P123_array,
+                                   double* P123_array, int Nalpha_P123, int Np_P123, int Nq_P123,
                                    int Np, double* p_array, double* wp_array,
                                    int Nq, double* q_array, double* wq_array,
                                    int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* l_3N_array, int* two_j_3N_array,
@@ -467,14 +491,15 @@ void calculate_faddeev_convergence(double* state_array,
                                    potential_model* pot_ptr_nn,
                                    potential_model* pot_ptr_np){
 
-    bool print_calculation_steps = false;
+    bool print_calculation_steps = true;
 
     /* pw basis size */
     int basis_size = Nalpha*Np*Nq;
 
     /* Potential terms arrays */
-    double* V_unco_array = new double [Np*Np   * 2*J_2N_max];
-    double* V_coup_array = new double [Np*Np*4 *   J_2N_max];
+    int Np1 = Np+1;
+    double* V_unco_array = new double [Np1*Np1   * 2*(J_2N_max+1)];
+    double* V_coup_array = new double [Np1*Np1*4 *   (J_2N_max+1)];
 
     /* Pre-calculating potentials */
     std::cout << "Pre-calculating potential matrices ... " << std::flush;
@@ -486,18 +511,6 @@ void calculate_faddeev_convergence(double* state_array,
                                        pot_ptr_np);
     std::cout << "Done." << std::endl;
 
-/*
-    double q = 21.67446140943171;
-    double E_LS = q*q/MN; double t_element;
-    t_element = calculate_t_element(&V_coup_array[0],
-                                    0, 2, 1, 1, 1,
-			                		E_LS, MN,
-			                		Np, p_array, wp_array,
-			                		0, 0,
-			                		pot_ptr_nn, pot_ptr_np);
-    raise_error("Test printout over.");
-*/
-
     /* K-matrix */
     double* K_array = new double [basis_size * basis_size];
     
@@ -508,91 +521,73 @@ void calculate_faddeev_convergence(double* state_array,
     double *psi_array = new double [basis_size * basis_size];
 
     /* Triton ground-state energy (to be determined) */
-    double Z = 0, E=Z, lambda=0, Z_step_length=1;
+    double Z = -7, E=0, lambda=0, Z_step_length=0.5;
+
+    if (Nq==10){
+        if(J_2N_max==1){
+            Z = -7.429;
+        }
+        else if (J_2N_max==2){
+            Z = -7.592;
+        }
+    }
 
     bool lambda_equals_one = false;
     bool Z_too_negative    = false;
 
-    while (lambda_equals_one == false or Z_too_negative){
+    while (Z>=-9){
         if(print_calculation_steps){ std::cout << "Calculating K-matrix for Z=" << Z << " ... " << std::flush;}
         
+        for (int i=0; i<basis_size*basis_size; i++){
+            K_array[i] = 0;
+        }
+
         iterate_faddeev(K_array, Z,
-                            P123_array,
-                            V_unco_array,
-                            V_coup_array,
-        	                Np, p_array, wp_array,
-        	                Nq, q_array, wq_array,
-        	                Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, l_3N_array, two_j_3N_array,
-        	                two_T, two_J, PAR,
-        	                pot_ptr_nn,
-        	                pot_ptr_np);
+                        P123_array, Nalpha_P123, Np_P123, Nq_P123,
+                        V_unco_array,
+                        V_coup_array,
+        	            Np, p_array, wp_array,
+        	            Nq, q_array, wq_array,
+        	            Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, l_3N_array, two_j_3N_array);
                                 
         if(print_calculation_steps){ std::cout << "Done." << std::endl;}
-
+        
         /* Find eigenvalues lambda of K */
-        if(print_calculation_steps){ std::cout << "Diagonalise K-matrix ... " << std::flush;}
-        find_eigenvalues(K_array, lambda_array, psi_array, basis_size);
-        if(print_calculation_steps){ std::cout << "Done." << std::endl;}
-
-        /* See if lambda is closer to 1 than previous lambda */
+        bool fully_diagonalize = true;
         double lambda_current = 0;
-        for (int i=0; i<basis_size; i++){
-
-            /* Ensure |lambda|<=1 */
-            //if (abs(lambda_array[i])>1){
-            //    raise_error ("lambda is too big! Fix yo algorithm");
-            //}
-            
-            //std::cout << lambda_array[i] << std::endl;
-            
-            if (lambda_current < lambda_array[i]){
-                lambda_current = lambda_array[i];
+        if(print_calculation_steps){ std::cout << "Diagonalise K-matrix ... " << std::flush;}
+        if(fully_diagonalize){
+            find_eigenvalues(K_array, lambda_array, psi_array, basis_size);
+            for (int i=0; i<basis_size; i++){
+                if (lambda_current < lambda_array[i]){
+                    lambda_current = lambda_array[i];
+                }
             }
         }
+        else{
+            lambda_current = lanczos_solver_caller(K_array, basis_size);
+        }
+        if(print_calculation_steps){ std::cout << "Done." << std::endl;}
         
         /* See if we got closer to lambda=1 */
         if (lambda < lambda_current){
             lambda = lambda_current;
             E = Z;
         }
-        else{
-            Z_too_negative = true;
-        }
 
         printf("Highest lambda = %.5f for Z = %.4f. Highest lambda found so far is %.5f for E = %.4f. \n", lambda_current, Z, lambda, E);
-
-        /* Check if we have reached convergence, else increment Z by -2 */
-        if (1-lambda < 1e-12){
-            lambda_equals_one = true;
-        }
-        else{
-            Z -= Z_step_length;
-        }
-    }
-
-    /* Check why Faddeev-iterator while-loop stopped */
-    if (lambda_equals_one){
-        std::cout << "Found E = " << Z << std::endl;
-    }
-    else if (Z_too_negative){
-        std::cout << "We need to interpolate" << std::endl;
-    }
-    else{
-        std::cout << "Lol, wut" << std::endl;
+        Z -= Z_step_length;
     }
 }
 
 void iterate_faddeev(double* K_array,
-                       double Z,
-                       double* P123_array,
-                       double* V_unco_array,
-                       double* V_coup_array,
-                       int Np, double* p_array, double* wp_array,
-                       int Nq, double* q_array, double* wq_array,
-                       int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* l_3N_array, int* two_j_3N_array,
-                       int two_T, int two_J, int PAR,
-                       potential_model* pot_ptr_nn,
-                       potential_model* pot_ptr_np){
+                     double Z,
+                     double* P123_array, int Nalpha_P123, int Np_P123, int Nq_P123,
+                     double* V_unco_array,
+                     double* V_coup_array,
+                     int Np, double* p_array, double* wp_array,
+                     int Nq, double* q_array, double* wq_array,
+                     int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* l_3N_array, int* two_j_3N_array){
 
     int basis_size = Nalpha*Np*Nq;
 
@@ -621,48 +616,48 @@ void iterate_faddeev(double* K_array,
         int two_l_r = l_3N_array[idx_alpha_r];
         int two_j_r = two_j_3N_array[idx_alpha_r];
         
-        for (int idx_q_r=0; idx_q_r<Nq; idx_q_r++){
-            for (int idx_p_r=0; idx_p_r<Np; idx_p_r++){
-                int idx_K_row = idx_alpha_r*Nq*Np + idx_q_r*Np + idx_p_r;
+        /* Loop over alpha prime summation */
+        for (int idx_alpha_p=0; idx_alpha_p<Nalpha; idx_alpha_p++){
+            int L_p     = L_2N_array[idx_alpha_p];
+            int S_p     = S_2N_array[idx_alpha_p];
+            int J_p     = J_2N_array[idx_alpha_p];
+            int T_p     = T_2N_array[idx_alpha_p];
+            int two_l_p = l_3N_array[idx_alpha_p];
+            int two_j_p = two_j_3N_array[idx_alpha_p];
 
-                double q_kin_term = 0.75*q_array[idx_q_r]*q_array[idx_q_r]/MN;
-                double p_kin_term =      p_array[idx_p_r]*p_array[idx_p_r]/MN;
+            /* The two-body force can only allow for L!=L_pp, everything else must be the same */
+            if (two_l_r==two_l_p and two_j_r==two_j_p and T_r==T_p and J_r==J_p and S_r==S_p and abs(L_r-L_p)<=2){
+                bool coupled = L_r!=L_p or (L_r==L_p and L_r!=J_p and J_r!=0);
 
-                /* Loop over alpha prime summation */
-                for (int idx_alpha_p=0; idx_alpha_p<Nalpha; idx_alpha_p++){
-                    int L_p     = L_2N_array[idx_alpha_p];
-                    int S_p     = S_2N_array[idx_alpha_p];
-                    int J_p     = J_2N_array[idx_alpha_p];
-                    int T_p     = T_2N_array[idx_alpha_p];
-                    int two_l_p = l_3N_array[idx_alpha_p];
-                    int two_j_p = two_j_3N_array[idx_alpha_p];
+                double* V_mat_array_ptr = NULL;
+                cfloatType* t_mat_array_ptr = NULL;
+	            if (coupled){ // coupled interaction
+                    int step_V_coup = J_r-1;
+	            	V_mat_array_ptr = &V_coup_array[step_V_coup*4*(Np+1)*(Np+1)];
+                    t_mat_array_ptr = t_coup_array;
+	            }
+                else{ // uncoupled
+                    int step_V_unco = 2*J_r + S_r;
+                    V_mat_array_ptr = &V_unco_array[step_V_unco*(Np+1)*(Np+1)];
+                    t_mat_array_ptr = t_unco_array;
+                }
 
-                    /* The two-body force can only allow for L!=L_pp, everything else must be the same */
-                    if (two_l_r==two_l_p and two_j_r==two_j_p and T_r==T_p and J_r==J_p and S_r==S_p and abs(L_r-L_p)<=2){
-                        bool coupled = L_r!=L_p or (L_r==L_p and L_r!=J_p and J_r!=0);
+                for (int idx_q_r=0; idx_q_r<Nq; idx_q_r++){
+                    double q_kin_term = 0.75*q_array[idx_q_r]*q_array[idx_q_r]/MN;
 
-                        /* Energy for LS-solver */
-                        double E_LS = Z - q_kin_term;
-                        double* V_mat_array_ptr = NULL;
-                        cfloatType* t_mat_array_ptr = NULL;
-	                    if (coupled){ // coupled interaction
-                            int step_V_coup = J_r-1;
-	                    	V_mat_array_ptr = &V_coup_array[step_V_coup*4*Np*Np];
-                            t_mat_array_ptr = t_coup_array;
-	                    }
-                        else{ // uncoupled
-                            int step_V_unco = L_r + S_r + (J_r!=0) - (J_r==0 and L_r!=J_r);
-                            V_mat_array_ptr = &V_unco_array[step_V_unco*Np*Np];
-                            t_mat_array_ptr = t_unco_array;
-                        }
+                    /* Energy for LS-solver */
+                    double E_LS = Z - q_kin_term;
+                    /* Solve Lippmann-Schwinger equation */
+                    calculate_t_element(V_mat_array_ptr,
+                                        t_mat_array_ptr,
+                                        coupled,
+		    	    		            E_LS, MN,
+		    	    		            Np, p_array, wp_array);
 
-                        /* Solve Lippmann-Schwinger equation */
-                         calculate_t_element(V_mat_array_ptr,
-                                                        t_mat_array_ptr,
-                                                        coupled,
-		                			                    E_LS, MN,
-		                			                    Np, p_array, wp_array,
-		                			                    0, 0);
+                    for (int idx_p_r=0; idx_p_r<Np; idx_p_r++){
+                        double p_kin_term = p_array[idx_p_r]*p_array[idx_p_r]/MN;
+
+                        int idx_K_row = idx_alpha_r*Nq*Np + idx_q_r*Np + idx_p_r;
                                                         
                         /* Loop over integration momenta */
                         for (int idx_p_p=0; idx_p_p<Np; idx_p_p++){
@@ -680,6 +675,7 @@ void iterate_faddeev(double* K_array,
                                 else{               // Lower right
                                     t_element = t_mat_array_ptr[(idx_p_r+Np+1)*2*(Np+1) + idx_p_p + Np+1].real();
                                 }
+                                //t_element = 0;
                             }
                             else{
                                 t_element = t_mat_array_ptr[idx_p_r*(Np+1) + idx_p_p].real();
@@ -692,8 +688,11 @@ void iterate_faddeev(double* K_array,
                                         int idx_K_col = idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c;
 
                                         /* Retrieve P123 from pre-calculated P123_array - this INCLUDES spline-functionality*/ 
-                                        //int P123_idx = (idx_alpha_p*Nq*Np + idx_q_r*Np + idx_p_p)*Np*Nq*Nalpha + idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c;
-                                        int P123_idx = (idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c)*Np*Nq*Nalpha + idx_alpha_p*Nq*Np + idx_q_r*Np + idx_p_p;
+                                        //int P123_idx = (idx_alpha_c*Nq_P123*Np_P123 + idx_q_c*Np_P123 + idx_p_c)*Np_P123*Nq_P123*Nalpha_P123
+                                        //              + idx_alpha_p*Nq_P123*Np_P123 + idx_q_r*Np_P123 + idx_p_p;
+                                        int P123_idx = (idx_alpha_p*Nq_P123*Np_P123 + idx_q_r*Np_P123 + idx_p_p)*Np_P123*Nq_P123*Nalpha_P123
+                                                      + idx_alpha_c*Nq_P123*Np_P123 + idx_q_c*Np_P123 + idx_p_c;
+
                                         P123_element = P123_array[P123_idx];
 
                                         K_summation_terms[idx_K_col] += wp_array[idx_p_p] * p_array[idx_p_p] * p_array[idx_p_p] * t_element * P123_element;
@@ -701,25 +700,25 @@ void iterate_faddeev(double* K_array,
                                 }
                             }
                         }
-                    }
-                }
 
-                /* 3-nucleon free Green's function */
-                double G0 = 1./(Z - p_kin_term - q_kin_term );
-
-                for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
-                    for (int idx_q_c=0; idx_q_c<Nq; idx_q_c++){
-                        for (int idx_p_c=0; idx_p_c<Np; idx_p_c++){
-                            int idx_K_col = idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c;
-                            int idx_K = idx_K_row*basis_size + idx_K_col;
-                            K_array[idx_K] = G0*K_summation_terms[idx_K_col];
+                        /* 3-nucleon free Green's function */
+                        double G0 = 1./(Z - p_kin_term - q_kin_term );
+        
+                        for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+                            for (int idx_q_c=0; idx_q_c<Nq; idx_q_c++){
+                                for (int idx_p_c=0; idx_p_c<Np; idx_p_c++){
+                                    int idx_K_col = idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c;
+                                    int idx_K = idx_K_row*basis_size + idx_K_col;
+                                    K_array[idx_K] += G0*K_summation_terms[idx_K_col];
+                                }
+                            }
+                        }
+        
+                        /* Reset K-summation terms */
+                        for (int idx=0; idx<basis_size; idx++){
+                            K_summation_terms[idx] = 0;
                         }
                     }
-                }
-
-                /* Reset K-summation terms */
-                for (int idx=0; idx<basis_size; idx++){
-                    K_summation_terms[idx] = 0;
                 }
             }
         }

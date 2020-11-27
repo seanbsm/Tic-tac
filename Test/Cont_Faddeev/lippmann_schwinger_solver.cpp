@@ -118,15 +118,13 @@ void make_wave_matrix(cfloatType* F_array, cfloatType* D_array, int Nk1, bool co
 }
 
 void calculate_t_element(double* V_prestored_array,
-						   cfloatType* T_array,
-						   bool coupled,
-						   double E, double M,
-						   int Nk, double* k_array, double* wk_array,
-						   int idx_row, int idx_col){
+						 cfloatType* T_array,
+						 bool coupled,
+						 double E, double M,
+						 int Nk, double* k_array, double* wk_array){
 
 	/* Number of quadrature points plus on-shell momentum (x2 for coupled matrices) */
 	int Nk1 = Nk+1;
-	int Nk2 = 2*Nk1;
 
 	/* Matrix dimension */
 	int mat_dim = Nk1;
@@ -140,7 +138,6 @@ void calculate_t_element(double* V_prestored_array,
 	floatType* 	V_array = V_prestored_array;			// Potential matrix
 	cfloatType* D_array = new cfloatType [Nk1];			// Denominator vector
 	cfloatType* F_array = new cfloatType [mat_dim_sq];	// Wave matrix
-	//cfloatType* T_array = new cfloatType [mat_dim_sq];	// T-matrix
 
 	/* Set resolvent array pointer to pre-calculated arrays */
 	make_denominator_array(D_array, Nk, k_array, wk_array, E, M);
@@ -157,36 +154,8 @@ void calculate_t_element(double* V_prestored_array,
 	
 	/* Solve LS */
 	solve_MM_lin_eq(F_array, T_array, mat_dim);
-
-	//M_invert(F_array, mat_dim);
-	//cfloatType* V_array_complex_cast = new cfloatType [mat_dim_sq];
-	//for (int i=0; i<mat_dim_sq; i++){
-	//	V_array_complex_cast[i] = V_array[i];
-	//}
-	//cdot_MM(F_array, V_array_complex_cast, T_array, Nk1, Nk1, Nk1);
-	//delete [] V_array_complex_cast;
-
-
-/*
-	if (coupled){
-		for (int i=0; i<Nk; i++){
-			for (int j=0; j<Nk; j++){
-				std::cout << T_array[i*Nk2 + j] << std::endl; 
-				std::cout << T_array[(i+Nk1)*Nk2 + j] << std::endl; 
-				std::cout << T_array[i*Nk2 + j+Nk1] << std::endl; 
-				std::cout << T_array[(i+Nk1)*Nk2 + j+Nk1] << std::endl; 
-			}
-		}
-	}
-*/
-
-	//for (int i=0; i<mat_dim_sq; i++){
-	//	t_array[i] = T_array[i].real();
-	//}
 	
-	/* Delete temporary wave matrix */
-	//delete [] V_array;
+	/* Delete temporary denominator and wave matrices */
 	delete [] D_array;
 	delete [] F_array;
-	//delete [] T_array;
 }

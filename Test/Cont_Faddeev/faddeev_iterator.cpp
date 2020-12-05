@@ -333,6 +333,7 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 
     double potential_element = NAN;
 
+    /* Check OPEP.cpp to see which elements in V_array correponds to which angular momenta */
     if (coupled){
         if (L==Lp and L<J){         // --
             potential_element = V_array[2];
@@ -340,10 +341,10 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
         else if (L==Lp and L>J){    // ++
             potential_element = V_array[5];
         }
-        else if (L<Lp){             // +-
+        else if (L<Lp){             // -+
             potential_element = V_array[3];
         }
-        else{                       // -+
+        else{                       // +-
             potential_element = V_array[4];
         }
     }
@@ -393,14 +394,20 @@ void calculate_potential_matrices_array(double* V_unco_array,
 
             /* Check if possible channel through interaction */
             if (T_r==T_c and J_r==J_c and S_r==S_c and abs(L_r-L_c)<=2){
-                /* Detemine if this is a coupled channel */
-	            bool coupled = false;
+
+                /* Detemine if this is a coupled channel: NOTE THAT THE POTENTIAL MODEL
+                 * REGISTERS 3P0 AS COUPLED ALTHOUGH IT'S AN UNCOUPLED MATRIX, HENCE coupled_model */
+	            bool coupled_matrix = false;
+                bool coupled_model  = false;
 	            if (L_r!=L_c or (L_r==L_c and L_r!=J_r and J_r!=0)){
-	            	coupled  = true;
+	            	coupled_matrix  = true;
+	            }
+                if (L_r!=L_c or (L_r==L_c and L_r!=J_r)){
+	            	coupled_model   = true;
 	            }
 
                 /* Skip redundant calculations by only doing the coupled calculation when L_r<L_c */
-                if (coupled){
+                if (coupled_matrix){
                     if ( (L_r<L_c)==false ){
                         continue;
                     }
@@ -416,14 +423,14 @@ void calculate_potential_matrices_array(double* V_unco_array,
 
 	                    /* We create an isoscalar potential */
 	                    if (T_r==1){ // Interaction can be either nn or np
-                            pot_ptr_nn->V(p_in, p_out, coupled, S_r, J_r, T_r, V_nn_elements);
-                            pot_ptr_np->V(p_in, p_out, coupled, S_r, J_r, T_r, V_np_elements);
+                            pot_ptr_nn->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_nn_elements);
+                            pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_np_elements);
 	                    	for (int idx_element=0; idx_element<6; idx_element++){
 	                    		V_IS_elements[idx_element] = (1./3)*V_np_elements[idx_element] + (2./3)*V_nn_elements[idx_element];
 	                    	}
                         }
                         else{ 	   // Interaction must be np
-                            pot_ptr_np->V(p_in, p_out, coupled, S_r, J_r, T_r, V_IS_elements);
+                            pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_IS_elements);
                         }
                         //pot_ptr_np->V(p_in, p_out, coupled, S_r, J_r, T_r, V_IS_elements);
 
@@ -431,12 +438,13 @@ void calculate_potential_matrices_array(double* V_unco_array,
                         double norm_fac = 1;
 	                    
                         /* Write element to potential matrix V_array */
-                        if (coupled){
+                        if (coupled_matrix){
                             int step_V_coup = J_r-1;
-			            	V_coup_array[step_V_coup*4*Np1*Np1 +  idx_p_r       *2*Np1 + idx_p_c]	    = norm_fac*extract_potential_element_from_array(J_r-1, J_r-1, J_r, S_r, coupled, V_IS_elements);
-			            	V_coup_array[step_V_coup*4*Np1*Np1 +  idx_p_r       *2*Np1 + idx_p_c + Np1] = norm_fac*extract_potential_element_from_array(J_r-1, J_r+1, J_r, S_r, coupled, V_IS_elements);
-			            	V_coup_array[step_V_coup*4*Np1*Np1 + (idx_p_r + Np1)*2*Np1 + idx_p_c]	    = norm_fac*extract_potential_element_from_array(J_r+1, J_r-1, J_r, S_r, coupled, V_IS_elements);
-			            	V_coup_array[step_V_coup*4*Np1*Np1 + (idx_p_r + Np1)*2*Np1 + idx_p_c + Np1] = norm_fac*extract_potential_element_from_array(J_r+1, J_r+1, J_r, S_r, coupled, V_IS_elements);
+                            //std::cout << idx_p_r << " " << idx_p_r+Np1 << std::endl;
+			            	V_coup_array[step_V_coup*4*Np1*Np1 +  idx_p_r       *2*Np1 + idx_p_c]	    = norm_fac*extract_potential_element_from_array(J_r-1, J_r-1, J_r, S_r, coupled_matrix, V_IS_elements);
+			            	V_coup_array[step_V_coup*4*Np1*Np1 +  idx_p_r       *2*Np1 + idx_p_c + Np1] = -norm_fac*extract_potential_element_from_array(J_r-1, J_r+1, J_r, S_r, coupled_matrix, V_IS_elements);
+			            	V_coup_array[step_V_coup*4*Np1*Np1 + (idx_p_r + Np1)*2*Np1 + idx_p_c]	    = -norm_fac*extract_potential_element_from_array(J_r+1, J_r-1, J_r, S_r, coupled_matrix, V_IS_elements);
+			            	V_coup_array[step_V_coup*4*Np1*Np1 + (idx_p_r + Np1)*2*Np1 + idx_p_c + Np1] = norm_fac*extract_potential_element_from_array(J_r+1, J_r+1, J_r, S_r, coupled_matrix, V_IS_elements);
 			            
                             //if (J_r==1){
                             //    std::cout << V_coup_array[step_V_coup*4*Np*Np +  idx_p_r      *2*Np + idx_p_c]	    << std::endl;
@@ -447,7 +455,7 @@ void calculate_potential_matrices_array(double* V_unco_array,
                         }
 			            else{
                             int step_V_unco = 2*J_r + S_r;
-			            	V_unco_array[step_V_unco*Np1*Np1 + idx_p_r*Np1 + idx_p_c] = norm_fac*extract_potential_element_from_array(L_r, L_c, J_r, S_r, coupled, V_IS_elements);
+			            	V_unco_array[step_V_unco*Np1*Np1 + idx_p_r*Np1 + idx_p_c] = norm_fac*extract_potential_element_from_array(L_r, L_c, J_r, S_r, coupled_matrix, V_IS_elements);
 
                             //if (S_r==0 and J_r==0){
                             //    std::cout << V_unco_array[step_V_unco*Np*Np + idx_p_r*Np + idx_p_c] << std::endl;
@@ -498,8 +506,18 @@ void calculate_faddeev_convergence(double* state_array,
 
     /* Potential terms arrays */
     int Np1 = Np+1;
-    double* V_unco_array = new double [Np1*Np1   * 2*(J_2N_max+1)];
-    double* V_coup_array = new double [Np1*Np1*4 *   (J_2N_max+1)];
+    int V_unco_array_size = Np1*Np1   * 2*(J_2N_max+1);
+    int V_coup_array_size = Np1*Np1*4 *   (J_2N_max+1);
+    double* V_unco_array = new double [V_unco_array_size];
+    double* V_coup_array = new double [V_coup_array_size];
+
+    /* Ensure arrays contain zeros */
+    for (int i=0; i<V_unco_array_size; i++){
+        V_unco_array[i] = 0;
+    }
+    for (int i=0; i<V_coup_array_size; i++){
+        V_coup_array[i] = 0;
+    }
 
     /* Pre-calculating potentials */
     std::cout << "Pre-calculating potential matrices ... " << std::flush;
@@ -523,15 +541,17 @@ void calculate_faddeev_convergence(double* state_array,
     /* Triton ground-state energy (to be determined) */
     double Z = -7, E=0, lambda=0, Z_step_length=0.5;
 
-    if (Nq==10){
-        if(J_2N_max==1){
-            Z = -7.429;
-        }
-        else if (J_2N_max==2){
-            Z = -7.592;
-        }
-    }
+    // I found lambda=1.17705 for Z=-1.5382 for Jmax=2 (TOOK VERY LONG TIME)
 
+    //if (Nq==10){
+    //    if(J_2N_max==1){
+    //        Z = -7.429;
+    //    }
+    //    else if (J_2N_max==2){
+    //        Z = -7.592;
+    //    }
+    //}
+    
     bool lambda_equals_one = false;
     bool Z_too_negative    = false;
 
@@ -549,6 +569,14 @@ void calculate_faddeev_convergence(double* state_array,
         	            Np, p_array, wp_array,
         	            Nq, q_array, wq_array,
         	            Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, l_3N_array, two_j_3N_array);
+
+        //construct_K_by_MM_multiplication(K_array, Z,
+        //                                 P123_array, Nalpha_P123, Np_P123, Nq_P123,
+        //                                 V_unco_array,
+        //                                 V_coup_array,
+        //	                             Np, p_array, wp_array,
+        //	                             Nq, q_array, wq_array,
+        //	                             Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, l_3N_array, two_j_3N_array);            
                                 
         if(print_calculation_steps){ std::cout << "Done." << std::endl;}
         
@@ -606,8 +634,17 @@ void iterate_faddeev(double* K_array,
         K_summation_terms[idx] = 0;
     }
 
+    //int exl_array [6] = {0,1,2,3,6,7};
+    //int exl_idx1 = 2;
+    //int exl_idx2 = 3;
+    //int exl_idx3 = 6;
+    //int exl_idx4 = 7;
+    //std::cout << "\n Ignoring indices: " << exl_idx1 << " and " << exl_idx2 << std::endl;
     /* Row state */
 	for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+
+        //if (idx_alpha_r==exl_idx1 or idx_alpha_r==exl_idx2 or idx_alpha_r==exl_idx3 or idx_alpha_r==exl_idx4){continue;}
+
         /* Projection state quantum numbers (rows) */
         int L_r     = L_2N_array[idx_alpha_r];
         int S_r     = S_2N_array[idx_alpha_r];
@@ -618,6 +655,9 @@ void iterate_faddeev(double* K_array,
         
         /* Loop over alpha prime summation */
         for (int idx_alpha_p=0; idx_alpha_p<Nalpha; idx_alpha_p++){
+
+            //if (idx_alpha_p==exl_idx1 or idx_alpha_p==exl_idx2 or idx_alpha_p==exl_idx3 or idx_alpha_p==exl_idx4){continue;}
+
             int L_p     = L_2N_array[idx_alpha_p];
             int S_p     = S_2N_array[idx_alpha_p];
             int J_p     = J_2N_array[idx_alpha_p];
@@ -629,7 +669,7 @@ void iterate_faddeev(double* K_array,
             if (two_l_r==two_l_p and two_j_r==two_j_p and T_r==T_p and J_r==J_p and S_r==S_p and abs(L_r-L_p)<=2){
                 bool coupled = L_r!=L_p or (L_r==L_p and L_r!=J_p and J_r!=0);
 
-                double* V_mat_array_ptr = NULL;
+                double*     V_mat_array_ptr = NULL;
                 cfloatType* t_mat_array_ptr = NULL;
 	            if (coupled){ // coupled interaction
                     int step_V_coup = J_r-1;
@@ -675,7 +715,6 @@ void iterate_faddeev(double* K_array,
                                 else{               // Lower right
                                     t_element = t_mat_array_ptr[(idx_p_r+Np+1)*2*(Np+1) + idx_p_p + Np+1].real();
                                 }
-                                //t_element = 0;
                             }
                             else{
                                 t_element = t_mat_array_ptr[idx_p_r*(Np+1) + idx_p_p].real();
@@ -705,11 +744,14 @@ void iterate_faddeev(double* K_array,
                         double G0 = 1./(Z - p_kin_term - q_kin_term );
         
                         for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+                            
+                            //if (idx_alpha_c==exl_idx1 or idx_alpha_c==exl_idx2 or idx_alpha_c==exl_idx3 or idx_alpha_c==exl_idx4){continue;}
+
                             for (int idx_q_c=0; idx_q_c<Nq; idx_q_c++){
                                 for (int idx_p_c=0; idx_p_c<Np; idx_p_c++){
                                     int idx_K_col = idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c;
                                     int idx_K = idx_K_row*basis_size + idx_K_col;
-                                    K_array[idx_K] += G0*K_summation_terms[idx_K_col];
+                                    K_array[idx_K] += 2*G0*K_summation_terms[idx_K_col];
                                 }
                             }
                         }
@@ -726,4 +768,142 @@ void iterate_faddeev(double* K_array,
 
     delete [] t_unco_array;
     delete [] t_coup_array;
+}
+
+
+void dot_MM(float *A, float *B, float *C, int N, int K, int M){
+	cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, 1.0, A, K, B, M, 0.0, C, M);
+}
+void dot_MM(double *A, double *B, double *C, int N, int K, int M){
+	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, 1.0, A, K, B, M, 0.0, C, M);
+}
+void construct_K_by_MM_multiplication(double* K_array,
+                                      double Z,
+                                      double* P123_array, int Nalpha_P123, int Np_P123, int Nq_P123,
+                                      double* V_unco_array,
+                                      double* V_coup_array,
+                                      int Np, double* p_array, double* wp_array,
+                                      int Nq, double* q_array, double* wq_array,
+                                      int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* l_3N_array, int* two_j_3N_array){
+    
+    int K_dim    = Nalpha*Np*Nq;
+    int K_dim_sq = K_dim*K_dim;
+    double* G0_array = new double [K_dim_sq];
+    double* T_array  = new double [K_dim_sq];
+
+    /* Set all elements to zero */
+    for (int i=0; i<K_dim_sq; i++){
+        G0_array[i] = 0;
+        T_array[i]  = 0;
+    }
+
+    int idx = 0;
+    double* V_mat_array_ptr;
+    cfloatType* t_unco_array = new cfloatType [  (Np+1)*(Np+1)];
+    cfloatType* t_coup_array = new cfloatType [4*(Np+1)*(Np+1)];
+    /* Bra and ket summation for the three matrices */
+    for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+        for (int idx_q_r=0; idx_q_r<Nq; idx_q_r++){
+            for (int idx_p_r=0; idx_p_r<Np; idx_p_r++){
+                
+                int L_r     = L_2N_array[idx_alpha_r];
+                int S_r     = S_2N_array[idx_alpha_r];
+                int J_r     = J_2N_array[idx_alpha_r];
+                int T_r     = T_2N_array[idx_alpha_r];
+                int two_l_r = l_3N_array[idx_alpha_r];
+                int two_j_r = two_j_3N_array[idx_alpha_r];
+
+                double p = p_array[idx_p_r];
+                double q = q_array[idx_q_r];
+                double p_kinetic_term =      p*p/MN;
+                double q_kinetic_term = 0.75*q*q/MN;
+
+                /* G0-matrix construction */
+                idx = (idx_alpha_r*Nq*Np + idx_q_r*Np + idx_p_r)*Np*Nq*Nalpha
+                     + idx_alpha_r*Nq*Np + idx_q_r*Np + idx_p_r;
+                G0_array[idx] = 1./(Z - p_kinetic_term - q_kinetic_term);
+
+                for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+                    for (int idx_q_c=0; idx_q_c<Nq; idx_q_c++){
+                        for (int idx_p_c=0; idx_p_c<Np; idx_p_c++){
+
+                            int L_c     = L_2N_array[idx_alpha_c];
+                            int S_c     = S_2N_array[idx_alpha_c];
+                            int J_c     = J_2N_array[idx_alpha_c];
+                            int T_c     = T_2N_array[idx_alpha_c];
+                            int two_l_c = l_3N_array[idx_alpha_c];
+                            int two_j_c = two_j_3N_array[idx_alpha_c];
+
+                            if (idx_q_c==idx_q_r and T_r==T_c and S_r==S_c and J_r==J_c and two_l_r==two_l_c and two_j_r==two_j_c and abs(L_r-L_c)<=2){
+
+                                bool coupled = (L_r!=L_c or (L_r==L_c and L_r!=J_r and J_r!=0));
+                                cfloatType* t_mat_array_ptr = NULL;
+                                if (coupled){
+                                    V_mat_array_ptr = &V_coup_array[(J_r-1)*4*(Np+1)*(Np+1)];
+                                    t_mat_array_ptr = t_coup_array;
+                                    for (int i=0; i<4*(Np+1)*(Np+1); i++){
+                                        t_mat_array_ptr[i] = 0;
+                                    }
+                                }
+                                else{
+                                    V_mat_array_ptr = &V_unco_array[(2*J_r+S_r)*(Np+1)*(Np+1)];
+                                    t_mat_array_ptr = t_unco_array;
+                                    for (int i=0; i<(Np+1)*(Np+1); i++){
+                                        t_mat_array_ptr[i] = 0;
+                                    }
+                                }
+
+                                double E_LS = Z - q_kinetic_term;
+                                calculate_t_element(V_mat_array_ptr,
+                                                    t_mat_array_ptr,
+                                                    coupled,
+		    	    		                        E_LS, MN,
+		    	    		                        Np, p_array, wp_array);
+                                
+                                double t_element = 0;
+                                if (coupled){
+                                    if(L_r<L_c){        // Upper right
+                                        t_element = t_mat_array_ptr[ idx_p_r      *2*(Np+1) + idx_p_c + Np+1].real();
+                                    }
+                                    else if (L_r>L_c){  // Lower left
+                                        t_element = t_mat_array_ptr[(idx_p_r+Np+1)*2*(Np+1) + idx_p_c].real();
+                                    }
+                                    else if (L_r<J_r){  // Upper left
+                                        t_element = t_mat_array_ptr[ idx_p_r      *2*(Np+1) + idx_p_c].real();
+                                    }
+                                    else{               // Lower right
+                                        t_element = t_mat_array_ptr[(idx_p_r+Np+1)*2*(Np+1) + idx_p_c + Np+1].real();
+                                    }
+                                }
+                                else{
+                                    t_element = t_mat_array_ptr[idx_p_r*(Np+1) + idx_p_c].real();
+                                }
+
+                                idx = (idx_alpha_r*Nq*Np + idx_q_r*Np + idx_p_r)*Np*Nq*Nalpha
+                                     + idx_alpha_c*Nq*Np + idx_q_c*Np + idx_p_c;
+                                
+                                T_array[idx] = wp_array[idx_p_c]*p_array[idx_p_c]*p_array[idx_p_c]*t_element;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    double* temp_array = new double [K_dim_sq];
+
+    for (int i=0; i<K_dim_sq; i++){
+        temp_array[i] = 0;
+    }
+
+    dot_MM(G0_array, T_array, temp_array, K_dim, K_dim, K_dim);
+
+    dot_MM(temp_array, P123_array, K_array, K_dim, K_dim, K_dim);
+
+    delete [] t_unco_array;
+    delete [] t_coup_array;
+    delete [] G0_array;
+    delete [] T_array;
+    delete [] temp_array;
 }

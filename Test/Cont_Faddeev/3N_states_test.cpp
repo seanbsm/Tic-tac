@@ -79,6 +79,48 @@ void lin_interpolate_matrix(double* ref_matrix,
 	}
 }
 
+void triplet_phase_shifts(cfloatType &T11, cfloatType &T12, cfloatType &T22, floatType q, double M, cfloatType* delta_array){
+	const floatType radToDeg = 180/pi;
+	const cfloatType i{ 0.0, 1.0 };
+
+	cfloatType fac = divTwo*pi*M*q;
+	
+	/* Blatt-Biedenharn (BB) convention */
+	cfloatType twoEpsilonJ_BB = atan(two*T12/(T11-T22));	// mixing parameter
+	cfloatType delta_plus_BB  = -divTwo*i*log(one - i*fac*(T11+T22) + i*fac*(two*T12)/sin(twoEpsilonJ_BB));
+	cfloatType delta_minus_BB = -divTwo*i*log(one - i*fac*(T11+T22) - i*fac*(two*T12)/sin(twoEpsilonJ_BB));
+	
+	/* Stapp convention (bar-phase shifts) in terms of Blatt-Biedenharn convention (New formula, no kink) */
+	floatType cos2eps = cos(divTwo*twoEpsilonJ_BB.real())*cos(divTwo*twoEpsilonJ_BB.real());
+	floatType cos_2delta_plus  = cos(2.*delta_plus_BB.real());
+	floatType sin_2delta_plus  = sin(2.*delta_plus_BB.real());
+	floatType cos_2delta_minus = cos(2.*delta_minus_BB.real());
+	floatType sin_2delta_minus = sin(2.*delta_minus_BB.real());
+	
+	floatType aR, aI, tmp;
+	
+	aR = cos2eps*cos_2delta_minus + (1.-cos2eps)*cos_2delta_plus;
+	aI = cos2eps*sin_2delta_minus + (1.-cos2eps)*sin_2delta_plus;
+	
+	cfloatType delta_minus = 0.5*atan2(aI, aR) * radToDeg;
+	
+	aR = cos2eps*cos_2delta_plus + (1.-cos2eps)*cos_2delta_minus;
+	aI = cos2eps*sin_2delta_plus + (1.-cos2eps)*sin_2delta_minus;
+	
+	cfloatType delta_plus = 0.5*atan2(aI, aR) * radToDeg;
+	
+	tmp = 0.5*sin(twoEpsilonJ_BB.real());
+	aR  = tmp*(cos_2delta_minus - cos_2delta_plus);
+	aI  = tmp*(sin_2delta_minus - sin_2delta_plus);
+	tmp = (delta_plus.real() + delta_minus.real())/radToDeg;
+	
+	cfloatType epsilon = 0.5*asin(aI*cos(tmp) - aR*sin(tmp)) * radToDeg;
+	
+	delta_array[0] = delta_minus;
+	delta_array[1] = delta_plus;
+	delta_array[2] = epsilon;
+}
+
 void update_potential_matrix(double* V_array,
 							 double* p_array,
 							 double E,
@@ -94,46 +136,58 @@ void update_potential_matrix(double* V_array,
 	if (E_positive){
 		p = sqrt(E*MN);
 	}
-
+	
 	/* Construct 2N potential matrix <k|v|k_p> */
-	double V_elements [6];
+	double V_elements_col [6];
+	double V_elements_row [6];
 	double k=0, k_in=0, k_p=0, k_out=0;
 	for (int i=0; i<Nk; i++){
 
         k  = p_array[i];//*hbarc;
 
-        if(E_positive){pot_ptr->V(k, p, coupled, S, J, T, V_elements);}
+        if(E_positive){
+			pot_ptr->V(k, p, coupled, S, J, T, V_elements_col);
+			pot_ptr->V(p, k, coupled, S, J, T, V_elements_row);
+		}
+		else{
+			for(int i=0;i<6;i++){
+				V_elements_col[i]=0;
+				V_elements_row[i]=0;
+			}
+		}
 
 		if (coupled){
 			/* Set end-column <ki|v|p> */
-			V_array[ i	   *Nk2 +  Nk] 		= extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_elements);
-			V_array[(i+Nk1)*Nk2 +  Nk] 		= extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_elements);
-			V_array[ i	   *Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_elements);
-			V_array[(i+Nk1)*Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_elements);
+			V_array[ i	   *Nk2 +  Nk] 		= extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_elements_col);
+			V_array[ i	   *Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_elements_col);
+			V_array[(i+Nk1)*Nk2 +  Nk] 		= extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_elements_col);
+			V_array[(i+Nk1)*Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_elements_col);
 			/* Set end-row <p'|v|ki> */
-			V_array[ Nk		*Nk2 +  i] 		= extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_elements);
-			V_array[(Nk+Nk1)*Nk2 +  i] 		= extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_elements);
-			V_array[ Nk		*Nk2 + (i+Nk1)] = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_elements);
-			V_array[(Nk+Nk1)*Nk2 + (i+Nk1)] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_elements);
+			V_array[ Nk		*Nk2 +  i] 		= extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_elements_row);
+			V_array[ Nk		*Nk2 + (i+Nk1)] = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_elements_row);
+			V_array[(Nk+Nk1)*Nk2 +  i] 		= extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_elements_row);
+			V_array[(Nk+Nk1)*Nk2 + (i+Nk1)] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_elements_row);
 		}
 		else{
 			/* Set end-column <ki|v|p> */
-			V_array[i*Nk1 + Nk] = extract_potential_element_from_array(L, Lp, J, S, coupled, V_elements);
+			V_array[i*Nk1 + Nk] = extract_potential_element_from_array(L, Lp, J, S, coupled, V_elements_col);
 			/* Set end-row <p'|v|ki> */
-			V_array[Nk*Nk1 + i] = extract_potential_element_from_array(L, Lp, J, S, coupled, V_elements);
+			V_array[Nk*Nk1 + i] = extract_potential_element_from_array(L, Lp, J, S, coupled, V_elements_row);
 		}
 	}
 
-	if(E_positive){pot_ptr->V(p, p, coupled, S, J, T, V_elements);}
+	if(E_positive){pot_ptr->V(p, p, coupled, S, J, T, V_elements_row);}
+	else{ for(int i=0;i<6;i++){ V_elements_row[i]=0; } }
+	
 	if (coupled){
-		V_array[ Nk	    *Nk2 +  Nk] 	 = extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_elements);
-		V_array[(Nk+Nk1)*Nk2 +  Nk] 	 = extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_elements);
-		V_array[ Nk	    *Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_elements);
-		V_array[(Nk+Nk1)*Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_elements);
+		V_array[ Nk	    *Nk2 +  Nk] 	 = extract_potential_element_from_array(J-1, J-1, J, S, coupled, V_elements_row);
+		V_array[ Nk	    *Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J-1, J+1, J, S, coupled, V_elements_row);
+		V_array[(Nk+Nk1)*Nk2 +  Nk] 	 = extract_potential_element_from_array(J+1, J-1, J, S, coupled, V_elements_row);
+		V_array[(Nk+Nk1)*Nk2 + (Nk+Nk1)] = extract_potential_element_from_array(J+1, J+1, J, S, coupled, V_elements_row);
 	}
 	else{
 		/* Set last element <p'|v|p> */
-		V_array[Nk1*Nk1 - 1] = extract_potential_element_from_array(L, Lp, J, S, coupled, V_elements);
+		V_array[Nk1*Nk1 - 1] = extract_potential_element_from_array(L, Lp, J, S, coupled, V_elements_row);
 	}
 }
 
@@ -184,11 +238,11 @@ int main(int argc, char* argv[]){
 	/* PWE truncation */
 	/* Maximum (max) and minimum (min) values for J_2N and J_1N */
     int J_2N_min 	 = 0;	// The LS-solver will fail if this is not zero - I haven't taken this into account in my indexing
-    int J_2N_max 	 = 1;
+    int J_2N_max 	 = 2;
 
 	/* Quadrature 3N momenta */
 	int Np	   		 = 32;
-	int Nq	   		 = 10;
+	int Nq	   		 = 30;
 	int Nx 			 = 20;
 	int Nalpha 		 =  0;
 	double* p_array  = NULL;
@@ -217,6 +271,14 @@ int main(int argc, char* argv[]){
     int* l_3N     = NULL;     // three-nucleon angular momentum (?)
     int* two_j_3N = NULL; 	  // three-nucleon total angular momentum x2 (?)
 
+	/* Quantum numbers of partial-wave expansion in P123 */
+    int* L_2N_P123     = NULL;     // pair angular momentum
+    int* S_2N_P123     = NULL;     // pair total spin
+    int* J_2N_P123     = NULL;     // pair total angular momentum
+    int* T_2N_P123     = NULL;     // pair total isospin
+    int* l_3N_P123     = NULL;     // three-nucleon angular momentum (?)
+    int* two_j_3N_P123 = NULL; 	   // three-nucleon total angular momentum x2 (?)
+
 	/* Tells the program to read pre-calculated antisymmetric triton states.
 	 * Handy for small tests since the P123-file can be huge */
 	bool use_premade_symmetric_states 	  = false;
@@ -224,6 +286,8 @@ int main(int argc, char* argv[]){
 
 	//potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
 	//potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
+	//potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
+	//potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
 	potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
 	potential_model* pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
 	//potential_model* pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_EM500", "np");
@@ -284,6 +348,13 @@ int main(int argc, char* argv[]){
 		get_h5_P123_dimensions(Nalpha_P123, Np_P123, Nq_P123);
     	P123_array = new double [Np_P123 * Nq_P123 * Nalpha_P123 * Np_P123 * Nq_P123 * Nalpha_P123];
 		
+		int* L_2N_P123     = new int [Nalpha_P123];     // pair angular momentum
+    	int* S_2N_P123     = new int [Nalpha_P123];     // pair total spin
+    	int* J_2N_P123     = new int [Nalpha_P123];     // pair total angular momentum
+    	int* T_2N_P123     = new int [Nalpha_P123];     // pair total isospin
+    	int* l_3N_P123     = new int [Nalpha_P123];     // three-nucleon angular momentum (?)
+    	int* two_j_3N_P123 = new int [Nalpha_P123]; 	// three-nucleon total angular momentum x2 (?)
+
 		if (Np!=Np_P123){
 			raise_error("P123 Np-dimension does not match grid setup");
 		}
@@ -295,7 +366,21 @@ int main(int argc, char* argv[]){
 		}
 
 		cout << "Reading P123 from file" << endl;
-		read_P123_h5_data_file(P123_array, Nq, q_array, Np, p_array);
+		read_P123_h5_data_file(P123_array,
+							   Nq, q_array,
+							   Np, p_array,
+							   Nalpha_P123, L_2N_P123, S_2N_P123, J_2N_P123, T_2N_P123, l_3N_P123, two_j_3N_P123);
+
+		/* Check that the P123 PW states have the same ordering as the local PW states */
+		//for (int i=0; i<Nalpha; i++){
+		//	cout << (L_2N_P123[i]      == L_2N[i]    ) << endl;
+    	//	cout << (S_2N_P123[i]      == S_2N[i]    ) << endl;    
+    	//	cout << (J_2N_P123[i]      == J_2N[i]    ) << endl;   
+    	//	cout << (T_2N_P123[i]      == T_2N[i]    ) << endl;    
+    	//	cout << (l_3N_P123[i]      == l_3N[i]    ) << endl;   
+    	//	cout << (two_j_3N_P123[i]  == two_j_3N[i]) << endl;
+		//}
+
 
 		/* Convert from fm^-1 to MeV */
 		//for (int i = 0; i<Np; i++){
@@ -480,33 +565,33 @@ int main(int argc, char* argv[]){
                             false,
 		                	E_LS2, MN,
 		                	N, p_mom, w_mom,
-							0, 0);
+							0, 0);*/
 		
-		double* t_unco_array1 = new double [(N+1)*(N+1)];
-		double* t_unco_array2 = new double [(N+1)*(N+1)];
-		for (int i=0; i<(N+1)*(N+1); i++){
-			t_unco_array1[i] = t_unco_array1_complex[i].real();
-			t_unco_array2[i] = t_unco_array2_complex[i].real();
-		}
+		//double* t_unco_array1 = new double [(N+1)*(N+1)];
+		//double* t_unco_array2 = new double [(N+1)*(N+1)];
+		//for (int i=0; i<(N+1)*(N+1); i++){
+		//	t_unco_array1[i] = t_unco_array1_complex[i].real();
+		//	t_unco_array2[i] = t_unco_array2_complex[i].real();
+		//}
 
-		floatType b = 2*(Mp - q_com*q_com/Mn);
-		floatType c = -q_com*q_com*(Mp+Mn)*(Mp+Mn)/(Mn*Mn);
-		T_lab = 0.5*(-b + sqrt(b*b - 4*c));
-		printf("%.5f \n", T_lab);
+		//floatType b = 2*(Mp - q_com*q_com/Mn);
+		//floatType c = -q_com*q_com*(Mp+Mn)*(Mp+Mn)/(Mn*Mn);
+		//T_lab = 0.5*(-b + sqrt(b*b - 4*c));
+		//printf("%.5f \n", T_lab);
 
-		if (E_LS2>=0){
-			const floatType divTwo	= 0.5;				// factor 0.5
-			const floatType one		= 1.;				// factor 1.0
-			const floatType two		= 2.;				// factor 2.0
-			const floatType radToDeg = 180/pi;
-			const cfloatType I {0.0, 1.0};
-			double q_on_shell = sqrt(E_LS2*MN);
-			cfloatType T_on_shell = t_unco_array2_complex[(N+1)*(N+1)-1];
-			cfloatType Z = -MN*q_on_shell*I*T_on_shell*M_PI + one;
-			cfloatType delta = (-divTwo*I*log(Z)*radToDeg).real();
-			//printf(delta, "\n");
-			printf("%.5f %.5f\n", delta.real(), delta.imag());
-		}*/
+		//if (E_LS2>=0){
+		//	const floatType divTwo	= 0.5;				// factor 0.5
+		//	const floatType one		= 1.;				// factor 1.0
+		//	const floatType two		= 2.;				// factor 2.0
+		//	const floatType radToDeg = 180/pi;
+		//	const cfloatType I {0.0, 1.0};
+		//	double q_on_shell = sqrt(E_LS2*MN);
+		//	cfloatType T_on_shell = t_unco_array2_complex[(N+1)*(N+1)-1];
+		//	cfloatType Z = -MN*q_on_shell*I*T_on_shell*M_PI + one;
+		//	cfloatType delta = (-divTwo*I*log(Z)*radToDeg).real();
+		//	//printf(delta, "\n");
+		//	printf("%.5f %.5f\n", delta.real(), delta.imag());
+		//}
 
 		//int spln_N=30;
 		//double* spln_p_array_fm = new double [spln_N]; double* spln_p_array_MeV = new double [spln_N];
@@ -591,6 +676,66 @@ int main(int argc, char* argv[]){
 		}
 		store_array(arrays, N*N, 3, "V_elements");
 		return 0;*/
+
+		/* CHECK COUPLED T-MATRIX */
+		/*int N=4;
+		double* p_mom = new double [N];
+		double* w_mom = new double [N];
+		gauss(p_mom, w_mom, N);
+		rangeChange_0_inf(p_mom, w_mom, 1000., N);
+		int Np1 = N+1;
+    	int V_unco_array_size = Np1*Np1   * 2*(J_2N_max+1);
+    	int V_coup_array_size = Np1*Np1*4 *   (J_2N_max+1);
+    	double* V_unco_array = new double [V_unco_array_size];
+    	double* V_coup_array = new double [V_coup_array_size];
+		printf("Potential arrays start \n");
+		calculate_potential_matrices_array(V_unco_array,
+                                           V_coup_array,
+                                           N, p_mom, w_mom,
+                                           Nalpha, L_2N, S_2N, J_2N, T_2N,
+                                           pot_ptr_nn,
+                                           pot_ptr_np);
+		printf("Potential arrays end \n");
+		double T_lab = 10;
+		double q_com = sqrt( Mn*Mn*T_lab*(T_lab + 2*Mp) / ( (Mp+Mn)*(Mp+Mn) + 2*T_lab*Mn ) );
+		double E = q_com*q_com/MN;
+		printf("Potential arrays update start \n");
+		update_potential_matrix(V_coup_array,
+								p_mom,
+								E,
+								N,
+								0,2,1,1,0,	//int L, int Lp, int S, int J, int T
+								true,
+								pot_ptr_np);
+		printf("Potential arrays update end \n");
+
+		cfloatType* t_coup_array_complex = new cfloatType [4*(N+1)*(N+1)];
+		printf("T-matrix arrays start \n");
+		calculate_t_element(V_coup_array,
+                            t_coup_array_complex,
+                            true,
+		                	E, MN,
+		                	N, p_mom, w_mom);
+		printf("T-matrix arrays end \n");
+
+		printf("%.5e \n", q_com);
+		for (int i = 0; i<N+1; i++){
+			for (int j = 0; j<N+1; j++){
+				printf("%.5e %.5e %.5e %.5e\n", p_mom[i], p_mom[j], t_coup_array_complex[i*2*(N+1)+j].real(), t_coup_array_complex[i*2*(N+1)+j].imag());
+				printf("%.5e %.5e %.5e %.5e\n", p_mom[i], p_mom[j], t_coup_array_complex[i*2*(N+1)+j+N+1].real(), t_coup_array_complex[i*2*(N+1)+j+N+1].imag());
+				printf("%.5e %.5e %.5e %.5e\n", p_mom[i], p_mom[j], t_coup_array_complex[(i+N+1)*2*(N+1)+j].real(), t_coup_array_complex[(i+N+1)*2*(N+1)+j].imag());
+				printf("%.5e %.5e %.5e %.5e\n", p_mom[i], p_mom[j], t_coup_array_complex[(i+N+1)*2*(N+1)+j+N+1].real(), t_coup_array_complex[(i+N+1)*2*(N+1)+j+N+1].imag());
+				printf("\n");
+			}
+		}
+
+		if (true){
+			cfloatType delta_array [3];
+			triplet_phase_shifts(t_coup_array_complex[N*2*(N+1)+N], t_coup_array_complex[N*2*(N+1)+N+N+1], t_coup_array_complex[(N+N+1)*2*(N+1)+N+N+1], q_com, MN, delta_array );
+			printf("%.5e %.5e %.5e\n", delta_array[0].real(), delta_array[1].real(), delta_array[2].real());
+		}
+		return 0;*/
+
 
 
 		cout << "Starting Faddeev Iterator" << endl;

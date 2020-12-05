@@ -65,5 +65,12 @@ void iterate_faddeev(double* K_array,
                      int Np, double* p_array, double* wp_array,
                      int Nq, double* q_array, double* wq_array,
                      int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* l_3N_array, int* two_j_3N_array);
-
+void construct_K_by_MM_multiplication(double* K_array,
+                     double Z,
+                     double* P123_array, int Nalpha_P123, int Np_P123, int Nq_P123,
+                     double* V_unco_array,
+                     double* V_coup_array,
+                     int Np, double* p_array, double* wp_array,
+                     int Nq, double* q_array, double* wq_array,
+                     int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* l_3N_array, int* two_j_3N_array);
 #endif // FADDEEV_ITERATOR_H

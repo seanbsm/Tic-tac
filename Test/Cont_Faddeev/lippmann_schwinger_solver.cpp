@@ -129,7 +129,7 @@ void calculate_t_element(double* V_prestored_array,
 	/* Matrix dimension */
 	int mat_dim = Nk1;
 
-	/* Detemine if this is a coupled channel */
+	/* Double dimension for coupled channels */
 	if (coupled){
 		mat_dim *= 2;
 	}
@@ -148,13 +148,31 @@ void calculate_t_element(double* V_prestored_array,
 		F_array[i] = V_array[i];
 		T_array[i] = V_array[i];
 	}
+
+	//for (int i=0; i<mat_dim; i++){
+	//	for (int j=0; j<mat_dim; j++){
+	//		if(coupled){std::cout << i << " " << j << " " << V_array[i*mat_dim+j] << std::endl;}
+	//	}
+	//}
 	
 	/* Calculate wave-matrix */
 	make_wave_matrix(F_array, D_array, Nk1, coupled);
-	
+
 	/* Solve LS */
 	solve_MM_lin_eq(F_array, T_array, mat_dim);
 	
+	//M_invert(F_array, mat_dim);
+	//for (int i=0; i<mat_dim_sq; i++){
+	//	T_array[i] = F_array[i];
+	//}
+	
+	//cfloatType* V_array_complex_cast = new cfloatType [mat_dim_sq];
+	//for (int i=0; i<mat_dim_sq; i++){
+	//	V_array_complex_cast[i] = V_array[i];
+	//}
+	//cdot_MM(F_array, V_array_complex_cast, T_array, mat_dim, mat_dim, mat_dim);
+	//delete [] V_array_complex_cast;
+
 	/* Delete temporary denominator and wave matrices */
 	delete [] D_array;
 	delete [] F_array;

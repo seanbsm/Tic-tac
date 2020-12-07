@@ -112,21 +112,21 @@ int main(int argc, char* argv[]){
 	/* End of code segment for state space construction */
 	/* Start of code segment for permutation matrix construction */
 
-	//cout << "Read P123 dimensions from h5-file" << endl;
-	//int Nalpha_P123 = 0;
-	//int Np_P123 = 0;
-	//int Nq_P123 = 0;
-	//get_h5_P123_dimensions(P123_file_path, Nalpha_P123, Np_P123, Nq_P123);
-    //P123_array 	  = new double [Np_P123 * Nq_P123 * Nalpha_P123 * Np_P123 * Nq_P123 * Nalpha_P123];
-	//P123_p_array  = new double [Np_P123];
-	//P123_q_array  = new double [Nq_P123];
-	//P123_wp_array = new double [Np_P123];
-	//P123_wq_array = new double [Nq_P123];
-	//cout << "Reading P123 from file" << endl;
-	//read_P123_h5_data_file(P123_file_path,
-	//					   P123_array,
-	//					   Np_P123, p_array, wp_array,
-	//					   Nq_P123, q_array, wq_array);
+	cout << "Read P123 dimensions from h5-file" << endl;
+	int Nalpha_P123 = 0;
+	int Np_P123 = 0;
+	int Nq_P123 = 0;
+	get_h5_P123_dimensions(P123_file_path, Nalpha_P123, Np_P123, Nq_P123);
+    P123_array 	  = new double [Np_P123 * Nq_P123 * Nalpha_P123 * Np_P123 * Nq_P123 * Nalpha_P123];
+	P123_p_array  = new double [Np_P123];
+	P123_q_array  = new double [Nq_P123];
+	P123_wp_array = new double [Np_P123];
+	P123_wq_array = new double [Nq_P123];
+	cout << "Reading P123 from file" << endl;
+	read_P123_h5_data_file(P123_file_path,
+						   P123_array,
+						   Np_P123, p_array, wp_array,
+						   Nq_P123, q_array, wq_array);
 	
 
 	/* End of code segment for permutation matrix construction */

@@ -73,7 +73,10 @@ void check_h5_read_call(herr_t ret);
 void check_h5_read_table_call(herr_t ret);
 void check_h5_close_call(herr_t ret);
 
-void read_P123_h5_data_file(std::string file_path, double* P123, int Nq_3N, double *q_3N, int Np_3N, double *p_3N);
+void read_P123_h5_data_file(std::string file_path,
+                            double* P123,
+                            int Np_3N, double* p_3N_3, double* wp_3N_3,
+                            int Nq_3N, double* q_3N_3, double* wq_3N_3);
 
 void get_h5_P123_dimensions(std::string file_path, int& Nalpha, int& Np, int& Nq);
 

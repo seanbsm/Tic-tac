@@ -4,8 +4,6 @@
 void construct_symmetric_pw_states(int two_J_3N,
                                    int two_T_3N,
                                    int parity_3N,
-                                   int two_J_1N_min,
-                                   int two_J_1N_max,
                                    int J_2N_min,
                                    int J_2N_max,
                                    int& Nalpha,
@@ -24,17 +22,20 @@ void construct_symmetric_pw_states(int two_J_3N,
                   << "two_J_3N:     " << two_J_3N      << "\n"
                   << "two_T_3N:     " << two_T_3N      << "\n"
                   << "parity_3N:    " << parity_3N     << "\n"
-                  << "two_J_1N_min: " << two_J_1N_min  << "\n"
-                  << "two_J_1N_max: " << two_J_1N_max  << "\n"
                   << "J_2N_min:     " << J_2N_min      << "\n"
                   << "J_2N_max:     " << J_2N_max      << "\n"
                   << std::endl;
+        
+        std::cout << "alpha"    << " "
+                  << "L_2N"     << " "
+                  << "S_2N"     << " "
+                  << "J_2N"     << " "
+                  << "T_2N"     << " "
+                  << "L_1N"     << " "
+                  << "two_J_1N" << std::endl;
     }
 
     /* Make sure the pw state space truncations are positive */
-    if (two_J_1N_min<0 or two_J_1N_max<0){
-        raise_error("Cannot have negative two_J_1N!");
-    }
     if (J_2N_min<0 or J_2N_max<0){
         raise_error("Cannot have negative J_2N!");
     }
@@ -60,6 +61,8 @@ void construct_symmetric_pw_states(int two_J_3N,
     int L_1N_max = 0;
     int L_2N_min = 0;
     int L_2N_max = 0;
+    int two_J_1N_min = 0;
+    int two_J_1N_max = 0;
     /* J_2N loop */
     for (int J_2N=J_2N_min; J_2N<J_2N_max+1; J_2N++){
         /* S_2N loop */
@@ -74,6 +77,9 @@ void construct_symmetric_pw_states(int two_J_3N,
                     for (int T_2N=0; T_2N<2; T_2N++){
                         /* Generalised Pauli exclusion principle: L_2N + S_2N + T_2N must be odd */
                         if ( (L_2N + S_2N + T_2N)%2 ){
+                            two_J_1N_min = (int) abs(two_J_3N - 2*J_2N);
+                            two_J_1N_max = two_J_3N + 2*J_2N;
+                            /* two_J_1N loop */
                             for (int two_J_1N=two_J_1N_min; two_J_1N<two_J_1N_max+1; two_J_1N++){
                                 /* Cannot have even two_J_1N (l is integer (i.e. 2n/2), s is 1/2 -> 2j = 2n+1) */
                                 if ( two_J_1N%2 ){

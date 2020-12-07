@@ -723,10 +723,10 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
     double WP_pp_bound_lower = p_array_WP_bounds[pp_idx_WP];
     double WP_pp_bound_upper = p_array_WP_bounds[pp_idx_WP+1];
 
-    double norm_WP = q_normalisation( WP_q_bound_lower,  WP_q_bound_upper)
-                    *p_normalisation( WP_p_bound_lower,  WP_p_bound_upper)
-                    *q_normalisation(WP_qp_bound_lower, WP_qp_bound_upper)
-                    *p_normalisation(WP_pp_bound_lower, WP_pp_bound_upper);
+    double norm_WP = q_normalization( WP_q_bound_lower,  WP_q_bound_upper)
+                    *p_normalization( WP_p_bound_lower,  WP_p_bound_upper)
+                    *q_normalization(WP_qp_bound_lower, WP_qp_bound_upper)
+                    *p_normalization(WP_pp_bound_lower, WP_pp_bound_upper);
 
     return integral_sum / norm_WP;
 }

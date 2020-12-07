@@ -2,16 +2,28 @@
 #define MAKE_WP_STATES_H
 
 #include <iostream>
+#include <math.h>
 
 #include "error_management.h"
+#include "General_functions/gauss_legendre.h"
 
-double q_normalisation(double p0, double p1);
-double p_normalisation(double q0, double q1);
+double q_normalization(double p0, double p1);
+double p_normalization(double q0, double q1);
 
 double p_weight_function(double p);
 double q_weight_function(double q);
 
-void make_p_bin_quadrature_grids();
-void make_q_bin_quadrature_grids();
+void make_chebyshev_distribution(int N_WP, double* boundary_array,
+                                 double min_boundary,
+                                 double max_boundary);
+
+void make_p_bin_grid(int Np_WP, double* p_WP_array);
+void make_q_bin_grid(int Nq_WP, double* q_WP_array);
+
+void make_p_bin_quadrature_grids(int Np_WP, double* p_WP_array,
+                                 int Np_per_WP, double* p_array, double* wp_array);
+
+void make_q_bin_quadrature_grids(int Nq_WP, double* q_WP_array,
+                                 int Nq_per_WP, double* q_array, double* wq_array);
 
 #endif // MAKE_WP_STATES_H

@@ -19,7 +19,10 @@ void check_h5_close_call(herr_t ret){
     }
 }
 
-void read_P123_h5_data_file(std::string file_path, double* P123, int Nq_3N, double *q_3N, int Np_3N, double *p_3N){
+void read_P123_h5_data_file(std::string file_path,
+                            double* P123,
+                            int Np_3N, double *p_3N_3, double *wp_3N_3,
+                            int Nq_3N, double *q_3N_3, double *wq_3N_3){
 
    
     // ---------------------------------------------- READ 3N --------------------------------------------
@@ -77,9 +80,6 @@ void read_P123_h5_data_file(std::string file_path, double* P123, int Nq_3N, doub
                                 sizeof( p_h5_3[0].weight_ptable )
                               };
 
-    double p_3N_3[Np_3N_3];
-    double wp_3N_3[Np_3N_3];
-
     if(print_content){ printf("\np mesh:\n"); }
 
     ret_3 = H5TBread_table( file_id_3, "p mesh", p_dst_size_3, p_dst_offset_3, p_dst_sizes_3, p_h5_3 );
@@ -92,8 +92,6 @@ void read_P123_h5_data_file(std::string file_path, double* P123, int Nq_3N, doub
     }
 
     // q_mesh
-    double q_3N_3[Nq_3N_3];
-    double wq_3N_3[Nq_3N_3];
     qmesh_table q_h5_3[Nq_3N_3];
 
     size_t q_dst_size_3 =  sizeof( qmesh_table );
@@ -127,25 +125,25 @@ void read_P123_h5_data_file(std::string file_path, double* P123, int Nq_3N, doub
         //return 1;
     }
 
-    for (int i = 0; i <= Np_3N - 1; i++)
-    {
-        if (fabs(p_3N[i] - p_3N_3[i]) > 1e-10)
-        {
-            raise_error("Inconsistent mesh systems!");
-            //printf("Inconsistent mesh systems!\n");
-            //return 1;
-        }
-    }
+    //for (int i = 0; i <= Np_3N - 1; i++)
+    //{
+    //    if (fabs(p_3N[i] - p_3N_3[i]) > 1e-10)
+    //    {
+    //        raise_error("Inconsistent mesh systems!");
+    //        //printf("Inconsistent mesh systems!\n");
+    //        //return 1;
+    //    }
+    //}
 
-    for (int i = 0; i <= Nq_3N - 1; i++)
-    {
-        if (fabs(q_3N[i] - q_3N_3[i]) > 1e-10)
-        {
-            raise_error("Inconsistent mesh systems!");
-            //printf("Inconsistent mesh systems!\n");
-            //return 1;
-        }
-    }
+    //for (int i = 0; i <= Nq_3N - 1; i++)
+    //{
+    //    if (fabs(q_3N[i] - q_3N_3[i]) > 1e-10)
+    //    {
+    //        raise_error("Inconsistent mesh systems!");
+    //        //printf("Inconsistent mesh systems!\n");
+    //        //return 1;
+    //    }
+    //}
 
     // PW table
     pw_table pw_h5_3[Jj_dim_3];

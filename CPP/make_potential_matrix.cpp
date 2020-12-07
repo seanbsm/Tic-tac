@@ -11,16 +11,16 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 
     if (coupled){
         if (L==Lp and L<J){         // --
-            potential_element = V_array[2];
+            potential_element =  V_array[2];
         }
         else if (L==Lp and L>J){    // ++
-            potential_element = V_array[5];
+            potential_element =  V_array[5];
         }
-        else if (L<Lp){             // +-
-            potential_element = V_array[3];
+        else if (L<Lp){             // -+
+            potential_element = -V_array[3];
         }
-        else{                       // -+
-            potential_element = V_array[4];
+        else{                       // +-
+            potential_element = -V_array[4];
         }
     }
     else{
@@ -42,7 +42,7 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
                                                     double* V_WP_coup_array,
                                                     int Np_WP, double* p_WP_array,
-                                                    int Np, double* p_array, double* wp_array,
+                                                    int Np_per_WP, double* p_array, double* wp_array,
                                                     int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array,
                                                     potential_model* pot_ptr_nn,
                                                     potential_model* pot_ptr_np){
@@ -59,14 +59,13 @@ void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
 	int idx_V_WP_lower_left  = 0;
 	int idx_V_WP_lower_right = 0;
 
-	double p_r=0, p_in=0, p_c=0, p_out=0;
     /* Row state */
     for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
         int L_r = L_2N_array[idx_alpha_r];
         int S_r = S_2N_array[idx_alpha_r];
         int J_r = J_2N_array[idx_alpha_r];
         int T_r = T_2N_array[idx_alpha_r];
-
+        
         /* Column state */
         for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
             int L_c = L_2N_array[idx_alpha_c];
@@ -76,14 +75,19 @@ void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
 
             /* Check if possible channel through interaction */
             if (T_r==T_c and J_r==J_c and S_r==S_c and abs(L_r-L_c)<=2){
+
                 /* Detemine if this is a coupled channel */
-	            bool coupled = false;
-	            if (L_r!=L_c or (L_r==L_c and L_r!=J_r and J_r!=0)){
-	            	coupled  = true;
+	            bool coupled_matrix = false;
+                bool coupled_model  = false;
+	            if (L_r!=L_c or (L_r==L_c and L_r!=J_r and J_r!=0)){    // This counts 3P0 as uncoupled; used in matrix structure
+	            	coupled_matrix  = true;
+	            }
+                if (L_r!=L_c or (L_r==L_c and L_r!=J_r)){               // This counts 3P0 as coupled; used in potential models
+	            	coupled_model   = true;
 	            }
 
                 /* Skip redundant calculations by only doing the coupled calculation when L_r<L_c */
-                if (coupled){
+                if (coupled_matrix){
                     if ( (L_r<L_c)==false ){
                         continue;
                     }
@@ -93,74 +97,82 @@ void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
                 for (int idx_bin_r=0; idx_bin_r<Np_WP; idx_bin_r++){
                     double bin_r_lower = p_WP_array[idx_bin_r];
                     double bin_r_upper = p_WP_array[idx_bin_r + 1];
-                    double N_r = p_normalisation(bin_r_lower, bin_r_upper);
-                    
+                    double N_r = p_normalization(bin_r_lower, bin_r_upper);
+
+		            double*  p_array_ptr_r =  &p_array[idx_bin_r*Np_per_WP];
+		            double* wp_array_ptr_r = &wp_array[idx_bin_r*Np_per_WP];
+
                     /* Column index loop */
                     for (int idx_bin_c=0; idx_bin_c<Np_WP; idx_bin_c++){
                         double bin_c_lower = p_WP_array[idx_bin_c];
                         double bin_c_upper = p_WP_array[idx_bin_c + 1];
-                        double N_c = p_normalisation(bin_c_lower, bin_c_upper);
+                        double N_c = p_normalization(bin_c_lower, bin_c_upper);
 
-                        /* Potential matrix indexing */
-                        if (coupled){
-                            int step_V_coup      = J_r-1;
-			            	idx_V_WP_upper_left  = step_V_coup*4*Np_WP*Np_WP +  idx_bin_r         *2*Np_WP + idx_bin_c;
-			            	idx_V_WP_upper_right = step_V_coup*4*Np_WP*Np_WP +  idx_bin_r         *2*Np_WP + idx_bin_c + Np_WP;
-			            	idx_V_WP_lower_left  = step_V_coup*4*Np_WP*Np_WP + (idx_bin_r + Np_WP)*2*Np_WP + idx_bin_c;
-			            	idx_V_WP_lower_right = step_V_coup*4*Np_WP*Np_WP + (idx_bin_r + Np_WP)*2*Np_WP + idx_bin_c + Np_WP;
+                        double*  p_array_ptr_c =  &p_array[idx_bin_c*Np_per_WP];
+		                double* wp_array_ptr_c = &wp_array[idx_bin_c*Np_per_WP];
+
+                        /* Potential matrix indexing *
+                         * Indexing format: (channel index)*(num rows)*(num columns) + (row index)*(row length) + (column index) */
+                        if (coupled_matrix){
+                            int chn_idx_V_coup   = J_r-1;
+			            	idx_V_WP_upper_left  = chn_idx_V_coup*4*Np_WP*Np_WP +  idx_bin_r         *2*Np_WP + idx_bin_c;
+			            	idx_V_WP_upper_right = chn_idx_V_coup*4*Np_WP*Np_WP +  idx_bin_r         *2*Np_WP + idx_bin_c + Np_WP;
+			            	idx_V_WP_lower_left  = chn_idx_V_coup*4*Np_WP*Np_WP + (idx_bin_r + Np_WP)*2*Np_WP + idx_bin_c;
+			            	idx_V_WP_lower_right = chn_idx_V_coup*4*Np_WP*Np_WP + (idx_bin_r + Np_WP)*2*Np_WP + idx_bin_c + Np_WP;
                         
                         }
 			            else{
-                            int step_V_unco      = L_r + S_r + (J_r!=0) - (J_r==0 and L_r!=J_r);   // This indexing gives room for the 3P0-wave
-			            	idx_V_WP_uncoupled   = step_V_unco*Np_WP*Np_WP + idx_bin_r*Np_WP + idx_bin_c;
+                            int chn_idx_V_unco   = 2*J_r + S_r;
+			            	idx_V_WP_uncoupled   = chn_idx_V_unco*Np_WP*Np_WP + idx_bin_r*Np_WP + idx_bin_c;
                         }
-
+                        
                         /* Reset quadrature summation array V_WP_elements */
 	                    for (int idx_element=0; idx_element<6; idx_element++){
 	                    	V_WP_elements[idx_element] = 0;
                         }
 
-                        /* Loop over quadrature inside row and column bins */
-                        for (int idx_p_r=0; idx_p_r<Np; idx_p_r++){
-                            double p_r   = p_array[idx_p_r];
-                            double wp_r  = wp_array[idx_p_r];
-                            double p_out = p_r; //*hbarc;
+                        /* Loop over quadrature inside row and column cells */
+                        for (int idx_p_r=0; idx_p_r<Np_per_WP; idx_p_r++){
+                            double  p_r  =  p_array_ptr_r[idx_p_r];
+                            double wp_r  = wp_array_ptr_r[idx_p_r];
+                            double p_out = p_r;     // variable change for easier readablity: <p_out|v|p_in>
 
-                            for (int idx_p_c=0; idx_p_c<Np; idx_p_c++){
-                                double p_c  = p_array[idx_p_c];
-                                double wp_c = wp_array[idx_p_c];
-                                double p_in = p_c; //*hbarc;
-
+                            for (int idx_p_c=0; idx_p_c<Np_per_WP; idx_p_c++){
+                                double  p_c =  p_array_ptr_c[idx_p_c];
+                                double wp_c = wp_array_ptr_c[idx_p_c];
+                                double p_in = p_c;  // variable change for easier readablity: <p_out|v|p_in>
+                                
 	                            /* We create an isoscalar potential */
 	                            if (T_r==1){ // Interaction can be either nn or np
-                                    pot_ptr_nn->V(p_in, p_out, coupled, S_r, J_r, T_r, V_nn_elements);
-                                    pot_ptr_np->V(p_in, p_out, coupled, S_r, J_r, T_r, V_np_elements);
+                                    pot_ptr_nn->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_nn_elements);
+                                    pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_np_elements);
 	                            	for (int idx_element=0; idx_element<6; idx_element++){
 	                            		V_IS_elements[idx_element] = (1./3)*V_np_elements[idx_element] + (2./3)*V_nn_elements[idx_element];
 	                            	}
                                 }
                                 else{ 	   // Interaction must be np
-                                    pot_ptr_np->V(p_in, p_out, coupled, S_r, J_r, T_r, V_IS_elements);
+                                    pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_IS_elements);
                                 }
 
-                                /* We integrate into wave-packet potential */
+                                /* We integrate into wave-packet potential and normalize */
 	                            for (int idx_element=0; idx_element<6; idx_element++){
 	                            	V_WP_elements[idx_element] += p_r*p_r*wp_r * p_c*p_c*wp_c * V_IS_elements[idx_element]/(sqrt(N_r*N_c));
                                 }
                             }
                         }
-
+                        
 	                    /* Write element to potential matrix V_array */
-                        if (coupled){
-                            V_WP_coup_array[idx_V_WP_upper_left]  = extract_potential_element_from_array(J_r-1, J_r-1, J_r, S_r, coupled, V_WP_elements);
-			            	V_WP_coup_array[idx_V_WP_upper_right] = extract_potential_element_from_array(J_r-1, J_r+1, J_r, S_r, coupled, V_WP_elements);
-			            	V_WP_coup_array[idx_V_WP_lower_left]  = extract_potential_element_from_array(J_r+1, J_r-1, J_r, S_r, coupled, V_WP_elements);
-			            	V_WP_coup_array[idx_V_WP_lower_right] = extract_potential_element_from_array(J_r+1, J_r+1, J_r, S_r, coupled, V_WP_elements);
+                        if (coupled_matrix){
+                            V_WP_coup_array[idx_V_WP_upper_left]  = extract_potential_element_from_array(J_r-1, J_r-1, J_r, S_r, coupled_matrix, V_WP_elements);
+			            	V_WP_coup_array[idx_V_WP_upper_right] = extract_potential_element_from_array(J_r-1, J_r+1, J_r, S_r, coupled_matrix, V_WP_elements);
+			            	V_WP_coup_array[idx_V_WP_lower_left]  = extract_potential_element_from_array(J_r+1, J_r-1, J_r, S_r, coupled_matrix, V_WP_elements);
+			            	V_WP_coup_array[idx_V_WP_lower_right] = extract_potential_element_from_array(J_r+1, J_r+1, J_r, S_r, coupled_matrix, V_WP_elements);
                         
                         }
 			            else{
-                            V_WP_unco_array[idx_V_WP_uncoupled] = extract_potential_element_from_array(L_r, L_c, J_r, S_r, coupled, V_WP_elements);
+                            V_WP_unco_array[idx_V_WP_uncoupled]   = extract_potential_element_from_array(L_r, L_c, J_r, S_r, coupled_matrix, V_WP_elements);
                         }
+                        
                     }
                 }
             }

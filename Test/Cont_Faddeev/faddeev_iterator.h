@@ -12,9 +12,6 @@
 #include "General_functions/coupling_coefficients.h"
 #include "Interactions/potential_model.h"
 
-/* External Lanczos routine */
-#include "../../../lambda-lanczos/include/lambda_lanczos/lambda_lanczos.hpp"
-
 void find_eigenvalues(double* A, double* wr, double* vr, int N);
 
 void modified_gram_schmidt(double* state_matrix,

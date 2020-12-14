@@ -468,28 +468,6 @@ void calculate_potential_matrices_array(double* V_unco_array,
     }
 }
 
-
-double lanczos_solver_caller(double* matrix, int dim){
-    int n = dim;
-    
-    // the matrix-vector multiplication routine
-    auto mv_mul = [&](const std::vector<double>& in, std::vector<double>& out) {
-        for(int i = 0;i < n;i++) {
-            for(int j = 0;j < n;j++) {
-                out[i] += matrix[i*n+j]*in[j];
-            }
-        } 
-    };
-
-    lambda_lanczos::LambdaLanczos<double> engine(mv_mul, n, true); // false means to calculate the smallest eigenvalue.
-    double eigenvalue;
-    std::vector<double> eigenvector(n);
-    //engine.eigenvalue_offset=10;
-    int itern = engine.run(eigenvalue, eigenvector);
-
-    return eigenvalue;
-}   
-
 void calculate_faddeev_convergence(double* state_array,
                                    double* P123_array, int Nalpha_P123, int Np_P123, int Nq_P123,
                                    int Np, double* p_array, double* wp_array,
@@ -581,20 +559,16 @@ void calculate_faddeev_convergence(double* state_array,
         if(print_calculation_steps){ std::cout << "Done." << std::endl;}
         
         /* Find eigenvalues lambda of K */
-        bool fully_diagonalize = true;
         double lambda_current = 0;
         if(print_calculation_steps){ std::cout << "Diagonalise K-matrix ... " << std::flush;}
-        if(fully_diagonalize){
-            find_eigenvalues(K_array, lambda_array, psi_array, basis_size);
-            for (int i=0; i<basis_size; i++){
-                if (lambda_current < lambda_array[i]){
-                    lambda_current = lambda_array[i];
-                }
+        
+        find_eigenvalues(K_array, lambda_array, psi_array, basis_size);
+        for (int i=0; i<basis_size; i++){
+            if (lambda_current < lambda_array[i]){
+                lambda_current = lambda_array[i];
             }
         }
-        else{
-            lambda_current = lanczos_solver_caller(K_array, basis_size);
-        }
+        
         if(print_calculation_steps){ std::cout << "Done." << std::endl;}
         
         /* See if we got closer to lambda=1 */

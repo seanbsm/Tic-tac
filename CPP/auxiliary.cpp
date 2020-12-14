@@ -717,7 +717,6 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
         } // qp_idx
     } // pp_idx
 
-
     double WP_qp_bound_lower = q_array_WP_bounds[qp_idx_WP];
     double WP_qp_bound_upper = q_array_WP_bounds[qp_idx_WP+1];
     double WP_pp_bound_lower = p_array_WP_bounds[pp_idx_WP];

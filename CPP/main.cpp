@@ -10,7 +10,7 @@
 
 #include "make_pw_symm_states.h"
 //#include "kinetics.h"
-#include "permutation_operators.h"
+#include "make_permutation_matrix.h"
 //#include "state_antisymmetrization.h"
 //#include "faddeev_iterator.h"
 #include "General_functions/gauss_legendre.h"
@@ -42,7 +42,6 @@ int main(int argc, char* argv[]){
 	/* Wave-packet 3N momenta */
 	int Np_WP	   	 = 32;
 	int Nq_WP	   	 = 30;
-	int Nx 			 = 20;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -53,10 +52,6 @@ int main(int argc, char* argv[]){
 	double* q_array  = NULL;
 	double* wp_array = NULL;
 	double* wq_array = NULL;
-
-	/* Momentum-representation of 3N state at quadrature nodes in p_array and q_array */
-	double* state_3N_symm_array = NULL;
-	double* state_3N_asym_array = NULL;
 
 	/* Permutation matrix - read from file */
 	string  P123_file_path = "../../Data/3N_permutation_operator/P123_files/P123_medium.h5";
@@ -113,20 +108,44 @@ int main(int argc, char* argv[]){
 	/* Start of code segment for permutation matrix construction */
 
 	cout << "Read P123 dimensions from h5-file" << endl;
-	int Nalpha_P123 = 0;
-	int Np_P123 = 0;
-	int Nq_P123 = 0;
-	get_h5_P123_dimensions(P123_file_path, Nalpha_P123, Np_P123, Nq_P123);
-    P123_array 	  = new double [Np_P123 * Nq_P123 * Nalpha_P123 * Np_P123 * Nq_P123 * Nalpha_P123];
-	P123_p_array  = new double [Np_P123];
-	P123_q_array  = new double [Nq_P123];
-	P123_wp_array = new double [Np_P123];
-	P123_wq_array = new double [Nq_P123];
-	cout << "Reading P123 from file" << endl;
-	read_P123_h5_data_file(P123_file_path,
-						   P123_array,
-						   Np_P123, p_array, wp_array,
-						   Nq_P123, q_array, wq_array);
+	bool interpolate_P123_matrix = false;
+	if (interpolate_P123_matrix){
+		int Nalpha_P123 = 0;
+		int Np_P123 = 0;
+		int Nq_P123 = 0;
+		get_h5_P123_dimensions(P123_file_path, Nalpha_P123, Np_P123, Nq_P123);
+    	P123_array 	  = new double [Np_P123 * Nq_P123 * Nalpha_P123 * Np_P123 * Nq_P123 * Nalpha_P123];
+		P123_p_array  = new double [Np_P123];
+		P123_q_array  = new double [Nq_P123];
+		P123_wp_array = new double [Np_P123];
+		P123_wq_array = new double [Nq_P123];
+		cout << "Reading P123 from file" << endl;
+		read_P123_h5_data_file(P123_file_path,
+							   P123_array,
+							   Np_P123, P123_p_array, P123_wp_array,
+							   Nq_P123, P123_q_array, P123_wq_array);
+	}
+	else{
+		int Nx 			 = 20;
+		double* x_array  = new double [Nx];
+    	double* wx_array = new double [Nx];
+		gauss(x_array, wx_array, Nx);
+
+		P123_array = new double [Nalpha*Np_WP*Nq_WP + Nalpha*Np_WP*Nq_WP];
+
+		calculate_permutation_matrix(P123_array,
+                                  	 Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
+                                  	 Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
+                                  	 Nx, x_array, wx_array,
+                                  	 Nalpha,
+                                  	 L_2N_array,
+                                  	 S_2N_array,
+                                  	 J_2N_array,
+                                  	 T_2N_array,
+                                  	 l_3N_array,
+                                  	 two_j_3N_array,
+                                  	 two_J_3N, two_T_3N, parity_3N);
+	}
 	
 
 	/* End of code segment for permutation matrix construction */

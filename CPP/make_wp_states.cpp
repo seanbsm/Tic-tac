@@ -1,20 +1,25 @@
 #include "make_wp_states.h"
 
-double q_normalization(double p0, double p1){
-    return p1-p0;
-}
 double p_normalization(double p0, double p1){
-    return p1-p0;
+	//return sqrt( (p1*p1-p0*p0)/MN );
+    return sqrt(p1-p0);
+}
+double q_normalization(double q0, double q1){
+    //return sqrt( (q1*q1-q0*q0)/MN );
+	return sqrt(q1-q0);
 }
 
 double p_weight_function(double p){
-    return 1;
+    //return sqrt(p/MN);
+	return 1;
 }
-double q_weight_function(double p){
+double q_weight_function(double q){
+	//return sqrt(q/MN);
     return 1;
 }
 
-void make_chebyshev_distribution(int N_WP, double* boundary_array,
+void make_chebyshev_distribution(int N_WP,
+								 double* boundary_array,
                                  double min_boundary,
                                  double max_boundary){
     double tan_term;

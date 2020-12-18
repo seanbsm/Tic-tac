@@ -93,7 +93,7 @@ void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
                     }
                 }
 
-                /* Row index loop */
+                /* Row p-momentum index loop */
                 for (int idx_bin_r=0; idx_bin_r<Np_WP; idx_bin_r++){
                     double bin_r_lower = p_WP_array[idx_bin_r];
                     double bin_r_upper = p_WP_array[idx_bin_r + 1];
@@ -102,7 +102,7 @@ void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
 		            double*  p_array_ptr_r =  &p_array[idx_bin_r*Np_per_WP];
 		            double* wp_array_ptr_r = &wp_array[idx_bin_r*Np_per_WP];
 
-                    /* Column index loop */
+                    /* Column p-momentum index loop */
                     for (int idx_bin_c=0; idx_bin_c<Np_WP; idx_bin_c++){
                         double bin_c_lower = p_WP_array[idx_bin_c];
                         double bin_c_upper = p_WP_array[idx_bin_c + 1];
@@ -111,7 +111,7 @@ void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
                         double*  p_array_ptr_c =  &p_array[idx_bin_c*Np_per_WP];
 		                double* wp_array_ptr_c = &wp_array[idx_bin_c*Np_per_WP];
 
-                        /* Potential matrix indexing *
+                        /* Potential matrix indexing
                          * Indexing format: (channel index)*(num rows)*(num columns) + (row index)*(row length) + (column index) */
                         if (coupled_matrix){
                             int chn_idx_V_coup   = J_r-1;
@@ -142,6 +142,10 @@ void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
                                 double wp_c = wp_array_ptr_c[idx_p_c];
                                 double p_in = p_c;  // variable change for easier readablity: <p_out|v|p_in>
                                 
+                                double wp_p_f_r = wp_r*p_r*p_weight_function(p_r);
+                                double wp_p_f_c = wp_c*p_c*p_weight_function(p_c);
+                                double integral_factors = wp_p_f_r * wp_p_f_c;
+
 	                            /* We create an isoscalar potential */
 	                            if (T_r==1){ // Interaction can be either nn or np
                                     pot_ptr_nn->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_nn_elements);
@@ -156,7 +160,7 @@ void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
 
                                 /* We integrate into wave-packet potential and normalize */
 	                            for (int idx_element=0; idx_element<6; idx_element++){
-	                            	V_WP_elements[idx_element] += p_r*p_r*wp_r * p_c*p_c*wp_c * V_IS_elements[idx_element]/(sqrt(N_r*N_c));
+	                            	V_WP_elements[idx_element] += integral_factors * V_IS_elements[idx_element]/(N_r*N_c);
                                 }
                             }
                         }
@@ -167,7 +171,12 @@ void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
 			            	V_WP_coup_array[idx_V_WP_upper_right] = extract_potential_element_from_array(J_r-1, J_r+1, J_r, S_r, coupled_matrix, V_WP_elements);
 			            	V_WP_coup_array[idx_V_WP_lower_left]  = extract_potential_element_from_array(J_r+1, J_r-1, J_r, S_r, coupled_matrix, V_WP_elements);
 			            	V_WP_coup_array[idx_V_WP_lower_right] = extract_potential_element_from_array(J_r+1, J_r+1, J_r, S_r, coupled_matrix, V_WP_elements);
-                        
+                            //if (J_r==1 and L_r==0){
+                            //    std::cout << idx_bin_r <<" "<< idx_bin_c <<" "<< V_WP_coup_array[idx_V_WP_upper_left] << std::endl;
+                            //    std::cout << idx_bin_r <<" "<< idx_bin_c <<" "<< V_WP_coup_array[idx_V_WP_upper_right] << std::endl;
+                            //    std::cout << idx_bin_r <<" "<< idx_bin_c <<" "<< V_WP_coup_array[idx_V_WP_lower_left] << std::endl;
+                            //    std::cout << idx_bin_r <<" "<< idx_bin_c <<" "<< V_WP_coup_array[idx_V_WP_lower_right] << std::endl;
+                            //}
                         }
 			            else{
                             V_WP_unco_array[idx_V_WP_uncoupled]   = extract_potential_element_from_array(L_r, L_c, J_r, S_r, coupled_matrix, V_WP_elements);

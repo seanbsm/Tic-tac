@@ -9,16 +9,11 @@
 #include <ctime>
 
 #include "make_pw_symm_states.h"
-//#include "kinetics.h"
 #include "make_permutation_matrix.h"
-//#include "state_antisymmetrization.h"
-//#include "faddeev_iterator.h"
 #include "General_functions/gauss_legendre.h"
 #include "Interactions/potential_model.h"
 #include "make_potential_matrix.h"
-//#include "Triton_states/read_psi.h"
-
-//#include "lippmann_schwinger_solver.h"
+#include "make_swp_states.h"
 
 using namespace std;
 
@@ -41,7 +36,7 @@ int main(int argc, char* argv[]){
 
 	/* Wave-packet 3N momenta */
 	int Np_WP	   	 = 32;
-	int Nq_WP	   	 = 30;
+	int Nq_WP	   	 = 6;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -131,34 +126,35 @@ int main(int argc, char* argv[]){
     	double* wx_array = new double [Nx];
 		gauss(x_array, wx_array, Nx);
 
-		P123_array = new double [Nalpha*Np_WP*Nq_WP + Nalpha*Np_WP*Nq_WP];
+		P123_array = new double [Nalpha*Np_WP*Nq_WP * Nalpha*Np_WP*Nq_WP];
 
-		calculate_permutation_matrix(P123_array,
-                                  	 Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
-                                  	 Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
-                                  	 Nx, x_array, wx_array,
-                                  	 Nalpha,
-                                  	 L_2N_array,
-                                  	 S_2N_array,
-                                  	 J_2N_array,
-                                  	 T_2N_array,
-                                  	 l_3N_array,
-                                  	 two_j_3N_array,
-                                  	 two_J_3N, two_T_3N, parity_3N);
+		//calculate_permutation_matrix(P123_array,
+        //                          	 Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
+        //                          	 Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
+        //                          	 Nx, x_array, wx_array,
+        //                          	 Nalpha,
+        //                          	 L_2N_array,
+        //                          	 S_2N_array,
+        //                          	 J_2N_array,
+        //                          	 T_2N_array,
+        //                          	 l_3N_array,
+        //                          	 two_j_3N_array,
+        //                          	 two_J_3N, two_T_3N, parity_3N);
 	}
-	
 
 	/* End of code segment for permutation matrix construction */
 	/* Start of code segment for potential matrix construction */
 
-	//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
-	//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
-	pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
-	pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
+	pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
+	pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
+	//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
+	//pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
+	//pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
+	//pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
 
 	cout << "Constructing 2N-potential matrices in WP basis" << endl;
 	int V_unco_array_size = Np_WP*Np_WP   * 2*(J_2N_max+1);
-    int V_coup_array_size = Np_WP*Np_WP*4 *   (J_2N_max+1);
+    int V_coup_array_size = Np_WP*Np_WP*4 *    J_2N_max;
     V_WP_unco_array = new double [V_unco_array_size];
     V_WP_coup_array = new double [V_coup_array_size];
 	calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array,
@@ -170,6 +166,34 @@ int main(int argc, char* argv[]){
                                                    pot_ptr_np);
 
 	/* End of code segment for potential matrix construction */
+	/* Start of code segment for scattering wave-packets construction */
+
+	double* p_SWP_unco_array = new double [  (Np_WP+1) * 2*(J_2N_max+1)];
+	double* p_SWP_coup_array = new double [2*(Np_WP+1) *    J_2N_max];
+
+	double* C_WP_unco_array = new double [V_unco_array_size];
+	double* C_WP_coup_array = new double [V_coup_array_size];
+	
+	cout << "Constructing 2N SWPs" << endl;
+	make_swp_states(p_SWP_unco_array,
+					p_SWP_coup_array,
+					C_WP_unco_array,
+					C_WP_coup_array,
+					V_WP_unco_array,
+                    V_WP_coup_array,
+					Np_WP, p_WP_array,
+					Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
+					J_2N_max);
+
+	/* End of code segment for scattering wave-packets construction */
+	/* Start of code segment for resolvent matrix (diagonal array) construction */
+
+	/* End of code segment for resolvent matrix (diagonal array) construction */
+	/* Start of code segment for iterations of elastic Faddeev equations */
+
+	/* End of code segment for iterations of elastic Faddeev equations */
+
+
 	/* -------------------- End main body of code here -------------------- */
 
 	auto program_end= chrono::system_clock::now();

@@ -4,16 +4,18 @@
 #include <iostream>
 #include <math.h>
 
+#include "constants.h"
 #include "error_management.h"
 #include "General_functions/gauss_legendre.h"
 
-double q_normalization(double p0, double p1);
-double p_normalization(double q0, double q1);
+double p_normalization(double p0, double p1);
+double q_normalization(double q0, double q1);
 
 double p_weight_function(double p);
 double q_weight_function(double q);
 
-void make_chebyshev_distribution(int N_WP, double* boundary_array,
+void make_chebyshev_distribution(int N_WP,
+                                 double* boundary_array,
                                  double min_boundary,
                                  double max_boundary);
 

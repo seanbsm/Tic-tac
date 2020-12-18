@@ -683,13 +683,13 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
 
     int Np = Np_per_WP*Np_WP;
     int Nq = Nq_per_WP*Nq_WP;
-
+    
     for (int pp_idx=pp_idx_lower; pp_idx<pp_idx_upper; pp_idx++){
         for (int qp_idx=qp_idx_lower; qp_idx<qp_idx_upper; qp_idx++){
 
-            double wp_p2 = wp_array[pp_idx]*p_array[pp_idx]*p_array[pp_idx];
-            double wq_q2 = wq_array[qp_idx]*q_array[qp_idx]*q_array[qp_idx];
-            double integral_factors = wp_p2 * wq_q2;
+            double wp_p_f = wp_array[pp_idx]*p_array[pp_idx]*p_weight_function(p_array[pp_idx]);
+            double wq_q_f = wq_array[qp_idx]*q_array[qp_idx]*q_weight_function(q_array[qp_idx]);
+            double integral_factors = wp_p_f * wq_q_f;
 
             for (int x_idx = 0; x_idx <= Nx - 1; x_idx++){
 

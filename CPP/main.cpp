@@ -14,6 +14,7 @@
 #include "Interactions/potential_model.h"
 #include "make_potential_matrix.h"
 #include "make_swp_states.h"
+#include "make_resolvent.h"
 
 using namespace std;
 
@@ -23,6 +24,9 @@ int main(int argc, char* argv[]){
 	
 	/* ------------------- Start main body of code here ------------------- */
 	/* Start of code segment for parameters, variables and arrays declaration */
+
+	/* Current scattering energy */
+	double E = 10;
 
 	/* Tritium bound-state quantum numbers */
 	int two_J_3N  	 = 1;
@@ -35,7 +39,7 @@ int main(int argc, char* argv[]){
     int J_2N_max 	 = 3;
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 32;
+	int Np_WP	   	 = 96;
 	int Nq_WP	   	 = 6;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
@@ -145,12 +149,12 @@ int main(int argc, char* argv[]){
 	/* End of code segment for permutation matrix construction */
 	/* Start of code segment for potential matrix construction */
 
-	pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
-	pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
+	//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
+	//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
 	//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
 	//pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
-	//pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
-	//pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
+	pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
+	pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
 
 	cout << "Constructing 2N-potential matrices in WP basis" << endl;
 	int V_unco_array_size = Np_WP*Np_WP   * 2*(J_2N_max+1);
@@ -159,6 +163,7 @@ int main(int argc, char* argv[]){
     V_WP_coup_array = new double [V_coup_array_size];
 	calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array,
                                                    V_WP_coup_array,
+												   true,
                                                    Np_WP, p_WP_array,
                                                    Np_per_WP, p_array, wp_array,
                                                    Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
@@ -188,10 +193,28 @@ int main(int argc, char* argv[]){
 	/* End of code segment for scattering wave-packets construction */
 	/* Start of code segment for resolvent matrix (diagonal array) construction */
 
+	/* Resolvent array */
+	cdouble* G_array = new cdouble [Nalpha * Nq_WP * Np_WP];
+
+	cout << "Constructing 3N resolvents" << endl;
+	calculate_resolvent_array_in_SWP_basis(G_array,
+                                           E,
+                                           Np_WP,
+                                           p_SWP_unco_array,
+					                       p_SWP_coup_array,
+					                       Nq_WP, q_WP_array,
+					                       Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array);
+
 	/* End of code segment for resolvent matrix (diagonal array) construction */
 	/* Start of code segment for iterations of elastic Faddeev equations */
 
+	cdouble* U_array = new cdouble [Nalpha*Np_WP*Nq_WP * Nalpha*Np_WP*Nq_WP];
+
 	/* End of code segment for iterations of elastic Faddeev equations */
+	/* Start of code segment for calculating scattering observables */
+
+
+	/* End of code segment for calculating scattering observables */
 
 
 	/* -------------------- End main body of code here -------------------- */

@@ -41,6 +41,7 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 /* Construct 2N potential matrices <k|v|k_p> for all 3N partial wave channels */
 void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
                                                     double* V_WP_coup_array,
+                                                    bool mid_point_approximation,
                                                     int Np_WP, double* p_WP_array,
                                                     int Np_per_WP, double* p_array, double* wp_array,
                                                     int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array,
@@ -131,36 +132,65 @@ void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
 	                    	V_WP_elements[idx_element] = 0;
                         }
 
-                        /* Loop over quadrature inside row and column cells */
-                        for (int idx_p_r=0; idx_p_r<Np_per_WP; idx_p_r++){
-                            double  p_r  =  p_array_ptr_r[idx_p_r];
-                            double wp_r  = wp_array_ptr_r[idx_p_r];
-                            double p_out = p_r;     // variable change for easier readablity: <p_out|v|p_in>
+                        /* Calculate matrix element, using either mid-point approximation or quadrature */
+                        if (mid_point_approximation){
+                            /* average momentum */
+                            double p_in  = 0.5*(bin_c_lower + bin_c_upper);
+                            double p_out = 0.5*(bin_r_lower + bin_r_upper);
 
-                            for (int idx_p_c=0; idx_p_c<Np_per_WP; idx_p_c++){
-                                double  p_c =  p_array_ptr_c[idx_p_c];
-                                double wp_c = wp_array_ptr_c[idx_p_c];
-                                double p_in = p_c;  // variable change for easier readablity: <p_out|v|p_in>
-                                
-                                double wp_p_f_r = wp_r*p_r*p_weight_function(p_r);
-                                double wp_p_f_c = wp_c*p_c*p_weight_function(p_c);
-                                double integral_factors = wp_p_f_r * wp_p_f_c;
+                            /* Momentum bin-width */
+                            double d_c   = bin_c_upper - bin_c_lower;
+                            double d_r   = bin_r_upper - bin_r_lower;
 
-	                            /* We create an isoscalar potential */
-	                            if (T_r==1){ // Interaction can be either nn or np
-                                    pot_ptr_nn->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_nn_elements);
-                                    pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_np_elements);
-	                            	for (int idx_element=0; idx_element<6; idx_element++){
-	                            		V_IS_elements[idx_element] = (1./3)*V_np_elements[idx_element] + (2./3)*V_nn_elements[idx_element];
-	                            	}
-                                }
-                                else{ 	   // Interaction must be np
-                                    pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_IS_elements);
-                                }
+                            /* We create an isoscalar potential */
+	                        if (T_r==1){ // Interaction can be either nn or np
+                                pot_ptr_nn->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_nn_elements);
+                                pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_np_elements);
+	                        	for (int idx_element=0; idx_element<6; idx_element++){
+	                        		V_IS_elements[idx_element] = (1./3)*V_np_elements[idx_element] + (2./3)*V_nn_elements[idx_element];
+	                        	}
+                            }
+                            else{ 	   // Interaction must be np
+                                pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_IS_elements);
+                            }
+                            
+                            /* We integrate into wave-packet potential and normalize */
+	                        for (int idx_element=0; idx_element<6; idx_element++){
+	                        	V_WP_elements[idx_element] += p_in*p_out *d_r*d_c * V_IS_elements[idx_element] / (N_r*N_c);
+                            }
+                        }
+                        else{
+                            /* Loop over quadrature inside row and column cells */
+                            for (int idx_p_r=0; idx_p_r<Np_per_WP; idx_p_r++){
+                                double  p_r  =  p_array_ptr_r[idx_p_r];
+                                double wp_r  = wp_array_ptr_r[idx_p_r];
+                                double p_out = p_r;     // variable change for easier readablity: <p_out|v|p_in>
 
-                                /* We integrate into wave-packet potential and normalize */
-	                            for (int idx_element=0; idx_element<6; idx_element++){
-	                            	V_WP_elements[idx_element] += integral_factors * V_IS_elements[idx_element]/(N_r*N_c);
+                                for (int idx_p_c=0; idx_p_c<Np_per_WP; idx_p_c++){
+                                    double  p_c =  p_array_ptr_c[idx_p_c];
+                                    double wp_c = wp_array_ptr_c[idx_p_c];
+                                    double p_in = p_c;  // variable change for easier readablity: <p_out|v|p_in>
+
+                                    double wp_p_f_r = wp_r*p_r*p_weight_function(p_r);
+                                    double wp_p_f_c = wp_c*p_c*p_weight_function(p_c);
+                                    double integral_factors = wp_p_f_r * wp_p_f_c;
+
+	                                /* We create an isoscalar potential */
+	                                if (T_r==1){ // Interaction can be either nn or np
+                                        pot_ptr_nn->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_nn_elements);
+                                        pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_np_elements);
+	                                	for (int idx_element=0; idx_element<6; idx_element++){
+	                                		V_IS_elements[idx_element] = (1./3)*V_np_elements[idx_element] + (2./3)*V_nn_elements[idx_element];
+	                                	}
+                                    }
+                                    else{ 	   // Interaction must be np
+                                        pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_IS_elements);
+                                    }
+
+                                    /* We integrate into wave-packet potential and normalize */
+	                                for (int idx_element=0; idx_element<6; idx_element++){
+	                                	V_WP_elements[idx_element] += integral_factors * V_IS_elements[idx_element]/(N_r*N_c);
+                                    }
                                 }
                             }
                         }

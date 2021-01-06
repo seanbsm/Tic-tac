@@ -33,7 +33,7 @@ void construct_free_hamiltonian(double* H0_WP_array,
 		/* Kinetic energy at bin-boundaries */
 		double p1 = p_WP_array[idx_p];
 		double p2 = p_WP_array[idx_p+1];
-
+	
 		/* Free Hamiltonian for 2-nucleon pair for momentum WPs */
 		H0_WP_array[idx_p] = (p2*p2 + p2*p1 + p1*p1)/(3*MN);
 		/* Free Hamiltonian for 2-nucleon pair for energy WPs */
@@ -110,11 +110,13 @@ void look_for_unphysical_bound_states(double* eigenvalues,
 		if (eigenvalues[idx]<0){
 			num_bound_states_found += 1;
 		}
-		std::cout << eigenvalues[idx] << std::endl;
+		//if (chn_3S1){
+		//	std::cout << eigenvalues[idx] << std::endl;
+		//}
 	}
 	
 	/* See if we find the expected number of bounds states (1 for 3S1, 0 otherwise),
-	 * if not we abort program */
+	 * if not then we abort program (unphysical scenario) */
 	
 	if (num_bound_states_found==0 and chn_3S1==false){}
 	else if (num_bound_states_found==1 and chn_3S1==true){}
@@ -170,6 +172,20 @@ void make_swp_states(double* p_SWP_unco_array,
 	/* Number of uncoupled and coupled 2N-channels */
 	int num_unco_chns = 2*(J_2N_max+1);
 	int num_coup_chns =    J_2N_max;
+
+	/* Check-lists to keep track of which 2N Hamiltonian diagonalizations have been done.
+	 * This removes excessive work due to distinct 3N channels containing equal
+	 * 2N channels, as well as overwriting existing calculations (thus giving wrongful results) */
+	bool* check_list_unco = new bool [num_unco_chns];
+	bool* check_list_coup = new bool [num_coup_chns];
+
+	/* Set check_list-arrays to false */
+	for (int i=0; i<num_unco_chns; i++){
+		check_list_unco[i] = false;
+	}
+	for (int i=0; i<num_coup_chns; i++){
+		check_list_coup[i] = false;
+	}
 
 	/* Boundaries of scattering wave-packets (SWP) in energy */
 	int e_SWP_unco_array_size =   (Np_WP+1) * num_unco_chns;
@@ -263,6 +279,16 @@ void make_swp_states(double* p_SWP_unco_array,
 					mat_dim   		= 2*Np_WP;
 					chn_idx   		= J_r-1;
 
+					/* Check if 2N channels diagonalization has already
+					 * been performed in previous loop-iterations,
+					 * and if not then set to true */
+					if (check_list_coup[chn_idx]==true){
+						continue;
+					}
+					else{
+						check_list_coup[chn_idx] = true;
+					}
+
 					/* H-matrices are stored as upper-triangular -> special indexing and step-length */
 					mat_ptr_H 		= &H_WP_coup_array [chn_idx * mat_dim*(mat_dim+1)/2];
 					mat_ptr_V 		= &V_WP_coup_array [chn_idx * mat_dim*mat_dim];
@@ -273,6 +299,16 @@ void make_swp_states(double* p_SWP_unco_array,
 			    else{
 					mat_dim   		= Np_WP;
 					chn_idx   		= 2*J_r + S_r;
+
+					/* Check if 2N channels diagonalization has already
+					 * been performed in previous loop-iterations,
+					 * and if not then set to true */
+					if (check_list_unco[chn_idx]==true){
+						continue;
+					}
+					else{
+						check_list_unco[chn_idx] = true;
+					}
 
 					/* H-matrices are stored as upper-triangular -> special indexing and step-length */
 					mat_ptr_H 		= &H_WP_unco_array [chn_idx * mat_dim*(mat_dim+1)/2];
@@ -289,15 +325,14 @@ void make_swp_states(double* p_SWP_unco_array,
                                 		   mat_dim);
 
 				/* Hamiltonian eigenvalue array */
-				double* eigenvalues = new double [mat_dim];
+				double eigenvalues [mat_dim];
 
 				/* Diagonalize channel Hamiltonian - fill eigenvalues and C_array coefficients */
 				diagonalize_real_symm_matrix(mat_ptr_H, eigenvalues, mat_ptr_C, mat_dim);
-				
+
 				/* Abort if unphysical bound states are found in eigenvalues,
 				   or if 3S1-bound state is missing */
 				bool chn_3S1 = (coupled_matrix && J_r==1);
-				std::cout << chn_3S1 <<" "<< S_r <<" "<< J_r <<" " << L_r <<" "<< L_c << std::endl;
 				look_for_unphysical_bound_states(eigenvalues, mat_dim, chn_3S1);
 				
 				/* The eigenspectrum of coupled channels is returned in ascending
@@ -317,4 +352,17 @@ void make_swp_states(double* p_SWP_unco_array,
 			}
 		}
 	}
+
+	/* Delete temporary arrays */
+	delete [] check_list_unco;
+	delete [] check_list_coup;
+
+	delete [] e_SWP_unco_array;
+	delete [] e_SWP_coup_array;
+
+	delete [] H_WP_unco_array;
+	delete [] H_WP_coup_array;
+
+	delete [] H0_WP_unco_array;
+	delete [] H0_WP_coup_array;
 }

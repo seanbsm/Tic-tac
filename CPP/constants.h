@@ -19,6 +19,8 @@ const floatType pi		= M_PI;				// pi									[no units]
 const floatType Mp		= 938.272;			// proton mass  						[MeV]
 const floatType Mn		= 939.565;			// neutron mass 						[MeV]
 const floatType MN		= 2*Mp*Mn/(Mp+Mn);	// Nucleon mass							[MeV]
+const floatType Ed      = 2.22457;          // Deuteron binding energy              [MeV]
+const floatType Md      = Mn + Mp - Ed;     // Deuteron mass                        [MeV]
 const floatType Lambda	= 450;				// cut-off for renormalization of LO 	[MeV]
 const floatType gA 		= 1.289;			// axial coupling constant 			 	[no units]
 const floatType fpi 	= 92.2;				// pion decay constant 				 	[MeV] 		(used convention 130.41/sqrt(2) = 92.2)

@@ -667,7 +667,7 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
                                             int Nalpha,
                                             double* Gtilde_store ){
 
-    bool run_tests = true;
+    bool   run_tests    = true;
     double integral_sum = 0;
 
     double WP_q_bound_lower = q_array_WP_bounds[q_idx_WP];

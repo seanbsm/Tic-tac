@@ -14,7 +14,7 @@ void construct_symmetric_pw_states(int parity_3N,
                                    int** two_J_3N_array_ptr,
                                    int** two_T_3N_array_ptr){
 
-    bool print_content = false;
+    bool print_content = true;
     char print_table_format_words[] = "%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s\n";
     char print_table_format_ints[]  = "%-10d%-10d%-10d%-10d%-10d%d/%-8d%-10d%d/%-8d%d/%-8d\n";
 
@@ -51,30 +51,34 @@ void construct_symmetric_pw_states(int parity_3N,
     int L_1N_max = 0;
     int L_2N_min = 0;
     int L_2N_max = 0;
-    int two_T_3N_min = 0;
-    int two_T_3N_max = 0;
+    int T_2N_min = 0;
+    int T_2N_max = 0;
     int two_J_1N_min = 0;
     int two_J_1N_max = 0;
-    /* J_2N loop */
-    for (int J_2N=0; J_2N<J_2N_max+1; J_2N++){
-        /* S_2N loop */
-        for (int S_2N=0; S_2N<2; S_2N++){
-            /* Triangle inequality for L_2N */
-            L_2N_min = (int) abs(J_2N - S_2N);
-            L_2N_max = J_2N + S_2N;
-            /* L_2N loop */
-            for (int L_2N=L_2N_min; L_2N<L_2N_max+1; L_2N++){
-                /* T_2N loop */
-                for (int T_2N=0; T_2N<2; T_2N++){
-                    /* Generalised Pauli exclusion principle: L_2N + S_2N + T_2N must be odd */
-                    if ( (L_2N + S_2N + T_2N)%2 ){
-                        /* Triangle inequality for T_3N */
-                        two_T_3N_min = std::abs(2*T_2N-1);
-                        two_T_3N_max = 2*T_2N+1;
-                        /* two_T_3N loop */
-                        for (int two_T_3N=two_T_3N_min; two_T_3N<two_T_3N_max+1; two_T_3N+=2){
-                            /* two_J_3N loop */
-                            for (int two_J_3N=1; two_J_3N<two_J_3N_max+1; two_J_3N+=2){
+    /* two_J_3N loop */
+    for (int two_J_3N=1; two_J_3N<two_J_3N_max+1; two_J_3N+=2){
+        /* two_T_3N loop */
+        for (int two_T_3N=1; two_T_3N<4; two_T_3N+=2){
+            /* J_2N loop */
+            for (int J_2N=0; J_2N<J_2N_max+1; J_2N++){
+                /* S_2N loop */
+                for (int S_2N=0; S_2N<2; S_2N++){
+                    /* Triangle inequality for L_2N */
+                    L_2N_min = (int) abs(J_2N - S_2N);
+                    L_2N_max = J_2N + S_2N;
+                    /* L_2N loop */
+                    for (int L_2N=L_2N_min; L_2N<L_2N_max+1; L_2N++){
+                        /* Triangle inequality for T_2N */
+                        T_2N_min = (int) abs(two_T_3N - 1)/2;
+                        T_2N_max = (two_T_3N + 1)/2;
+                        /* T can't be greater than 1 */
+                        if (T_2N_max>1){
+                            T_2N_max=1;
+                        }
+                        /* T_2N loop */
+                        for (int T_2N=T_2N_min; T_2N<T_2N_max+1; T_2N++){
+                            /* Generalised Pauli exclusion principle: L_2N + S_2N + T_2N must be odd */
+                            if ( (L_2N + S_2N + T_2N)%2 ){
                                 /* Triangle inequality for J_1N */
                                 two_J_1N_min = (int) abs(two_J_3N - 2*J_2N);
                                 two_J_1N_max = two_J_3N + 2*J_2N;
@@ -86,7 +90,7 @@ void construct_symmetric_pw_states(int parity_3N,
                                     /* L_1N loop */
                                     for (int L_1N=L_1N_min; L_1N<L_1N_max+1; L_1N++){
                                         /* Check 3N-system total parity given by parity_3N */
-                                        if ( ((L_2N+L_1N)%2)==parity_exponential_remainder ){
+                                        //if ( ((L_2N+L_1N)%2)==parity_exponential_remainder ){
                                             
                                             //if (two_T_3N==3){
                                             //    if ( (S_2N==0 && L_2N==0 && J_2N==0)==false ){
@@ -112,7 +116,7 @@ void construct_symmetric_pw_states(int parity_3N,
 
                                             /* Increment state counter */
                                             Nalpha_temp += 1;
-                                        }
+                                        //}
                                     }
                                 }
                             }

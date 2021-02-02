@@ -22,6 +22,7 @@
 #include "make_resolvent.h"
 #include "solve_faddeev.h"
 #include "basis_transformations.h"
+#include "store_functionality.h"
 
 using namespace std;
 
@@ -40,14 +41,14 @@ int main(int argc, char* argv[]){
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-    int J_2N_max 	 = 1;
-	int two_J_3N_max = 3;
+    int J_2N_max 	 = 3;
+	int two_J_3N_max = 5;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 40;
+	int Np_WP	   	 = 10;
 	int Nq_WP	   	 = 10;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
@@ -163,23 +164,38 @@ int main(int argc, char* argv[]){
     	double* wx_array = new double [Nx];
 		gauss(x_array, wx_array, Nx);
 		
-		P123_array = new double [Nalpha*Np_WP*Nq_WP * Nalpha*Np_WP*Nq_WP];
+		int P123_dim = Nalpha*Np_WP*Nq_WP;
+		P123_array = new double [P123_dim * P123_dim];
 
 		printf("Calculating P123 ... \n");
-		//calculate_permutation_matrix(P123_array,
-        //                          	 Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
-        //                          	 Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
-        //                          	 Nx, x_array, wx_array,
-        //                          	 Nalpha,
-        //                          	 L_2N_array,
-        //                          	 S_2N_array,
-        //                          	 J_2N_array,
-        //                          	 T_2N_array,
-        //                          	 L_1N_array,
-        //                          	 two_J_1N_array,
-        //                        	 two_J_3N_array,
-        //                        	 two_T_3N_array,
-        //                        	 parity_3N);
+		calculate_permutation_matrix(P123_array,
+                                  	 Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
+                                  	 Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
+                                  	 Nx, x_array, wx_array,
+                                  	 Nalpha,
+                                  	 L_2N_array,
+                                  	 S_2N_array,
+                                  	 J_2N_array,
+                                  	 T_2N_array,
+                                  	 L_1N_array,
+                                  	 two_J_1N_array,
+                                	 two_J_3N_array,
+                                	 two_T_3N_array);
+		printf(" - Done \n");
+
+		printf("Storing P123 to h5 ... \n");
+		store_matrix_elements_P123_h5 (P123_array,
+                                       Np_WP, p_WP_array, Nq_WP, q_WP_array,
+                                       Nalpha,
+                                       L_2N_array,
+                                  	   S_2N_array,
+                                  	   J_2N_array,
+                                  	   T_2N_array,
+                                  	   L_1N_array,
+                                  	   two_J_1N_array,
+                                	   two_J_3N_array,
+                                	   two_T_3N_array,
+                                       "P123_test_file.h5");
 		printf(" - Done \n");
 	}
 

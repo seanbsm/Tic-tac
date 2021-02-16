@@ -36,20 +36,17 @@ int main(int argc, char* argv[]){
 	/* Current scattering energy */
 	double E = 10;
 
-	/* 3N-state parity (-1)^parity_3N (conserved by strong force) */
-    int parity_3N 	 = 0;
-
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-    int J_2N_max 	 = 3;
-	int two_J_3N_max = 5;
+    int J_2N_max 	 = 0;
+	int two_J_3N_max = 1;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 10;
-	int Nq_WP	   	 = 10;
+	int Np_WP	   	 = 40;
+	int Nq_WP	   	 = 40;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -85,6 +82,12 @@ int main(int argc, char* argv[]){
     int* two_J_1N_array = NULL; 	// orbital-nucleon state total angular momentum x2
 	int* two_J_3N_array = NULL; 	// three-nucleon state total angular momentum x2
 	int* two_T_3N_array = NULL; 	// three-nucleon state total isospin x2
+	int* P_3N_array 	= NULL; 	// three-nucleon state parity
+
+	/* Three-nucleon channel indexing (a 3N channel is defined by a set {two_J_3N, two_T_3N, P_3N}) */
+	int  N_chn_3N 		  = 0;
+	int* chn_3N_idx_array = NULL;
+
 
 	/* Potential model class pointers */
 	potential_model* pot_ptr_np = NULL;
@@ -98,9 +101,10 @@ int main(int argc, char* argv[]){
 	/* Start of code segment for state space construction */
 
 	printf("Constructing 3N partial-wave basis ... \n");
-	construct_symmetric_pw_states(parity_3N,
-								  J_2N_max,
+	construct_symmetric_pw_states(J_2N_max,
 								  two_J_3N_max,
+                                  N_chn_3N,
+                                  &chn_3N_idx_array,
 								  Nalpha,
 								  &L_2N_array,
 								  &S_2N_array,
@@ -109,7 +113,8 @@ int main(int argc, char* argv[]){
 								  &L_1N_array,
 								  &two_J_1N_array,
 								  &two_J_3N_array,
-								  &two_T_3N_array);
+								  &two_T_3N_array,
+								  &P_3N_array);
 	printf(" - Done \n");
 
 	printf("Constructing wave-packet (WP) p-momentum bin boundaries ... \n");
@@ -137,7 +142,7 @@ int main(int argc, char* argv[]){
 	/* End of code segment for state space construction */
 	/* Start of code segment for permutation matrix construction */
 
-	bool interpolate_P123_matrix = false;
+	/*bool interpolate_P123_matrix = false;
 	if (interpolate_P123_matrix){
 		int Nalpha_P123 = 0;
 		int Np_P123 = 0;
@@ -158,46 +163,87 @@ int main(int argc, char* argv[]){
 							   Nq_P123, P123_q_array, P123_wq_array);
 		printf(" - Done \n");
 	}
-	else{
+	else{*/
 		int Nx 			 = 20;
 		double* x_array  = new double [Nx];
     	double* wx_array = new double [Nx];
 		gauss(x_array, wx_array, Nx);
 		
 		int P123_dim = Nalpha*Np_WP*Nq_WP;
-		P123_array = new double [P123_dim * P123_dim];
+		P123_array = NULL;//new double [P123_dim * P123_dim];
+
+		double** P123_sparse_ptr_val_array = new double* [N_chn_3N];
+		int** 	 P123_sparse_ptr_idx_array = new int* 	 [N_chn_3N];
+		int*	 P123_sparse_ptr_dim_array = new int 	 [N_chn_3N];
 
 		printf("Calculating P123 ... \n");
-		calculate_permutation_matrix(P123_array,
-                                  	 Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
-                                  	 Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
-                                  	 Nx, x_array, wx_array,
-                                  	 Nalpha,
-                                  	 L_2N_array,
-                                  	 S_2N_array,
-                                  	 J_2N_array,
-                                  	 T_2N_array,
-                                  	 L_1N_array,
-                                  	 two_J_1N_array,
-                                	 two_J_3N_array,
-                                	 two_T_3N_array);
-		printf(" - Done \n");
-
+		//calculate_permutation_matrix_for_3N_channel(P123_array,
+        //                          	 Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
+        //                          	 Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
+        //                          	 Nx, x_array, wx_array,
+        //                          	 Nalpha,
+        //                          	 L_2N_array,
+        //                          	 S_2N_array,
+        //                          	 J_2N_array,
+        //                          	 T_2N_array,
+        //                          	 L_1N_array,
+        //                          	 two_J_1N_array,
+        //                        	 two_J_3N_array,
+        //                        	 two_T_3N_array);
+		auto timestamp_P123_start = chrono::system_clock::now();
+		calculate_permutation_matrices_for_all_3N_channels(P123_sparse_ptr_val_array,
+                                                    	   P123_sparse_ptr_idx_array,
+                                                    	   P123_sparse_ptr_dim_array,
+                                                    	   Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
+        					                           	   Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
+        					                           	   Nx, x_array, wx_array,
+														   N_chn_3N,
+                                    					   chn_3N_idx_array,
+        					                           	   Nalpha,
+        					                           	   L_2N_array,
+        					                           	   S_2N_array,
+        					                           	   J_2N_array,
+        					                           	   T_2N_array,
+        					                           	   L_1N_array,
+        					                           	   two_J_1N_array,
+        					                         	   two_J_3N_array,
+        					                         	   two_T_3N_array);
+		auto timestamp_P123_end = chrono::system_clock::now();
+		chrono::duration<double> time_P123 = timestamp_P123_end - timestamp_P123_start;
+		printf(" - Done. Time used: %.6f\n", time_P123.count());
+		
 		printf("Storing P123 to h5 ... \n");
-		store_matrix_elements_P123_h5 (P123_array,
-                                       Np_WP, p_WP_array, Nq_WP, q_WP_array,
-                                       Nalpha,
-                                       L_2N_array,
-                                  	   S_2N_array,
-                                  	   J_2N_array,
-                                  	   T_2N_array,
-                                  	   L_1N_array,
-                                  	   two_J_1N_array,
-                                	   two_J_3N_array,
-                                	   two_T_3N_array,
-                                       "P123_test_file.h5");
+		store_sparse_matrix_elements_P123_h5 (P123_sparse_ptr_val_array,
+                                    		  P123_sparse_ptr_idx_array,
+                                    		  P123_sparse_ptr_dim_array,
+                                    		  Np_WP, p_WP_array, Nq_WP, q_WP_array,
+											  N_chn_3N,
+                                    		  chn_3N_idx_array,
+                                    		  Nalpha,
+                                    		  L_2N_array,
+                                  			  S_2N_array,
+                                  			  J_2N_array,
+                                  			  T_2N_array,
+                                  			  L_1N_array,
+                                  			  two_J_1N_array,
+                                			  two_J_3N_array,
+                                			  two_T_3N_array,
+											  P_3N_array,
+                                    		  "P123_test_file_sparse_large.h5");
+		//store_matrix_elements_P123_h5 (P123_array,
+        //                               Np_WP, p_WP_array, Nq_WP, q_WP_array,
+        //                               Nalpha,
+        //                               L_2N_array,
+        //                          	   S_2N_array,
+        //                          	   J_2N_array,
+        //                          	   T_2N_array,
+        //                          	   L_1N_array,
+        //                          	   two_J_1N_array,
+        //                        	   two_J_3N_array,
+        //                        	   two_T_3N_array,
+        //                               "P123_test_file.h5");
 		printf(" - Done \n");
-	}
+	//}
 
 	/* End of code segment for permutation matrix construction */
 	/* Start of code segment for potential matrix construction */

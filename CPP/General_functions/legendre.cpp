@@ -27,7 +27,7 @@ void LegendrePolynomial::findRoot(int d, float x, float &root){
 		}
 	}
 	else{
-		throw std::invalid_argument("Function findRoot() in Legendre.cpp recieved negative integer.");
+		throw std::invalid_argument("Function findRoot() in legendre.cpp recieved negative integer.");
 	}
 }
 

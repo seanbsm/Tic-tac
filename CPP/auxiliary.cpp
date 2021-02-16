@@ -667,7 +667,7 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
                                             int Nalpha,
                                             double* Gtilde_store ){
 
-    bool   run_tests    = true;
+    bool   run_tests    = false;
     double integral_sum = 0;
 
     double WP_q_bound_lower = q_array_WP_bounds[q_idx_WP];
@@ -692,6 +692,8 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
             double integral_factors = wp_p_f * wq_q_f;
 
             for (int x_idx = 0; x_idx <= Nx - 1; x_idx++){
+                
+                double G_element = Gtilde_store[alphap_idx*Nalpha*Np*Nq*Nx + alpha_idx*Np*Nq*Nx + pp_idx*Nq*Nx + qp_idx*Nx + x_idx];
 
                 double p_bar = pi1_tilde(p_array[pp_idx], q_array[qp_idx], x_array[x_idx]);
                 double q_bar = pi2_tilde(p_array[pp_idx], q_array[qp_idx], x_array[x_idx]);
@@ -712,7 +714,7 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
                 }
                 
                 /* BEWARE: I'M NOT 100% SURE ON THE GTILDE ALPHA-INDEXING */
-                integral_sum += integral_factors * wx_array[x_idx] * Gtilde_store[alphap_idx*Nalpha*Np*Nq*Nx + alpha_idx*Np*Nq*Nx + pp_idx*Nq*Nx + qp_idx*Nx + x_idx];
+                integral_sum += integral_factors * wx_array[x_idx] * G_element / (p_bar*q_bar);
             } // x_idx
         } // qp_idx
     } // pp_idx
@@ -765,6 +767,22 @@ double Gtilde_new (double p, double q, double x, int alpha, int alphaprime, int 
 
     double costheta1 = -(0.5 * p + 0.75 * q * x) / pi1;
     double costheta2 = (p - 0.5 * q * x) / pi2;
+
+    /* Prevent numerical error in Plm */
+    if ( costheta1>1 ){
+        costheta1 = 1;
+    }
+    else if( costheta1<-1 ){
+        costheta1 = -1;
+    }
+    
+    /* Prevent numerical error in Plm */
+    if ( costheta2>1 ){
+        costheta2 = 1;
+    }
+    else if( costheta2<-1 ){
+        costheta2 = -1;
+    }
 
     int L12 = L12_Jj[alpha];
     int l3 = l3_Jj[alpha];

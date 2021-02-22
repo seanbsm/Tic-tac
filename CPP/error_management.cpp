@@ -12,3 +12,21 @@ void raise_error (std::string error_cause){
     }
     std::exit(0);
 }
+
+void check_h5_read_call(herr_t ret){
+    if (ret<0){
+        raise_error("Erroneous control return-value from calling H5Dread()");
+    }
+}
+
+void check_h5_read_table_call(herr_t ret){
+    if (ret<0){
+        raise_error("Erroneous control return-value from calling H5TBread_table()");
+    }
+}
+
+void check_h5_close_call(herr_t ret){
+    if (ret<0){
+        raise_error("Erroneous control return-value from calling H5Dclose()");
+    }
+}

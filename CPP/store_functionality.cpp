@@ -40,6 +40,382 @@ typedef struct Psparse_table{
 
 using namespace std;
 
+//void confirm_state_space_overlap(int  Nalpha_file, pw_table PW_state_space_from_file,
+//                                 int  Nalpha_prog, pw_table PW_state_space_from_prog){
+//}
+
+
+
+/* Read matrix elements */
+void read_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
+                                          int**    P123_sparse_ptr_idx_array,
+                                          int*     P123_sparse_ptr_dim_array,
+                                          int  Np_3N, double *p_3N,
+                                          int  Nq_3N, double *q_3N,
+                                          int  N_chn_3N,
+                                          int* chn_3N_idx_array,
+                                          int  Jj_dim,
+                                          int* L12_Jj,
+                                          int* S12_Jj,
+                                          int* J12_Jj,
+                                          int* T12_Jj,
+                                          int* l3_Jj,
+                                          int* two_j3_Jj,
+                                          int* two_J_Jj,
+                                          int* two_T_Jj,
+                                          int* P_3N_array,
+                                          std::string filename_in){
+
+    bool print_content = false;
+
+    /* Convert filename to char-object */
+    char filename[300];
+    std::strcpy(filename, filename_in.c_str());
+
+    int i_file3;
+    char out_file[200];
+    i_file3 = sprintf(out_file, filename);
+    
+    if (i_file3 < 0){
+        raise_error("Could not locate P123-matrix h5-file.");
+    }
+
+    if (print_content){
+        printf(" - Read from: %s \n",  out_file);
+    }
+
+    hid_t  file_id_3;
+    hid_t  dataset_id_3;
+    herr_t ret_3;
+
+    file_id_3 = H5Fopen(filename,
+                        H5F_ACC_RDONLY,
+                        H5P_DEFAULT);
+
+    /* Determine Np, Nq and Nalpha */
+    int N_h5_3[1];
+
+    /* Np */
+    dataset_id_3 = H5Dopen(file_id_3,
+                           "Np",
+                           H5P_DEFAULT);
+    ret_3 = H5Dread (dataset_id_3,
+                     H5T_NATIVE_INT,
+                     H5S_ALL,
+                     H5S_ALL,
+                     H5P_DEFAULT,
+                     N_h5_3);
+    check_h5_read_call(ret_3);
+    int Np_3N_3 = N_h5_3[0];
+    ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
+
+    /* Nq */
+    dataset_id_3 = H5Dopen(file_id_3,
+                           "Nq",
+                           H5P_DEFAULT);
+    ret_3 = H5Dread (dataset_id_3,
+                     H5T_NATIVE_INT,
+                     H5S_ALL,
+                     H5S_ALL,
+                     H5P_DEFAULT,
+                     N_h5_3);
+    check_h5_read_call(ret_3);
+    int Nq_3N_3 = N_h5_3[0];
+    ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
+
+    /* Nalpha */
+    dataset_id_3 = H5Dopen(file_id_3,
+                           "Nalpha",
+                           H5P_DEFAULT);
+    ret_3 = H5Dread (dataset_id_3,
+                     H5T_NATIVE_INT,
+                     H5S_ALL,
+                     H5S_ALL,
+                     H5P_DEFAULT,
+                     N_h5_3);
+    check_h5_read_call(ret_3);
+    int Jj_dim_3 = N_h5_3[0];
+    ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
+
+    /* N_chn_3N */
+    dataset_id_3 = H5Dopen(file_id_3,
+                           "N_chn_3N",
+                           H5P_DEFAULT);
+    ret_3 = H5Dread (dataset_id_3,
+                     H5T_NATIVE_INT,
+                     H5S_ALL,
+                     H5S_ALL,
+                     H5P_DEFAULT,
+                     N_h5_3);
+    check_h5_read_call(ret_3);
+    int N_chn_3N_3 = N_h5_3[0];
+    ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
+
+    /* p-mesh (fill p-momentum bin boundaries) */
+    pmesh_table p_h5_3[Np_3N_3];
+    double p_3N_3[Np_3N_3];
+
+    size_t p_dst_size_3 =  sizeof( pmesh_table );
+    
+    size_t p_dst_offset_3[3] = { HOFFSET( pmesh_table, index_ptable ),
+                                 HOFFSET( pmesh_table, mesh_ptable )
+                               };
+
+    size_t p_dst_sizes_3[3] = { sizeof( p_h5_3[0].index_ptable ),
+                                sizeof( p_h5_3[0].mesh_ptable )
+                              };
+
+    if(print_content){
+        printf("\np mesh:\n");
+    }
+
+    ret_3 = H5TBread_table(file_id_3,
+                           "p mesh",
+                           p_dst_size_3,
+                           p_dst_offset_3,
+                           p_dst_sizes_3,
+                           p_h5_3);
+    check_h5_read_table_call(ret_3);
+    for (int i = 0; i <= Np_3N_3 - 1; i++){
+        p_3N_3[i] = p_h5_3[i].mesh_ptable;
+
+        if(print_content){
+           printf("%d %.3f\n", i, p_3N_3[i]);
+        }
+    }
+
+    /* q-mesh (fill q-momentum bin boundaries) */
+    double q_3N_3[Nq_3N_3];
+    qmesh_table q_h5_3[Nq_3N_3];
+
+    size_t q_dst_size_3 =  sizeof( qmesh_table );
+
+    size_t q_dst_offset_3[2] = { HOFFSET( qmesh_table, index_qtable ),
+                                 HOFFSET( qmesh_table, mesh_qtable )
+                               };
+
+    size_t q_dst_sizes_3[2] = { sizeof( q_h5_3[0].index_qtable ),
+                                sizeof( q_h5_3[0].mesh_qtable )
+                              };
+
+    if(print_content){
+        printf("q mesh:\n");
+    }
+
+    ret_3 = H5TBread_table(file_id_3,
+                           "q mesh",
+                           q_dst_size_3,
+                           q_dst_offset_3,
+                           q_dst_sizes_3,
+                           q_h5_3 );
+    check_h5_read_table_call(ret_3);
+    for (int i = 0; i <= Nq_3N - 1; i++){
+        q_3N_3[i] = q_h5_3[i].mesh_qtable;
+        
+        if(print_content){
+            printf("%d %.3f\n", i, q_3N_3[i]);
+        }
+    }
+    
+    if(print_content){ printf("Check mesh systems...\n"); }
+    if ((Nq_3N != Nq_3N_3) || (Np_3N != Np_3N_3)){
+        raise_error("Inconsistent wave-packet mesh systems!");
+    }
+
+    for (int i = 0; i <= Np_3N - 1; i++){
+        if (fabs(p_3N[i] - p_3N_3[i]) > 1e-10){
+            raise_error("Inconsistent p-boundaries!");
+        }
+    }
+
+    for (int i = 0; i <= Nq_3N - 1; i++){
+        if (fabs(q_3N[i] - q_3N_3[i]) > 1e-10){
+            raise_error("Inconsistent q-boundaries!");
+        }
+    }
+
+    /* Partial-wave table (fill PW arrays) */
+    pw_table pw_h5_3[Jj_dim_3];
+    size_t pw_dst_size_3 = sizeof( pw_table );
+    size_t pw_dst_offset_3[10] = { HOFFSET( pw_table, alpha_pwtable ),
+                                   HOFFSET( pw_table, L_pwtable ),
+                                   HOFFSET( pw_table, S_pwtable ),
+                                   HOFFSET( pw_table, J_pwtable ),
+                                   HOFFSET( pw_table, T_pwtable ),
+                                   HOFFSET( pw_table, l_pwtable ),
+                                   HOFFSET( pw_table, twoj_pwtable ),
+                                   HOFFSET( pw_table, twoJtotal_pwtable ),
+                                   HOFFSET( pw_table, PARtotal_pwtable ),
+                                   HOFFSET( pw_table, twoTtotal_pwtable )
+                                 };
+
+    size_t pw_dst_sizes_3[10] = { sizeof( pw_h5_3[0].alpha_pwtable ),
+                                  sizeof( pw_h5_3[0].L_pwtable ),
+                                  sizeof( pw_h5_3[0].S_pwtable ),
+                                  sizeof( pw_h5_3[0].J_pwtable ),
+                                  sizeof( pw_h5_3[0].T_pwtable ),
+                                  sizeof( pw_h5_3[0].l_pwtable ),
+                                  sizeof( pw_h5_3[0].twoj_pwtable ),
+                                  sizeof( pw_h5_3[0].twoJtotal_pwtable ),
+                                  sizeof( pw_h5_3[0].PARtotal_pwtable ),
+                                  sizeof( pw_h5_3[0].twoTtotal_pwtable )
+                                };
+
+    ret_3 = H5TBread_table(file_id_3,
+                           "pw channels",
+                           pw_dst_size_3,
+                           pw_dst_offset_3,
+                           pw_dst_sizes_3,
+                           pw_h5_3);
+    check_h5_read_table_call(ret_3);
+    if(print_content){
+        printf("\nNalpha = %d\n", Jj_dim_3);
+        printf("  i   L   S   J   T   l  2*j\n");
+    }
+    for (int i = 0; i <= Jj_dim_3 - 1; i++){
+        L12_Jj[i]    = pw_h5_3[i].L_pwtable;
+        S12_Jj[i]    = pw_h5_3[i].S_pwtable;
+        J12_Jj[i]    = pw_h5_3[i].J_pwtable;
+        T12_Jj[i]    = pw_h5_3[i].T_pwtable;
+        l3_Jj[i]     = pw_h5_3[i].l_pwtable;
+        two_j3_Jj[i] = pw_h5_3[i].twoj_pwtable;
+        two_J_Jj[i] = pw_h5_3[i].twoJtotal_pwtable;
+        P_3N_array[i] = pw_h5_3[i].PARtotal_pwtable;
+        two_T_Jj[i] = pw_h5_3[i].twoTtotal_pwtable;
+        if(print_content){
+            printf("%3d %3d %3d %3d %3d %3d %3d %3d %3d %3d\n", i, L12_Jj[i], S12_Jj[i], J12_Jj[i], T12_Jj[i], l3_Jj[i], two_j3_Jj[i], two_J_Jj[i], P_3N_array[i], two_T_Jj[i]);
+        }
+    }
+
+    /* This should be added later to confirm the h5-file has a matching, or larger, state space.
+     * However, if the state spaces are in any way different (larger or permuted) I will have to
+     * restructure the matrix indices upon reading. */
+    //confirm_state_space_overlap();
+
+    /* P123 block dimensions (fill P123_sparse_ptr_dim_array) */
+    dataset_id_3 = H5Dopen(file_id_3,
+                           "P123 block dimensions",
+                           H5P_DEFAULT);
+    ret_3 = H5Dread (dataset_id_3,
+                     H5T_NATIVE_INT,
+                     H5S_ALL,
+                     H5S_ALL,
+                     H5P_DEFAULT,
+                     P123_sparse_ptr_dim_array);
+    check_h5_read_call(ret_3);
+    ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
+    
+     /* 3N channel indices (fill chn_3N_idx_array) */
+    dataset_id_3 = H5Dopen(file_id_3,
+                           "3N channel indices",
+                           H5P_DEFAULT);
+    ret_3 = H5Dread (dataset_id_3,
+                     H5T_NATIVE_INT,
+                     H5S_ALL,
+                     H5S_ALL,
+                     H5P_DEFAULT,
+                     chn_3N_idx_array);
+    check_h5_read_call(ret_3);
+    ret_3 = H5Dclose(dataset_id_3);
+    check_h5_close_call(ret_3);
+    
+    /* P-matrix elements */
+    if(print_content){
+        printf("Read matrix elements...\n");
+    }
+
+    /* Sparse matrix elements */
+    for (int chn_3N_idx=0; chn_3N_idx<N_chn_3N; chn_3N_idx++){
+
+        /* Number of non-zero elements in channel */
+        int P123_sparse_dim =  P123_sparse_ptr_dim_array[chn_3N_idx];
+
+        /* Calculate the size and the offsets of our struct members in memory */
+        Psparse_table P123_h5_3[P123_sparse_dim];
+
+        size_t P123_dst_size = sizeof( Psparse_table );
+
+        size_t P123_dst_offset[3] = { HOFFSET( Psparse_table, index_row_Ptable ),
+                                      HOFFSET( Psparse_table, index_col_Ptable ),
+                                      HOFFSET( Psparse_table, value_Ptable )
+                                    };
+        size_t P123_dst_sizes[3] =  { sizeof( P123_h5_3[0].index_row_Ptable ),
+                                      sizeof( P123_h5_3[0].index_col_Ptable ),
+                                      sizeof( P123_h5_3[0].value_Ptable )
+                                    };
+        
+        /* Channel name */
+        std::string chn_name_string = "matrix elements for 3N channel " + std::to_string(chn_3N_idx);
+        char chn_name_char [200];
+        i_file3 = sprintf(chn_name_char, chn_name_string.c_str());
+
+        dataset_id_3 = H5Dopen(file_id_3,
+                               chn_name_char,
+                               H5P_DEFAULT);
+        ret_3 = H5TBread_table(file_id_3,
+                               chn_name_char,
+                               P123_dst_size,
+                               P123_dst_offset,
+                               P123_dst_sizes,
+                               P123_h5_3 );
+        check_h5_read_call(ret_3);
+
+        ret_3 = H5Dclose(dataset_id_3);
+        check_h5_close_call(ret_3);
+
+        /* Sparse P123-matrix properties */
+        P123_sparse_ptr_val_array[chn_3N_idx] = new double [P123_sparse_dim];
+        P123_sparse_ptr_idx_array[chn_3N_idx] = new int  [2*P123_sparse_dim];
+
+        double* P123_sparse_val_array = P123_sparse_ptr_val_array[chn_3N_idx];
+        int*    P123_sparse_idx_array = P123_sparse_ptr_idx_array[chn_3N_idx];
+
+        int* P123_sparse_idx_row_array = &P123_sparse_idx_array[0];
+        int* P123_sparse_idx_col_array = &P123_sparse_idx_array[P123_sparse_dim];
+
+        /* Write read data into argument-arrays */
+        for (int i=0; i<P123_sparse_dim; i++){
+            P123_sparse_idx_row_array[i] = P123_h5_3[i].index_row_Ptable;
+            P123_sparse_idx_col_array[i] = P123_h5_3[i].index_col_Ptable;
+            P123_sparse_val_array[i]     = P123_h5_3[i].value_Ptable;
+        }
+
+       /* int 	P123_sparse_subarray_dim = P123_sparse_ptr_dim_array[chn_3N_idx];
+		double* P123_sparse_val_subarray = P123_sparse_ptr_val_array[chn_3N_idx];
+		int* 	P123_sparse_idx_subarray = P123_sparse_ptr_idx_array[chn_3N_idx];
+        
+        std::cout << "Sparse dimension: " << P123_sparse_subarray_dim << std::endl;
+			double max_element_sparse = 0;
+        	for (int idx=0; idx<P123_sparse_subarray_dim; idx++){
+        	    if (abs(P123_sparse_val_subarray[idx])>max_element_sparse){
+        	        max_element_sparse = abs(P123_sparse_val_subarray[idx]);
+        	    } 
+        	}
+        	std::cout << "Max element sparse: " << max_element_sparse << std::endl;
+
+        	int max_row_sparse = 0;
+        	int max_col_sparse = 0;
+        	for (int idx=0; idx<P123_sparse_subarray_dim; idx++){
+        	    if (abs(P123_sparse_idx_subarray[idx])>abs(max_row_sparse)){
+        	        max_row_sparse = P123_sparse_idx_subarray[idx];
+        	    } 
+        	    if (abs(P123_sparse_idx_subarray[idx+P123_sparse_subarray_dim])>abs(max_col_sparse)){
+        	        max_col_sparse = P123_sparse_idx_subarray[idx+P123_sparse_subarray_dim];
+        	    } 
+        	}
+        	std::cout << "Max row sparse: " << max_row_sparse << std::endl;
+        	std::cout << "Max col sparse: " << max_col_sparse << std::endl;*/
+    }
+
+    ret_3 = H5Fclose(file_id_3);
+    check_h5_close_call(ret_3);
+}
+
 // chop and store matrix elements in single precision
 void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
                                            int**    P123_sparse_ptr_idx_array,
@@ -125,7 +501,7 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
     status      = H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5);
     status      = H5Dclose(dataset_id);
     status      = H5Sclose(group_id);
-    printf(" - test 1 \n");
+    
     /* N_chn_3N */
     N_h5[0]     = N_chn_3N;
     group_id    = H5Screate_simple(1, dim_N, NULL);
@@ -133,7 +509,7 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
     status      = H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5);
     status      = H5Dclose(dataset_id);
     status      = H5Sclose(group_id);
-    printf(" - test 2 \n");
+    
     /* p-momentum mesh */
     pmesh_table p_dst_buf[Np_3N+1];
 

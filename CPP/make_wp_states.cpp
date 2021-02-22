@@ -21,7 +21,8 @@ double q_weight_function(double q){
 void make_chebyshev_distribution(int N_WP,
 								 double* boundary_array,
                                  double min_boundary,
-                                 double max_boundary){
+                                 double max_boundary,
+								 int 	sparseness_degree){
     double tan_term;
 	
 	double scale = 0.5*(max_boundary - min_boundary);
@@ -29,23 +30,27 @@ void make_chebyshev_distribution(int N_WP,
 	for (int i=0; i<N_WP+1; i++){
 		tan_term = tan( (2*i)*M_PI/(4*(N_WP+1)) );
 		
-		boundary_array[i] = scale*tan_term*tan_term;
+		boundary_array[i] = scale*pow(tan_term, sparseness_degree);
 	}
 }
 
 void make_p_bin_grid(int Np_WP, double* p_WP_array){
-    double min_boundary = 1e-5;
-	double max_boundary = 100;
+    double min_boundary 	 = 1e-5;
+	double max_boundary 	 = 100;
+	int    sparseness_degree = 2;
 
     make_chebyshev_distribution(Np_WP, p_WP_array,
-                                min_boundary, max_boundary);
+                                min_boundary, max_boundary,
+								sparseness_degree);
 }
 void make_q_bin_grid(int Nq_WP, double* q_WP_array){
-    double min_boundary = 1e-5;
-	double max_boundary = 100;
+    double min_boundary      = 1e-5;
+	double max_boundary      = 100;
+	int    sparseness_degree = 2;
 
     make_chebyshev_distribution(Nq_WP, q_WP_array,
-                                min_boundary, max_boundary);
+                                min_boundary, max_boundary,
+								sparseness_degree);
 }
 
 void make_p_bin_quadrature_grids(int Np_WP, double* p_WP_array,

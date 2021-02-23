@@ -48,7 +48,8 @@ using namespace std;
 
 /* Read matrix elements */
 void read_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
-                                          int**    P123_sparse_ptr_idx_array,
+                                          int**    P123_sparse_ptr_row_array,
+                                          int**    P123_sparse_ptr_col_array,
                                           int*     P123_sparse_ptr_dim_array,
                                           int  Np_3N, double *p_3N,
                                           int  Nq_3N, double *q_3N,
@@ -370,19 +371,18 @@ void read_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
 
         /* Sparse P123-matrix properties */
         P123_sparse_ptr_val_array[chn_3N_idx] = new double [P123_sparse_dim];
-        P123_sparse_ptr_idx_array[chn_3N_idx] = new int  [2*P123_sparse_dim];
+        P123_sparse_ptr_row_array[chn_3N_idx] = new int    [P123_sparse_dim];
+        P123_sparse_ptr_col_array[chn_3N_idx] = new int    [P123_sparse_dim];
 
         double* P123_sparse_val_array = P123_sparse_ptr_val_array[chn_3N_idx];
-        int*    P123_sparse_idx_array = P123_sparse_ptr_idx_array[chn_3N_idx];
-
-        int* P123_sparse_idx_row_array = &P123_sparse_idx_array[0];
-        int* P123_sparse_idx_col_array = &P123_sparse_idx_array[P123_sparse_dim];
+        int*    P123_sparse_row_array = P123_sparse_ptr_row_array[chn_3N_idx];
+        int*    P123_sparse_col_array = P123_sparse_ptr_col_array[chn_3N_idx];
 
         /* Write read data into argument-arrays */
         for (int i=0; i<P123_sparse_dim; i++){
-            P123_sparse_idx_row_array[i] = P123_h5_3[i].index_row_Ptable;
-            P123_sparse_idx_col_array[i] = P123_h5_3[i].index_col_Ptable;
-            P123_sparse_val_array[i]     = P123_h5_3[i].value_Ptable;
+            P123_sparse_row_array[i] = P123_h5_3[i].index_row_Ptable;
+            P123_sparse_col_array[i] = P123_h5_3[i].index_col_Ptable;
+            P123_sparse_val_array[i] = P123_h5_3[i].value_Ptable;
         }
 
        /* int 	P123_sparse_subarray_dim = P123_sparse_ptr_dim_array[chn_3N_idx];
@@ -418,7 +418,8 @@ void read_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
 
 // chop and store matrix elements in single precision
 void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
-                                           int**    P123_sparse_ptr_idx_array,
+                                           int**    P123_sparse_ptr_row_array,
+                                           int**    P123_sparse_ptr_col_array,
                                            int*     P123_sparse_ptr_dim_array,
                                            int  Np_3N, double *p_3N, int Nq_3N, double *q_3N,
                                            int  N_chn_3N,
@@ -685,7 +686,8 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
 
         /* Sparse P123-matrix properties */
         double* P123_sparse_val_array = P123_sparse_ptr_val_array[chn_3N_idx];
-        int*    P123_sparse_idx_array = P123_sparse_ptr_idx_array[chn_3N_idx];
+        int*    P123_sparse_row_array = P123_sparse_ptr_row_array[chn_3N_idx];
+        int*    P123_sparse_col_array = P123_sparse_ptr_col_array[chn_3N_idx];
         int     P123_sparse_dim       = P123_sparse_ptr_dim_array[chn_3N_idx];
 
         /* Dense P123-matrix decleration */
@@ -716,8 +718,8 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
         /* Assign values to data structure */
         Psparse_table Psparse_data[P123_sparse_dim];
         for (int i=0; i<P123_sparse_dim; i++){
-            Psparse_data[i].index_row_Ptable = P123_sparse_idx_array[i];
-            Psparse_data[i].index_col_Ptable = P123_sparse_idx_array[i + P123_sparse_dim];
+            Psparse_data[i].index_row_Ptable = P123_sparse_row_array[i];
+            Psparse_data[i].index_col_Ptable = P123_sparse_col_array[i];
             Psparse_data[i].value_Ptable     = P123_sparse_val_array[i];
         }
 

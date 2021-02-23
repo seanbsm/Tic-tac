@@ -149,7 +149,8 @@ int main(int argc, char* argv[]){
 	P123_array = NULL;//new double [P123_dim * P123_dim];
 
 	double** P123_sparse_ptr_val_array = new double* [N_chn_3N];
-	int** 	 P123_sparse_ptr_idx_array = new int* 	 [N_chn_3N];
+	int** 	 P123_sparse_ptr_row_array = new int* 	 [N_chn_3N];
+	int** 	 P123_sparse_ptr_col_array = new int* 	 [N_chn_3N];
 	int*	 P123_sparse_ptr_dim_array = new int 	 [N_chn_3N];
 		
 	if (calculate_and_store_P123){
@@ -162,7 +163,8 @@ int main(int argc, char* argv[]){
 		printf("Calculating P123 ... \n");
 		auto timestamp_P123_calc_start = chrono::system_clock::now();
 		calculate_permutation_matrices_for_all_3N_channels(P123_sparse_ptr_val_array,
-    	                                            	   P123_sparse_ptr_idx_array,
+    	                                            	   P123_sparse_ptr_row_array,
+    	                                            	   P123_sparse_ptr_col_array,
     	                                            	   P123_sparse_ptr_dim_array,
     	                                            	   Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
     						                           	   Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
@@ -185,7 +187,8 @@ int main(int argc, char* argv[]){
 		printf("Storing P123 to h5 ... \n");
 		auto timestamp_P123_store_start = chrono::system_clock::now();
 		store_sparse_matrix_elements_P123_h5 (P123_sparse_ptr_val_array,
-    	                            		  P123_sparse_ptr_idx_array,
+    	                            		  P123_sparse_ptr_row_array,
+    	                                      P123_sparse_ptr_col_array,
     	                            		  P123_sparse_ptr_dim_array,
     	                            		  Np_WP, p_WP_array, Nq_WP, q_WP_array,
 											  N_chn_3N,
@@ -207,10 +210,17 @@ int main(int argc, char* argv[]){
 	}
 	else{
 		printf("Reading P123 from h5 ... \n");
+
+		double** P123_sparse_ptr_val_array_t = new double* [N_chn_3N];
+		int** 	 P123_sparse_ptr_row_array_t = new int* 	 [N_chn_3N];
+		int** 	 P123_sparse_ptr_col_array_t = new int* 	 [N_chn_3N];
+		int*	 P123_sparse_ptr_dim_array_t = new int 	 [N_chn_3N];
+
 		auto timestamp_P123_read_start = chrono::system_clock::now();
-		read_sparse_matrix_elements_P123_h5 (P123_sparse_ptr_val_array,
-    	                            		 P123_sparse_ptr_idx_array,
-    	                            		 P123_sparse_ptr_dim_array,
+		read_sparse_matrix_elements_P123_h5 (P123_sparse_ptr_val_array_t,
+    	                            		 P123_sparse_ptr_row_array_t,
+    	                            		 P123_sparse_ptr_col_array_t,
+    	                            		 P123_sparse_ptr_dim_array_t,
     	                            		 Np_WP+1, p_WP_array, Nq_WP+1, q_WP_array,
 											 N_chn_3N,
     	                            		 chn_3N_idx_array,

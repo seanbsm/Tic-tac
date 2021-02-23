@@ -34,7 +34,8 @@
 #include "General_functions/matrix_routines.h"
 
 void read_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
-                                          int**    P123_sparse_ptr_idx_array,
+                                          int**    P123_sparse_ptr_row_array,
+                                          int**    P123_sparse_ptr_col_array,
                                           int*     P123_sparse_ptr_dim_array,
                                           int  Np_3N, double *p_3N,
                                           int  Nq_3N, double *q_3N,
@@ -53,7 +54,8 @@ void read_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
                                           std::string filename_in);
 
 void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
-                                           int**    P123_sparse_ptr_idx_array,
+                                           int**    P123_sparse_ptr_row_array,
+                                           int**    P123_sparse_ptr_col_array,
                                            int*     P123_sparse_ptr_dim_array,
                                            int  Np_3N, double *p_3N, int Nq_3N, double *q_3N,
                                            int  N_chn_3N,

@@ -439,11 +439,10 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
     MKL_INT64 D123_dim_sq = D123_dim * D123_dim;
 
     bool print_content = true;
-    
-    if (print_content){
-        printf(" - Chop matrix elements...\n");
-    }
 
+    if (print_content){
+        printf("   - Setting up h5-file \n");
+    }
 
     /* Convert filename to char-object */
     char filename[300];
@@ -479,6 +478,9 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
 
     dim_N[0] = 1;
 
+    if (print_content){
+        printf("   - Writing state-space dimensions \n");
+    }
     /* Np */
     N_h5[0]     = Np_3N+1;
     group_id    = H5Screate_simple(1, dim_N, NULL);
@@ -512,6 +514,9 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
     status      = H5Sclose(group_id);
     
     /* p-momentum mesh */
+    if (print_content){
+        printf("   - Writing p-momentum bins \n");
+    }
     pmesh_table p_dst_buf[Np_3N+1];
 
     /* Calculate the size and the offsets of our struct members in memory */
@@ -545,6 +550,9 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
     status = H5Gclose(group_id);
 
     /* q-momentum mesh */
+    if (print_content){
+        printf("   - Writing q-momentum bins \n");
+    }
     qmesh_table q_dst_buf[Nq_3N+1];
 
     /* Calculate the size and the offsets of our struct members in memory */
@@ -578,7 +586,9 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
     status = H5Gclose(group_id);
     
     /* PW quantum numbers */
-    //pw_table pw_dst_buf[Jj_dim];
+    if (print_content){
+        printf("   - Writing partial-wave state space \n");
+    }
 
     /* Calculate the size and the offsets of our struct members in memory */
     size_t pw_dst_size = sizeof( pw_table );
@@ -635,6 +645,9 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
     status = H5Gclose(group_id);
     
     /* P123 block dimensions */
+    if (print_content){
+        printf("   - Writing P123 block dimensions \n");
+    }
     hsize_t dims_file[1], dim_mem[1];
     dims_file[0] = N_chn_3N;
 
@@ -658,14 +671,15 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
     status = H5Sclose(group_id);
     
      /* 3N channel indices */
-    //hsize_t dims_file[1], dim_mem[1];
+     if (print_content){
+        printf("   - Writing channel-indices \n");
+    }
     dims_file[0] = N_chn_3N+1;
 
     dim_mem[0] = dims_file[0];
 
     group_id = H5Screate_simple(1, dims_file, NULL);
 
-    //hsize_t chunk_dim[] = {min(4, N_chn_3N)};
     chunk_dim[0] = {min(4, N_chn_3N+1)};
     cparms = H5Pcreate (H5P_DATASET_CREATE);
     status = H5Pset_chunk ( cparms, 1, chunk_dim);
@@ -682,6 +696,9 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
     status = H5Sclose(group_id);
 
     /* Sparse matrix elements */
+    if (print_content){
+        printf("   - Writing P123-matrices and indices \n");
+    }
     for (int chn_3N_idx=0; chn_3N_idx<N_chn_3N; chn_3N_idx++){
 
         /* Sparse P123-matrix properties */
@@ -689,23 +706,6 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
         int*    P123_sparse_row_array = P123_sparse_ptr_row_array[chn_3N_idx];
         int*    P123_sparse_col_array = P123_sparse_ptr_col_array[chn_3N_idx];
         int     P123_sparse_dim       = P123_sparse_ptr_dim_array[chn_3N_idx];
-
-        /* Dense P123-matrix decleration */
-        //double* P123_dense_array_double_prec = NULL;
-        //int     P123_dense_dim = Nalpha_block * Np_3N * Nq_3N;
-
-        /* Convert sparse array to a dense format */
-        //square_sparse_COO_to_dense_format_converter(P123_dense_dim,
-        //                                            &P123_dense_array_double_prec,
-        //                                            P123_sparse_val_array,
-        //                                            P123_sparse_idx_array,
-        //                                            P123_sparse_dim);
-
-        /* Convert from double to float */
-        //float* P123_dense_array = new float [P123_dense_dim];
-        //for (int i=0; i<P123_dense_dim; i++){
-        //    P123_dense_array[i] = P123_dense_array_double_prec[i];
-        //}
 
         /* Calculate the size and the offsets of our struct members in memory */
         size_t Psparse_dst_size = sizeof( Psparse_table );
@@ -746,9 +746,6 @@ void store_sparse_matrix_elements_P123_h5 (double** P123_sparse_ptr_val_array,
         status = H5Gclose(group_id);
     }
 
-    //status = H5Dclose(dataset_id);
-    //status = H5Sclose(mem_id);
-    //status = H5Sclose(group_id);
     status = H5Fclose(file_id);
 }
 

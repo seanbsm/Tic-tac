@@ -76,84 +76,97 @@ cdouble resolvent_continuum_continuum(double E,
     return {Re_Q, Im_Q};
 }
 
-void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
-                                            double E,
-                                            int Np_WP,
-                                            double* p_SWP_unco_array,
-					                        double* p_SWP_coup_array,
-					                        int Nq_WP, double* q_WP_array,
-					                        int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array){
+void calculate_resolvent_array_in_SWP_basis(cdouble** G_array,
+                                            double  E,
+                                            int     Np_WP, double* p_SWP_unco_array, double* p_SWP_coup_array,
+					                        int     Nq_WP, double* q_WP_array,
+                                            int     N_chn_3N, int* chn_3N_idx_array,
+					                        int     Nalpha,
+                                            int*    L_2N_array,
+                                            int*    S_2N_array,
+                                            int*    J_2N_array,
+                                            int*    T_2N_array){
 
     /* Pointer to either p_SWP_unco_array or p_SWP_coup_array,
      * which is determined by whether the channel is coupled or not */
     double* p_SWP_array_ptr = NULL;
 
-    /* Channel index, to be set in loop */
-    int chn_idx = 0;
+    for (int chn_3N=0; chn_3N<N_chn_3N; chn_3N++){
+        /* Partial-waves in current 3N channel */
+        int alpha_idx_lower = chn_3N_idx_array[chn_3N];
+        int alpha_idx_upper = chn_3N_idx_array[chn_3N];
+        
+        /* Note that chn_3N_idx_array[N_chn_3N] = Nalpha */
+        int Nalpha_block = alpha_idx_upper - alpha_idx_lower;
 
-    /* Matrix dimension, for coupled channels it is twice that of uncoupled channels */
-    int mat_dim = 0;
+        /* Allocate G_array sub-array */
+        G_array[chn_3N] = new cdouble [Nalpha_block * Nq_WP * Np_WP];
 
-    /* Loop over states along resolvent diagonal */
-    for (int idx_alpha=0; idx_alpha<Nalpha; idx_alpha++){
-        int L = L_2N_array[idx_alpha];
-        int S = S_2N_array[idx_alpha];
-        int J = J_2N_array[idx_alpha];
-        int T = T_2N_array[idx_alpha];
+        /* Create pointer to sub-array for simplicity */
+        cdouble* G_subarray = G_array[chn_3N];
 
-        /* Detemine if this is a coupled channel */
-	    if (L!=J and J!=0){ // This counts 3P0 as uncoupled (which is intended)
-	    	mat_dim = 2*Np_WP;
-            chn_idx = J-1;
-            p_SWP_array_ptr = &p_SWP_coup_array[chn_idx * mat_dim];
-	    }
-        else{
-            mat_dim = Np_WP;
-            chn_idx = 2*J + S;
-            p_SWP_array_ptr = &p_SWP_unco_array[chn_idx * mat_dim];
-        }
+        /* Loop over states along resolvent diagonal */
+        for (int idx_alpha=alpha_idx_lower; idx_alpha<alpha_idx_upper; idx_alpha++){
+    
+            int L = L_2N_array[idx_alpha];
+            int S = S_2N_array[idx_alpha];
+            int J = J_2N_array[idx_alpha];
+            int T = T_2N_array[idx_alpha];
 
-        /* p-momentum index loop */
-        for (int idx_p_bin=0; idx_p_bin<Np_WP; idx_p_bin++){
-
-            /* Upper and lower boundaries of current p-bin */
-            double p_bin_lower = p_SWP_array_ptr[2*idx_p_bin    ];
-            double p_bin_upper = p_SWP_array_ptr[2*idx_p_bin + 1];
-
-            /* Bound state check, given by p_bin_lower if bound state exists */
-            bool bound_state_exists = false;
-            double Eb = 0;
-            if (p_bin_lower<0){
-                Eb = p_bin_lower;
-                bound_state_exists = true;
+            /* Detemine if this is a coupled channel */
+	        if (L!=J and J!=0){ // This counts 3P0 as uncoupled (which is intended)
+	        	int mat_dim = 2*Np_WP;
+                int chn_2N_idx = J-1;
+                p_SWP_array_ptr = &p_SWP_coup_array[chn_2N_idx * mat_dim];
+	        }
+            else{
+                int mat_dim = Np_WP;
+                int chn_2N_idx = 2*J + S;
+                p_SWP_array_ptr = &p_SWP_unco_array[chn_2N_idx * mat_dim];
             }
 
-            /* q-momentum index loop */            
-            for (int idx_q_bin=0; idx_q_bin<Nq_WP; idx_q_bin++){
+            /* p-momentum index loop */
+            for (int idx_p_bin=0; idx_p_bin<Np_WP; idx_p_bin++){
 
-                /* Upper and lower boundaries of current q-bin */
-                double q_bin_lower = q_WP_array[2*idx_q_bin    ];
-                double q_bin_upper = q_WP_array[2*idx_q_bin + 1];
+                /* Upper and lower boundaries of current p-bin */
+                double p_bin_lower = p_SWP_array_ptr[2*idx_p_bin    ];
+                double p_bin_upper = p_SWP_array_ptr[2*idx_p_bin + 1];
 
-                cdouble R = {0, 0};
-                cdouble Q = {0, 0};
-                if (bound_state_exists){    // Calculate bound-continuum (BC) resolvent part R
-                    R = resolvent_bound_continuum(E,
-                                                  q_bin_upper,
-                                                  q_bin_lower,
-                                                  Eb);
+                /* Bound state check, given by p_bin_lower if bound state exists */
+                bool bound_state_exists = false;
+                double Eb = 0;
+                if (p_bin_lower<0){
+                    Eb = p_bin_lower;
+                    bound_state_exists = true;
                 }
-                else{                       // Calculate continuum-continuum (CC) resolvent part R
-                    Q = resolvent_continuum_continuum(E,
+
+                /* q-momentum index loop */            
+                for (int idx_q_bin=0; idx_q_bin<Nq_WP; idx_q_bin++){
+
+                    /* Upper and lower boundaries of current q-bin */
+                    double q_bin_lower = q_WP_array[2*idx_q_bin    ];
+                    double q_bin_upper = q_WP_array[2*idx_q_bin + 1];
+
+                    cdouble R = {0, 0};
+                    cdouble Q = {0, 0};
+                    if (bound_state_exists){    // Calculate bound-continuum (BC) resolvent part R
+                        R = resolvent_bound_continuum(E,
                                                       q_bin_upper,
                                                       q_bin_lower,
-                                                      p_bin_upper,
-                                                      p_bin_lower);
-                }
+                                                      Eb);
+                    }
+                    else{                       // Calculate continuum-continuum (CC) resolvent part Q
+                        Q = resolvent_continuum_continuum(E,
+                                                          q_bin_upper,
+                                                          q_bin_lower,
+                                                          p_bin_upper,
+                                                          p_bin_lower);
+                    }
 
-                /* Use identical indexing as used in permutation matrix */
-                int G_idx = idx_alpha*Nq_WP*Np_WP + idx_q_bin*Np_WP + idx_p_bin;
-                G_array[G_idx] = R + Q;
+                    /* Use identical indexing as used in permutation matrix */
+                    int G_idx = (idx_alpha-alpha_idx_lower)*Nq_WP*Np_WP + idx_q_bin*Np_WP + idx_p_bin;
+                    G_subarray[G_idx] = R + Q;
+                }
             }
         }
     }

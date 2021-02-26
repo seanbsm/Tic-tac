@@ -41,15 +41,15 @@ int main(int argc, char* argv[]){
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-    int J_2N_max 	 = 0;//5;
-	int two_J_3N_max = 1;//25;
+    int J_2N_max 	 = 1;//1; //5;
+	int two_J_3N_max = 3;//25;//1; //25;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 40;
-	int Nq_WP	   	 = 40;
+	int Np_WP	   	 = 40; //30;
+	int Nq_WP	   	 = 40; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -63,11 +63,6 @@ int main(int argc, char* argv[]){
 
 	/* Permutation matrix - read from file */
 	string  P123_file_path = "../../Data/3N_permutation_operator/P123_files/P123_medium.h5";
-	double* P123_array    = NULL;
-	double* P123_p_array  = NULL;
-	double* P123_q_array  = NULL;
-	double* P123_wp_array = NULL;
-	double* P123_wq_array = NULL;
 
 	/* Potential matrices */
 	double* V_WP_unco_array = NULL;
@@ -120,6 +115,17 @@ int main(int argc, char* argv[]){
 								  &P_3N_array);
 	printf(" - Done \n");
 
+	double estimate = 0;
+	for (int chn=0; chn<N_chn_3N; chn++){
+		int al = chn_3N_idx_array[chn];
+		int au = chn_3N_idx_array[chn+1];
+
+		double num_vals = (au-al)*150*150;
+		estimate+=0.008*8*num_vals*num_vals/(1024.*1024.*1024.);
+	}
+	printf("Estimated P size with %d channels and %d PW states: %.0f GB \n", N_chn_3N, Nalpha, estimate);
+	return 0;
+
 	printf("Constructing wave-packet (WP) p-momentum bin boundaries ... \n");
 	p_WP_array = new double [Np_WP+1];
 	make_p_bin_grid(Np_WP, p_WP_array);
@@ -143,104 +149,6 @@ int main(int argc, char* argv[]){
 	printf(" - Done \n");
 
 	/* End of code segment for state space construction */
-	/* Start of code segment for permutation matrix construction */
-		
-	int P123_dim = Nalpha*Np_WP*Nq_WP;
-	P123_array = NULL;//new double [P123_dim * P123_dim];
-
-	double** P123_sparse_ptr_val_array = new double* [N_chn_3N];
-	int** 	 P123_sparse_ptr_row_array = new int* 	 [N_chn_3N];
-	int** 	 P123_sparse_ptr_col_array = new int* 	 [N_chn_3N];
-	int*	 P123_sparse_ptr_dim_array = new int 	 [N_chn_3N];
-		
-	if (calculate_and_store_P123){
-
-		int Nx 			 = 20;
-		double* x_array  = new double [Nx];
-    	double* wx_array = new double [Nx];
-		gauss(x_array, wx_array, Nx);
-
-		printf("Calculating P123 ... \n");
-		auto timestamp_P123_calc_start = chrono::system_clock::now();
-		calculate_permutation_matrices_for_all_3N_channels(P123_sparse_ptr_val_array,
-    	                                            	   P123_sparse_ptr_row_array,
-    	                                            	   P123_sparse_ptr_col_array,
-    	                                            	   P123_sparse_ptr_dim_array,
-    	                                            	   Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
-    						                           	   Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
-    						                           	   Nx, x_array, wx_array,
-														   N_chn_3N,
-    	                            					   chn_3N_idx_array,
-    						                           	   Nalpha,
-    						                           	   L_2N_array,
-    						                           	   S_2N_array,
-    						                           	   J_2N_array,
-    						                           	   T_2N_array,
-    						                           	   L_1N_array,
-    						                           	   two_J_1N_array,
-    						                         	   two_J_3N_array,
-    						                         	   two_T_3N_array);
-		auto timestamp_P123_calc_end = chrono::system_clock::now();
-		chrono::duration<double> time_P123_calc = timestamp_P123_calc_end - timestamp_P123_calc_start;
-		printf(" - Done. Time used: %.6f\n", time_P123_calc.count());
-
-		printf("Storing P123 to h5 ... \n");
-		auto timestamp_P123_store_start = chrono::system_clock::now();
-		store_sparse_matrix_elements_P123_h5 (P123_sparse_ptr_val_array,
-    	                            		  P123_sparse_ptr_row_array,
-    	                                      P123_sparse_ptr_col_array,
-    	                            		  P123_sparse_ptr_dim_array,
-    	                            		  Np_WP, p_WP_array, Nq_WP, q_WP_array,
-											  N_chn_3N,
-    	                            		  chn_3N_idx_array,
-    	                            		  Nalpha,
-    	                            		  L_2N_array,
-    	                          			  S_2N_array,
-    	                          			  J_2N_array,
-    	                          			  T_2N_array,
-    	                          			  L_1N_array,
-    	                          			  two_J_1N_array,
-    	                        			  two_J_3N_array,
-    	                        			  two_T_3N_array,
-											  P_3N_array,
-    	                            		  "P123_sparse.h5");
-		auto timestamp_P123_store_end = chrono::system_clock::now();
-		chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
-		printf(" - Done. Time used: %.6f\n", time_P123_store.count());
-	}
-	else{
-		printf("Reading P123 from h5 ... \n");
-
-		double** P123_sparse_ptr_val_array_t = new double* [N_chn_3N];
-		int** 	 P123_sparse_ptr_row_array_t = new int* 	 [N_chn_3N];
-		int** 	 P123_sparse_ptr_col_array_t = new int* 	 [N_chn_3N];
-		int*	 P123_sparse_ptr_dim_array_t = new int 	 [N_chn_3N];
-
-		auto timestamp_P123_read_start = chrono::system_clock::now();
-		read_sparse_matrix_elements_P123_h5 (P123_sparse_ptr_val_array_t,
-    	                            		 P123_sparse_ptr_row_array_t,
-    	                            		 P123_sparse_ptr_col_array_t,
-    	                            		 P123_sparse_ptr_dim_array_t,
-    	                            		 Np_WP+1, p_WP_array, Nq_WP+1, q_WP_array,
-											 N_chn_3N,
-    	                            		 chn_3N_idx_array,
-    	                            		 Nalpha,
-    	                            		 L_2N_array,
-    	                          			 S_2N_array,
-    	                          			 J_2N_array,
-    	                          			 T_2N_array,
-    	                          			 L_1N_array,
-    	                          			 two_J_1N_array,
-    	                        			 two_J_3N_array,
-    	                        			 two_T_3N_array,
-											 P_3N_array,
-    	                            		 "P123_sparse.h5");
-		auto timestamp_P123_read_end = chrono::system_clock::now();
-		chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
-		printf(" - Done. Time used: %.6f\n", time_P123_read.count());
-	}
-
-	/* End of code segment for permutation matrix construction */
 	/* Start of code segment for potential matrix construction */
 
 	//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
@@ -251,11 +159,13 @@ int main(int argc, char* argv[]){
 	pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
 
 	printf("Constructing 2N-potential matrices in WP basis ... \n");
+	double** V_WP_array   = new double* [Nalpha*Nalpha];
 	int V_unco_array_size = Np_WP*Np_WP   * 2*(J_2N_max+1);
     int V_coup_array_size = Np_WP*Np_WP*4 *    J_2N_max;
     V_WP_unco_array = new double [V_unco_array_size];
     V_WP_coup_array = new double [V_coup_array_size];
-	calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array,
+	calculate_potential_matrices_array_in_WP_basis(V_WP_array,
+												   V_WP_unco_array,
                                                    V_WP_coup_array,
 												   true,
                                                    Np_WP, p_WP_array,
@@ -287,10 +197,99 @@ int main(int argc, char* argv[]){
 	printf(" - Done \n");
 
 	/* End of code segment for scattering wave-packets construction */
+	/* Start of code segment for permutation matrix construction */
+
+	double** P123_sparse_ptr_val_array = new double* [N_chn_3N];
+	int** 	 P123_sparse_ptr_row_array = new int* 	 [N_chn_3N];
+	int** 	 P123_sparse_ptr_col_array = new int* 	 [N_chn_3N];
+	int*	 P123_sparse_ptr_dim_array = new int 	 [N_chn_3N];
+		
+	if (calculate_and_store_P123){
+		int Nx 			 = 20;
+		double* x_array  = new double [Nx];
+    	double* wx_array = new double [Nx];
+		gauss(x_array, wx_array, Nx);
+
+		printf("Calculating P123 ... \n");
+		auto timestamp_P123_calc_start = chrono::system_clock::now();
+		calculate_permutation_matrices_for_all_3N_channels(P123_sparse_ptr_val_array,
+    	                                            	   P123_sparse_ptr_row_array,
+    	                                            	   P123_sparse_ptr_col_array,
+    	                                            	   P123_sparse_ptr_dim_array,
+    	                                            	   Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
+    						                           	   Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
+    						                           	   Nx, x_array, wx_array,
+														   N_chn_3N,
+    	                            					   chn_3N_idx_array,
+    						                           	   Nalpha,
+    						                           	   L_2N_array,
+    						                           	   S_2N_array,
+    						                           	   J_2N_array,
+    						                           	   T_2N_array,
+    						                           	   L_1N_array,
+    						                           	   two_J_1N_array,
+    						                         	   two_J_3N_array,
+    						                         	   two_T_3N_array);
+		auto timestamp_P123_calc_end = chrono::system_clock::now();
+		chrono::duration<double> time_P123_calc = timestamp_P123_calc_end - timestamp_P123_calc_start;
+		printf(" - Done. Time used: %.6f\n", time_P123_calc.count());
+
+		printf("Storing P123 to h5 ... \n");
+		auto timestamp_P123_store_start = chrono::system_clock::now();
+		//store_sparse_matrix_elements_P123_h5 (P123_sparse_ptr_val_array,
+    	//                            		  P123_sparse_ptr_row_array,
+    	//                                      P123_sparse_ptr_col_array,
+    	//                            		  P123_sparse_ptr_dim_array,
+    	//                            		  Np_WP, p_WP_array, Nq_WP, q_WP_array,
+		//									  N_chn_3N,
+    	//                            		  chn_3N_idx_array,
+    	//                            		  Nalpha,
+    	//                            		  L_2N_array,
+    	//                          			  S_2N_array,
+    	//                          			  J_2N_array,
+    	//                          			  T_2N_array,
+    	//                          			  L_1N_array,
+    	//                          			  two_J_1N_array,
+    	//                        			  two_J_3N_array,
+    	//                        			  two_T_3N_array,
+		//									  P_3N_array,
+    	//                            		  "P123_sparse.h5");
+		auto timestamp_P123_store_end = chrono::system_clock::now();
+		chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
+		printf(" - Done. Time used: %.6f\n", time_P123_store.count());
+	}
+	else{
+		printf("Reading P123 from h5 ... \n");
+
+		auto timestamp_P123_read_start = chrono::system_clock::now();
+		read_sparse_matrix_elements_P123_h5 (P123_sparse_ptr_val_array,
+    	                            		 P123_sparse_ptr_row_array,
+    	                            		 P123_sparse_ptr_col_array,
+    	                            		 P123_sparse_ptr_dim_array,
+    	                            		 Np_WP+1, p_WP_array, Nq_WP+1, q_WP_array,
+											 N_chn_3N,
+    	                            		 chn_3N_idx_array,
+    	                            		 Nalpha,
+    	                            		 L_2N_array,
+    	                          			 S_2N_array,
+    	                          			 J_2N_array,
+    	                          			 T_2N_array,
+    	                          			 L_1N_array,
+    	                          			 two_J_1N_array,
+    	                        			 two_J_3N_array,
+    	                        			 two_T_3N_array,
+											 P_3N_array,
+    	                            		 "P123_sparse.h5");
+		auto timestamp_P123_read_end = chrono::system_clock::now();
+		chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
+		printf(" - Done. Time used: %.6f\n", time_P123_read.count());
+	}
+
+	/* End of code segment for permutation matrix construction */
 	/* Start of code segment for resolvent matrix (diagonal array) construction */
 
 	/* Resolvent array */
-	cdouble* G_array = new cdouble [Nalpha * Nq_WP * Np_WP];
+	cdouble** G_array = new cdouble* [N_chn_3N];
 
 	printf("Constructing 3N resolvents ... \n");
 	calculate_resolvent_array_in_SWP_basis(G_array,
@@ -299,33 +298,41 @@ int main(int argc, char* argv[]){
                                            p_SWP_unco_array,
 					                       p_SWP_coup_array,
 					                       Nq_WP, q_WP_array,
+										   N_chn_3N,
+    	                            	   chn_3N_idx_array,
 					                       Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array);
 	printf(" - Done \n");
 
 	/* End of code segment for resolvent matrix (diagonal array) construction */
 	/* Start of code segment for iterations of elastic Faddeev equations */
 
-	cdouble* U_array = new cdouble [Nalpha*Np_WP*Nq_WP * Nalpha*Np_WP*Nq_WP];
+	cdouble* U_array = NULL;//
 
 	printf("Solving Faddeev equations ... \n");
-	direct_solve_faddeev_equations(U_array,
-                                   G_array,
-                                   P123_array,
-                                   C_WP_unco_array,
-					               C_WP_coup_array,
-					               V_WP_unco_array,
-                                   V_WP_coup_array,
-                                   Nq_WP,
-					               Np_WP,
-					               Nalpha,
-                                   L_2N_array,
-                                   S_2N_array,
-                                   J_2N_array,
-                                   T_2N_array,
-                                   L_1N_array, 
-                                   two_J_1N_array,
-								   two_J_3N_array,
-								   two_T_3N_array);
+	solve_faddeev_equations(U_array,
+                            G_array,
+                            P123_sparse_ptr_val_array,
+    	                    P123_sparse_ptr_row_array,
+    	                    P123_sparse_ptr_col_array,
+    	                    P123_sparse_ptr_dim_array,
+                            C_WP_unco_array,
+					        C_WP_coup_array,
+					        V_WP_unco_array,
+                            V_WP_coup_array,
+							N_chn_3N,
+    	                    chn_3N_idx_array,
+                            J_2N_max,
+                            Nq_WP,
+					        Np_WP,
+					        Nalpha,
+                            L_2N_array,
+                            S_2N_array,
+                            J_2N_array,
+                            T_2N_array,
+                            L_1N_array, 
+                            two_J_1N_array,
+                            two_J_3N_array,
+                            two_T_3N_array);
 	printf(" - Done \n");
 
 	/* End of code segment for iterations of elastic Faddeev equations */

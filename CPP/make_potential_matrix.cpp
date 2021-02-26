@@ -39,8 +39,9 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 }
 
 /* Construct 2N potential matrices <k|v|k_p> for all 3N partial wave channels */
-void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
-                                                    double* V_WP_coup_array,
+void calculate_potential_matrices_array_in_WP_basis(double** V_WP_array,
+                                                    double*  V_WP_unco_array,
+                                                    double*  V_WP_coup_array,
                                                     bool mid_point_approximation,
                                                     int Np_WP, double* p_WP_array,
                                                     int Np_per_WP, double* p_array, double* wp_array,

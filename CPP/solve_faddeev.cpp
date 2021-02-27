@@ -331,7 +331,7 @@ void solve_faddeev_equations(cdouble*  U_array,
                                        J_2N_array,
                                        T_2N_array);
 
-    ///* Create VC-product pointer-arrays in column-major format */
+    /* Create VC-product pointer-arrays in column-major format */
     double*** VC_CM_ptr_array  = new double** [N_chn_3N];
     create_VC_col_maj_3N_pointer_array(VC_CM_ptr_array,
                                        C_WP_unco_array,

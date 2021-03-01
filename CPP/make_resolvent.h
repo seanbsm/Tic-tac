@@ -22,25 +22,24 @@
 double heaviside_step_function(double val);
 
 cdouble resolvent_bound_continuum(double E,
-                                  double q_bin_upper,
-                                  double q_bin_lower,
-                                  double Eb);
+								  double q_bin_upper,
+								  double q_bin_lower,
+								  double Eb);
 
 cdouble resolvent_continuum_continuum(double E,
-                                      double q_bin_upper,
-                                      double q_bin_lower,
-                                      double p_bin_upper,
-                                      double p_bin_lower);
+									  double q_bin_upper,
+									  double q_bin_lower,
+									  double p_bin_upper,
+									  double p_bin_lower);
 
-void calculate_resolvent_array_in_SWP_basis(cdouble** G_array,
-                                            double  E,
-                                            int     Np_WP, double* p_SWP_unco_array, double* p_SWP_coup_array,
-					                        int     Nq_WP, double* q_WP_array,
-                                            int     N_chn_3N, int* chn_3N_idx_array,
-					                        int     Nalpha,
-                                            int*    L_2N_array,
-                                            int*    S_2N_array,
-                                            int*    J_2N_array,
-                                            int*    T_2N_array);
+void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
+											double   E,
+											int      Np_WP, double* p_SWP_unco_array, double* p_SWP_coup_array,
+											int      Nq_WP, double* q_WP_array,
+											int      Nalpha,
+											int*     L_2N_array,
+											int*     S_2N_array,
+											int*     J_2N_array,
+											int*     T_2N_array);
 
 #endif // MAKE_RESOLVENT_H

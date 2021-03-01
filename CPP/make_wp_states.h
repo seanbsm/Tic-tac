@@ -15,18 +15,18 @@ double p_weight_function(double p);
 double q_weight_function(double q);
 
 void make_chebyshev_distribution(int N_WP,
-                                 double* boundary_array,
-                                 double min_boundary,
-                                 double max_boundary,
+								 double* boundary_array,
+								 double min_boundary,
+								 double max_boundary,
 								 int 	sparseness_degree);
 
 void make_p_bin_grid(int Np_WP, double* p_WP_array);
 void make_q_bin_grid(int Nq_WP, double* q_WP_array);
 
 void make_p_bin_quadrature_grids(int Np_WP, double* p_WP_array,
-                                 int Np_per_WP, double* p_array, double* wp_array);
+								 int Np_per_WP, double* p_array, double* wp_array);
 
 void make_q_bin_quadrature_grids(int Nq_WP, double* q_WP_array,
-                                 int Nq_per_WP, double* q_array, double* wq_array);
+								 int Nq_per_WP, double* q_array, double* wq_array);
 
 #endif // MAKE_WP_STATES_H

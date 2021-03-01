@@ -58,14 +58,14 @@ For-loop over 3N channels chn"="(J3,T3,P3) ({alpha}_chn stored congruently in me
  - Call function solve_faddeev_equation (Nalpha_chn = number of alpha in current 3N channel)
    - input: Nalpha_chn, Np_WP, Nq_WP, V_2N_..., C_2N_..., G_array, P123_array
    - method: U = A + KU; A = C^T PVC; K=C^T PVC G = AG
-               = A + KA + KKA + KKKA + KKKKA + .... (Neumann sum)
-               = A + AGA + AGAGA + AGAGAGA + ...
-               = sum_n=0^N A(GA)^n
-               = sum_n=0^N (AG)^n A
-               = sum_n=0^N (A^n)(G^n)A
-    - bottleneck: A=C^T PVC column-calculation
-    - output: Elastic U-matrix elements (several {n}=deutron channels within one "chn")
-    
+			   = A + KA + KKA + KKKA + KKKKA + .... (Neumann sum)
+			   = A + AGA + AGAGA + AGAGAGA + ...
+			   = sum_n=0^N A(GA)^n
+			   = sum_n=0^N (AG)^n A
+			   = sum_n=0^N (A^n)(G^n)A
+	- bottleneck: A=C^T PVC column-calculation
+	- output: Elastic U-matrix elements (several {n}=deutron channels within one "chn")
+	
 A^n = (C^T PVC)(C^T PVC)(C^T PVC)(C^T PVC)...
 
 A   =      C^t PV C
@@ -87,19 +87,19 @@ int main(int argc, char* argv[]){
 	double E = 10;
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
-	bool calculate_and_store_P123 = false;
+	bool calculate_and_store_P123 = true;
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-    int J_2N_max 	 = 0;//1; //5;
-	int two_J_3N_max = 3;//25;//1; //25;
+	int J_2N_max 	 = 0;//1; //5;
+	int two_J_3N_max = 1;//25;//1; //25;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 40; //30;
-	int Nq_WP	   	 = 20; //30;
+	int Np_WP	   	 = 35; //30;
+	int Nq_WP	   	 = 10; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -116,18 +116,18 @@ int main(int argc, char* argv[]){
 
 	/* Potential matrices */
 	double* V_WP_unco_array = NULL;
-    double* V_WP_coup_array = NULL;
+	double* V_WP_coup_array = NULL;
 
 	/* Quantum numbers of partial-wave expansion in state_3N_array.
 	 * All non-specified quantum numbers are either given by nature,
 	 * deduced from the values below, or disappear in summations later */
 	int  Nalpha   		= 0;		// Number of partial waves, set in dynamical state-space construction (by construct_symmetric_pw_states)
-    int* L_2N_array     = NULL;     // pair-nucleon state angular momentum
-    int* S_2N_array     = NULL;     // pair-nucleon state total spin
-    int* J_2N_array     = NULL;     // pair-nucleon state total angular momentum
-    int* T_2N_array     = NULL;     // pair-nucleon state total isospin
-    int* L_1N_array     = NULL;     // orbital-nucleon state angular momentum
-    int* two_J_1N_array = NULL; 	// orbital-nucleon state total angular momentum x2
+	int* L_2N_array     = NULL;     // pair-nucleon state angular momentum
+	int* S_2N_array     = NULL;     // pair-nucleon state total spin
+	int* J_2N_array     = NULL;     // pair-nucleon state total angular momentum
+	int* T_2N_array     = NULL;     // pair-nucleon state total isospin
+	int* L_1N_array     = NULL;     // orbital-nucleon state angular momentum
+	int* two_J_1N_array = NULL; 	// orbital-nucleon state total angular momentum x2
 	int* two_J_3N_array = NULL; 	// three-nucleon state total angular momentum x2
 	int* two_T_3N_array = NULL; 	// three-nucleon state total isospin x2
 	int* P_3N_array 	= NULL; 	// three-nucleon state parity
@@ -150,8 +150,8 @@ int main(int argc, char* argv[]){
 	printf("Constructing 3N partial-wave basis ... \n");
 	construct_symmetric_pw_states(J_2N_max,
 								  two_J_3N_max,
-                                  N_chn_3N,
-                                  &chn_3N_idx_array,
+								  N_chn_3N,
+								  &chn_3N_idx_array,
 								  Nalpha,
 								  &L_2N_array,
 								  &S_2N_array,
@@ -187,13 +187,13 @@ int main(int argc, char* argv[]){
 	p_array  = new double [Np_per_WP*Np_WP];
 	wp_array = new double [Np_per_WP*Np_WP];
 	make_p_bin_quadrature_grids(Np_WP, p_WP_array,
-                                Np_per_WP, p_array, wp_array);
+								Np_per_WP, p_array, wp_array);
 	printf(" - Done \n");
 	printf("Constructing q quadrature mesh per WP, for all WPs ... \n");
 	q_array  = new double [Nq_per_WP*Nq_WP];
 	wq_array = new double [Nq_per_WP*Nq_WP];
 	make_q_bin_quadrature_grids(Nq_WP, q_WP_array,
-                                Nq_per_WP, q_array, wq_array);
+								Nq_per_WP, q_array, wq_array);
 	printf(" - Done \n");
 
 	/* End of code segment for state space construction */
@@ -209,17 +209,17 @@ int main(int argc, char* argv[]){
 	printf("Constructing 2N-potential matrices in WP basis ... \n");
 	//double** V_WP_array   = new double* [Nalpha*Nalpha];
 	int V_unco_array_size = Np_WP*Np_WP   * 2*(J_2N_max+1);
-    int V_coup_array_size = Np_WP*Np_WP*4 *    J_2N_max;
-    V_WP_unco_array = new double [V_unco_array_size];
-    V_WP_coup_array = new double [V_coup_array_size];
+	int V_coup_array_size = Np_WP*Np_WP*4 *    J_2N_max;
+	V_WP_unco_array = new double [V_unco_array_size];
+	V_WP_coup_array = new double [V_coup_array_size];
 	calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array,
-                                                   V_WP_coup_array,
+												   V_WP_coup_array,
 												   true,
-                                                   Np_WP, p_WP_array,
-                                                   Np_per_WP, p_array, wp_array,
-                                                   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
-                                                   pot_ptr_nn,
-                                                   pot_ptr_np);
+												   Np_WP, p_WP_array,
+												   Np_per_WP, p_array, wp_array,
+												   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
+												   pot_ptr_nn,
+												   pot_ptr_np);
 	printf(" - Done \n");
 
 	/* End of code segment for potential matrix construction */
@@ -237,7 +237,7 @@ int main(int argc, char* argv[]){
 					C_WP_unco_array,
 					C_WP_coup_array,
 					V_WP_unco_array,
-                    V_WP_coup_array,
+					V_WP_coup_array,
 					Np_WP, p_WP_array,
 					Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
 					J_2N_max);
@@ -250,8 +250,8 @@ int main(int argc, char* argv[]){
 		/* Start of 3N-channel setup */
 		/* Lower and upper limits on PW state space for channel */
 		int idx_alpha_lower  = chn_3N_idx_array[chn_3N];
-        int idx_alpha_upper  = chn_3N_idx_array[chn_3N+1];
-        int Nalpha_in_3N_chn = idx_alpha_upper - idx_alpha_lower;
+		int idx_alpha_upper  = chn_3N_idx_array[chn_3N+1];
+		int Nalpha_in_3N_chn = idx_alpha_upper - idx_alpha_lower;
 
 		/* Channel conserved 3N quantum numbers using first element in channel */
 		int two_J_3N = two_J_3N_array[idx_alpha_lower];
@@ -260,13 +260,13 @@ int main(int argc, char* argv[]){
 
 		/* Pointers to sub-arrays of PW state space corresponding to chn_3N */
 		int* L_2N_subarray 	   = &L_2N_array[idx_alpha_lower];
-        int* S_2N_subarray 	   = &S_2N_array[idx_alpha_lower];
-        int* J_2N_subarray 	   = &J_2N_array[idx_alpha_lower];
-        int* T_2N_subarray 	   = &T_2N_array[idx_alpha_lower];
-        int* L_1N_subarray 	   = &L_1N_array[idx_alpha_lower];
+		int* S_2N_subarray 	   = &S_2N_array[idx_alpha_lower];
+		int* J_2N_subarray 	   = &J_2N_array[idx_alpha_lower];
+		int* T_2N_subarray 	   = &T_2N_array[idx_alpha_lower];
+		int* L_1N_subarray 	   = &L_1N_array[idx_alpha_lower];
 		int* two_J_1N_subarray = &two_J_1N_array[idx_alpha_lower];
 
-    	printf("Working on 3N-channel J_3N=%.d/2, T_3N=%.d/2, PAR=%.d (channel %.d of %.d) with %.d partial-wave states \n", two_J_3N, two_T_3N, P_3N, chn_3N+1, N_chn_3N, Nalpha_in_3N_chn);
+		printf("Working on 3N-channel J_3N=%.d/2, T_3N=%.d/2, PAR=%.d (channel %.d of %.d) with %.d partial-wave states \n", two_J_3N, two_T_3N, P_3N, chn_3N+1, N_chn_3N, Nalpha_in_3N_chn);
 
 		/* End of 3N-channel setup */
 		/* Start of code segment for permutation matrix construction */
@@ -281,27 +281,27 @@ int main(int argc, char* argv[]){
 		if (calculate_and_store_P123){
 			int Nx 			 = 20;
 			double* x_array  = new double [Nx];
-    		double* wx_array = new double [Nx];
+			double* wx_array = new double [Nx];
 			gauss(x_array, wx_array, Nx);
 	
 			printf("Calculating P123 ... \n");
 			auto timestamp_P123_calc_start = chrono::system_clock::now();
 			calculate_permutation_matrices_for_all_3N_channels(&P123_sparse_val_array,
-    		                                            	   &P123_sparse_row_array,
-    		                                            	   &P123_sparse_col_array,
-    		                                            	   P123_sparse_dim,
-    		                                            	   Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
-    							                           	   Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
-    							                           	   Nx, x_array, wx_array,
-    							                           	   Nalpha_in_3N_chn,
-    							                           	   L_2N_subarray,
-                              	                			   S_2N_subarray,
-                              	                			   J_2N_subarray,
-                              	                			   T_2N_subarray,
-                              	                			   L_1N_subarray,
-                              	                			   two_J_1N_subarray,
-    							                         	   two_J_3N,
-    							                         	   two_T_3N);
+															   &P123_sparse_row_array,
+															   &P123_sparse_col_array,
+															   P123_sparse_dim,
+															   Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
+														   	   Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
+														   	   Nx, x_array, wx_array,
+														   	   Nalpha_in_3N_chn,
+														   	   L_2N_subarray,
+							  								   S_2N_subarray,
+							  								   J_2N_subarray,
+							  								   T_2N_subarray,
+							  								   L_1N_subarray,
+							  								   two_J_1N_subarray,
+														 	   two_J_3N,
+														 	   two_T_3N);
 			auto timestamp_P123_calc_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_calc = timestamp_P123_calc_end - timestamp_P123_calc_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_calc.count());
@@ -309,22 +309,22 @@ int main(int argc, char* argv[]){
 			printf("Storing P123 to h5 ... \n");
 			auto timestamp_P123_store_start = chrono::system_clock::now();
 			store_sparse_permutation_matrix_for_3N_channel_h5(P123_sparse_val_array,
-                                                    		  P123_sparse_row_array,
-                                                    		  P123_sparse_col_array,
-                                                    		  P123_sparse_dim,
-                                                    		  Np_WP, p_WP_array,
-                                                    		  Nq_WP, q_WP_array,
-                                                    		  Nalpha_in_3N_chn,
-                                                    		  L_2N_subarray,
-                                                    		  S_2N_subarray,
-                                                    		  J_2N_subarray,
-                                                    		  T_2N_subarray,
-                                                    		  L_1N_subarray,
+															  P123_sparse_row_array,
+															  P123_sparse_col_array,
+															  P123_sparse_dim,
+															  Np_WP, p_WP_array,
+															  Nq_WP, q_WP_array,
+															  Nalpha_in_3N_chn,
+															  L_2N_subarray,
+															  S_2N_subarray,
+															  J_2N_subarray,
+															  T_2N_subarray,
+															  L_1N_subarray,
 															  two_J_1N_subarray,
-                                                    		  two_J_3N,
-                                                    		  two_T_3N,
-                                                    		  P_3N,
-                                                       		  P123_filename);
+															  two_J_3N,
+															  two_T_3N,
+															  P_3N,
+													   		  P123_filename);
 			auto timestamp_P123_store_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
@@ -334,81 +334,76 @@ int main(int argc, char* argv[]){
 	
 			auto timestamp_P123_read_start = chrono::system_clock::now();
 			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array,
-                                                    		  &P123_sparse_row_array,
-                                                    		  &P123_sparse_col_array,
-                                                    		  P123_sparse_dim,
-                                                    		  Np_WP, p_WP_array,
-                                                    		  Nq_WP, q_WP_array,
-                                                    		  Nalpha_in_3N_chn,
-                                                    		  L_2N_subarray,
-                                                    		  S_2N_subarray,
-                                                    		  J_2N_subarray,
-                                                    		  T_2N_subarray,
-                                                    		  L_1N_subarray,
+															  &P123_sparse_row_array,
+															  &P123_sparse_col_array,
+															  P123_sparse_dim,
+															  Np_WP, p_WP_array,
+															  Nq_WP, q_WP_array,
+															  Nalpha_in_3N_chn,
+															  L_2N_subarray,
+															  S_2N_subarray,
+															  J_2N_subarray,
+															  T_2N_subarray,
+															  L_1N_subarray,
 															  two_J_1N_subarray,
-                                                    		  two_J_3N,
-                                                    		  two_T_3N,
-                                                    		  P_3N,
-                                                       		  P123_filename);
+															  two_J_3N,
+															  two_T_3N,
+															  P_3N,
+													   		  P123_filename);
 			auto timestamp_P123_read_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_read.count());
 		}
 		/* End of code segment for permutation matrix construction */
 
-	}
+		/* Start of code segment for resolvent matrix (diagonal array) construction */
 
+		/* Resolvent array */
+		cdouble* G_array = new cdouble [Nalpha_in_3N_chn * Np_WP * Nq_WP];
+
+		printf("Constructing 3N resolvents ... \n");
+		calculate_resolvent_array_in_SWP_basis(G_array,
+											   E,
+											   Np_WP,
+											   p_SWP_unco_array,
+											   p_SWP_coup_array,
+											   Nq_WP, q_WP_array,
+											   Nalpha_in_3N_chn,
+											   L_2N_subarray,
+											   S_2N_subarray,
+											   J_2N_subarray,
+											   T_2N_subarray);
+		printf(" - Done \n");
+
+		/* End of code segment for resolvent matrix (diagonal array) construction */
+		/* Start of code segment for iterations of elastic Faddeev equations */
+		cdouble* U_array = NULL;//
 	
-	/* Start of code segment for resolvent matrix (diagonal array) construction */
-
-	/* Resolvent array */
-	cdouble** G_array = new cdouble* [N_chn_3N];
-
-	printf("Constructing 3N resolvents ... \n");
-	calculate_resolvent_array_in_SWP_basis(G_array,
-                                           E,
-                                           Np_WP,
-                                           p_SWP_unco_array,
-					                       p_SWP_coup_array,
-					                       Nq_WP, q_WP_array,
-										   N_chn_3N,
-    	                            	   chn_3N_idx_array,
-					                       Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array);
-	printf(" - Done \n");
-
-	/* End of code segment for resolvent matrix (diagonal array) construction */
-	/* Start of code segment for iterations of elastic Faddeev equations */
-
-	cdouble* U_array = NULL;//
-
-	printf("Solving Faddeev equations ... \n");
-	//solve_faddeev_equations(U_array,
-    //                        G_array,
-    //                        P123_sparse_ptr_val_array,
-    //	                    P123_sparse_ptr_row_array,
-    //	                    P123_sparse_ptr_col_array,
-    //	                    P123_sparse_ptr_dim_array,
-    //                        C_WP_unco_array,
-	//				        C_WP_coup_array,
-	//				        V_WP_unco_array,
-    //                        V_WP_coup_array,
-	//						N_chn_3N,
-    //	                    chn_3N_idx_array,
-    //                        J_2N_max,
-    //                        Nq_WP,
-	//				        Np_WP,
-	//				        Nalpha,
-    //                        L_2N_array,
-    //                        S_2N_array,
-    //                        J_2N_array,
-    //                        T_2N_array,
-    //                        L_1N_array, 
-    //                        two_J_1N_array,
-    //                        two_J_3N_array,
-    //                        two_T_3N_array);
-	printf(" - Done \n");
-
-	/* End of code segment for iterations of elastic Faddeev equations */
+		printf("Solving Faddeev equations ... \n");
+		solve_faddeev_equations(U_array,
+								G_array,
+								P123_sparse_val_array,
+								P123_sparse_row_array,
+								P123_sparse_col_array,
+								P123_sparse_dim,
+								C_WP_unco_array,
+								C_WP_coup_array,
+								V_WP_unco_array,
+								V_WP_coup_array,
+								J_2N_max,
+								Nq_WP,
+								Np_WP,
+								Nalpha_in_3N_chn,
+								L_2N_subarray,
+								S_2N_subarray,
+								J_2N_subarray,
+								T_2N_subarray,
+								L_1N_subarray, 
+								two_J_1N_subarray);
+		printf(" - Done \n");
+	
+		/* End of code segment for iterations of elastic Faddeev equations */
+	}
 	/* Start of code segment for calculating scattering observables */
 
 
@@ -424,6 +419,6 @@ int main(int argc, char* argv[]){
 
 	printf("END OF RUN");
 	
-    return 0;
+	return 0;
 }
 

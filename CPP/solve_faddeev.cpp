@@ -291,20 +291,27 @@ void calculate_CPVC_col(double*  col_array,
 	}
 }
 
-void brute_force_CPVC_col(double*  col_array,
-						  int      idx_alpha_c, int idx_p_c, int idx_q_c,
-						  int      Nalpha,      int Nq_WP,   int Np_WP,
-						  double** CT_RM_array,
-						  double** VC_CM_array,
-						  double*  P123_val_array,
-						  int*     P123_row_array,
-						  int*     P123_col_array,
-						  int      P123_dim){
+void CPVC_col_brute_force_test(double*  CPVC_col_array,
+						  	   int      idx_alpha_c, int idx_p_c, int idx_q_c,
+						  	   int      Nalpha,      int Nq_WP,   int Np_WP,
+						  	   double** CT_RM_array,
+						  	   double** VC_CM_array,
+						  	   double*  P123_val_array,
+						  	   int*     P123_row_array,
+						  	   int*     P123_col_array,
+						  	   int      P123_dim){
 	double* CT_ptr = NULL;
 	double* VC_ptr = NULL;
 
 	bool print_content = false;
-	
+
+	int dense_dim = Nalpha * Nq_WP * Np_WP;
+
+	double CPVC_col_array_BF [dense_dim];
+	for (int idx=0; idx<dense_dim; idx++){
+		CPVC_col_array_BF[idx] = 0;
+	}
+
 	/* Index: r */
 	for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
 		for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
@@ -361,8 +368,16 @@ void brute_force_CPVC_col(double*  col_array,
 				}
 
 				int idx_CPVC = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
-				col_array[idx_CPVC] = sum;
+				CPVC_col_array_BF[idx_CPVC] = sum;
 			}
+		}
+	}
+
+	for (int idx=0; idx<dense_dim; idx++){
+		double diff = abs(CPVC_col_array[idx] - CPVC_col_array_BF[idx]);
+		if ( diff > 1e-14 ){
+			std::cout << "Element " << idx << " had a discrepency: " << CPVC_col_array[idx] << " vs " << CPVC_col_array_BF[idx] << std::endl;
+			raise_error("End");
 		}
 	}
 }
@@ -388,6 +403,8 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 int*      L_1N_array, 
 							 int*      two_J_1N_array){
 	
+	bool test_CPVC_col_routine = true;
+
 	/* Create C^T-product pointer-arrays in row-major format */
 	double** CT_RM_array = new double* [Nalpha*Nalpha];
 	create_CT_row_maj_3N_pointer_array(CT_RM_array,
@@ -427,7 +444,6 @@ void solve_faddeev_equations(cdouble*  U_array,
 		
 	/* Create column of (C^T)(P)(VC) */
 	double CPVC_col_array [dense_dim];
-	double CPVC_col_array_BF [dense_dim];
 	
 	/* Loop over columns of CPVC */
 	printf("   - Calculating columns of CPVC ... \n");
@@ -439,7 +455,6 @@ void solve_faddeev_equations(cdouble*  U_array,
 				/* Reset array */
 				for (int idx=0; idx<dense_dim; idx++){
 					CPVC_col_array[idx] = 0;
-					CPVC_col_array_BF[idx] = 0;
 				}
 	
 				/* caluclate CPVC-column */
@@ -452,22 +467,17 @@ void solve_faddeev_equations(cdouble*  U_array,
 								   P123_sparse_row_array,
 								   P123_sparse_col_array,
 								   P123_sparse_dim);
-				brute_force_CPVC_col(CPVC_col_array_BF,
-								   idx_alpha_c, idx_p_c, idx_q_c,
-								   Nalpha, Nq_WP, Np_WP,
-								   CT_RM_array,
-								   VC_CM_array,
-								   P123_sparse_val_array,
-								   P123_sparse_row_array,
-								   P123_sparse_col_array,
-								   P123_sparse_dim);
-
-				for (int idx=0; idx<dense_dim; idx++){
-					double diff = abs(CPVC_col_array[idx] - CPVC_col_array_BF[idx]);
-					if ( diff > 1e-14 ){
-						std::cout << "Element " << idx << " had a discrepency: " << CPVC_col_array[idx] << " vs " << CPVC_col_array_BF[idx] << std::endl;
-						raise_error("End");
-					}
+				
+				if (test_CPVC_col_routine){
+					CPVC_col_brute_force_test(CPVC_col_array,
+											  idx_alpha_c, idx_p_c, idx_q_c,
+											  Nalpha, Nq_WP, Np_WP,
+											  CT_RM_array,
+											  VC_CM_array,
+											  P123_sparse_val_array,
+											  P123_sparse_row_array,
+											  P123_sparse_col_array,
+											  P123_sparse_dim);
 				}
 			}
 		}

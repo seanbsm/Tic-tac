@@ -89,6 +89,9 @@ int main(int argc, char* argv[]){
 		job_ID       = atoi(argv[1]);
 		num_jobs     = atoi(argv[2]);
 		job_array_on = true;
+		if (job_ID >= num_jobs){
+			raise_error("Job_ID is greater than or equal to the number of jobs");
+		}
 	}
 	else if (argc!=1){
 		raise_error("Invalid number of input arguments in main.cpp");
@@ -133,9 +136,6 @@ int main(int argc, char* argv[]){
 	double* q_array  = NULL;
 	double* wp_array = NULL;
 	double* wq_array = NULL;
-
-	/* Permutation matrix - read from file */
-	string  P123_file_path = "../../Data/3N_permutation_operator/P123_files/P123_medium.h5";
 
 	/* Potential matrices */
 	double* V_WP_unco_array = NULL;
@@ -273,10 +273,15 @@ int main(int argc, char* argv[]){
 
 		/* Check channel distribution in case of parallell execution */
 		if (job_array_on){
-			int num_chn_per_node = N_chn_3N/num_jobs + 1;
+			int num_chn_per_node = N_chn_3N/num_jobs;
 
 			int chn_lower = job_ID*num_chn_per_node;
 			int chn_upper = (job_ID+1)*num_chn_per_node;
+
+			/* Last job handles the last number of permutation matrices - NOT OPTIMAL*/
+			if (job_ID == num_jobs-1){
+				chn_upper = N_chn_3N;
+			}
 			
 			/* Skip to next chn-iteration if chn does not fit in current job_ID's domain */
 			if (chn_3N<chn_lower || chn_upper<=chn_3N){

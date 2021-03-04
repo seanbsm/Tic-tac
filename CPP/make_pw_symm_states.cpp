@@ -100,11 +100,11 @@ void construct_symmetric_pw_states(int   J_2N_max,
 											/* Check 3N-system total parity given by P_3N */
 											if ( ((L_2N+L_1N)%2)==P_3N_remainder ){
 
-												//if (two_T_3N==3){
-												//    if ( (S_2N==0 && L_2N==0 && J_2N==0)==false ){
-												//        continue;
-												//    }
-												//}
+												if (two_T_3N==3){
+												    if ( (S_2N==0 && L_2N==0 && J_2N==0)==false ){
+												        continue;
+												    }
+												}
 
 												/* We've found a physical state.
 												 * Append to temporary vectors */

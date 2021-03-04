@@ -80,6 +80,19 @@ A^3 =  A^2 C^t PV C = C^t PV C C^t PV C C^t PV C = C^t PVPVPV C
 using namespace std;
 
 int main(int argc, char* argv[]){
+	
+	/* Array-job information for simple parallellism on several nodes */
+	int  job_ID       = 0;
+	int  num_jobs     = 0;
+	bool job_array_on = false;
+	if (argc==3){
+		job_ID       = atoi(argv[1]);
+		num_jobs     = atoi(argv[2]);
+		job_array_on = true;
+	}
+	else if (argc!=1){
+		raise_error("Invalid number of input arguments in main.cpp");
+	}
 
 	auto program_start = chrono::system_clock::now();
 	
@@ -94,6 +107,10 @@ int main(int argc, char* argv[]){
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
 	bool calculate_and_store_P123 = true;
+	/* Setting to solve Faddeev or not. Handy if we only want to
+	 * precalculate permutation matrices, or to calculate both permutation matrices
+	 * and solve Faddeev in a single run */
+	bool solve_faddeev		      = false;
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
@@ -152,7 +169,6 @@ int main(int argc, char* argv[]){
 
 	/* End of code segment for variables and arrays declaration */
 	/* Start of code segment for state space construction */
-
 	printf("Constructing 3N partial-wave basis ... \n");
 	construct_symmetric_pw_states(J_2N_max,
 								  two_J_3N_max,
@@ -205,28 +221,29 @@ int main(int argc, char* argv[]){
 	/* End of code segment for state space construction */
 	/* Start of code segment for potential matrix construction */
 
-	//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
-	//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
-	//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
-	//pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
-	pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
-	pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
-
-	printf("Constructing 2N-potential matrices in WP basis ... \n");
-	//double** V_WP_array   = new double* [Nalpha*Nalpha];
 	int V_unco_array_size = Np_WP*Np_WP   * 2*(J_2N_max+1);
 	int V_coup_array_size = Np_WP*Np_WP*4 *    J_2N_max;
 	V_WP_unco_array = new double [V_unco_array_size];
 	V_WP_coup_array = new double [V_coup_array_size];
-	calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array,
-												   V_WP_coup_array,
-												   true,
-												   Np_WP, p_WP_array,
-												   Np_per_WP, p_array, wp_array,
-												   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
-												   pot_ptr_nn,
-												   pot_ptr_np);
-	printf(" - Done \n");
+	if (solve_faddeev){
+		//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
+		//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
+		//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
+		//pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
+		pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
+		pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
+	
+		printf("Constructing 2N-potential matrices in WP basis ... \n");
+		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array,
+													   V_WP_coup_array,
+													   true,
+													   Np_WP, p_WP_array,
+													   Np_per_WP, p_array, wp_array,
+													   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
+													   pot_ptr_nn,
+													   pot_ptr_np);
+		printf(" - Done \n");
+	}
 
 	/* End of code segment for potential matrix construction */
 	/* Start of code segment for scattering wave-packets construction */
@@ -236,23 +253,37 @@ int main(int argc, char* argv[]){
 
 	double* C_WP_unco_array = new double [V_unco_array_size];
 	double* C_WP_coup_array = new double [V_coup_array_size];
-	
-	printf("Constructing 2N SWPs ... \n");
-	make_swp_states(e_SWP_unco_array,
-					e_SWP_coup_array,
-					C_WP_unco_array,
-					C_WP_coup_array,
-					V_WP_unco_array,
-					V_WP_coup_array,
-					Np_WP, p_WP_array,
-					Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
-					J_2N_max);
-	printf(" - Done \n");
-
+	if (solve_faddeev){
+		printf("Constructing 2N SWPs ... \n");
+		make_swp_states(e_SWP_unco_array,
+						e_SWP_coup_array,
+						C_WP_unco_array,
+						C_WP_coup_array,
+						V_WP_unco_array,
+						V_WP_coup_array,
+						Np_WP, p_WP_array,
+						Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
+						J_2N_max);
+		printf(" - Done \n");
+	}
 	/* End of code segment for scattering wave-packets construction */
 
 	/* Start of looping over 3N-channels */
 	for (int chn_3N=0; chn_3N<N_chn_3N; chn_3N++){
+
+		/* Check channel distribution in case of parallell execution */
+		if (job_array_on){
+			int num_chn_per_node = N_chn_3N/num_jobs + 1;
+
+			int chn_lower = job_ID*num_chn_per_node;
+			int chn_upper = (job_ID+1)*num_chn_per_node;
+			
+			/* Skip to next chn-iteration if chn does not fit in current job_ID's domain */
+			if (chn_3N<chn_lower || chn_upper<=chn_3N){
+				continue;
+			}
+		}
+
 		/* Start of 3N-channel setup */
 		/* Lower and upper limits on PW state space for channel */
 		int idx_alpha_lower  = chn_3N_idx_array[chn_3N];
@@ -338,7 +369,7 @@ int main(int argc, char* argv[]){
 			chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
 		}
-		else{
+		else if (solve_faddeev){
 			printf("Reading P123 from h5 ... \n");
 	
 			auto timestamp_P123_read_start = chrono::system_clock::now();
@@ -363,59 +394,62 @@ int main(int argc, char* argv[]){
 			chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_read.count());
 		}
+		
 		/* End of code segment for permutation matrix construction */
 
-		/* Start of code segment for resolvent matrix (diagonal array) construction */
+		if (solve_faddeev){
+			/* Start of code segment for resolvent matrix (diagonal array) construction */
 
-		/* Resolvent array */
-		cdouble* G_array = new cdouble [Nalpha_in_3N_chn * Np_WP * Nq_WP];
+			/* Resolvent array */
+			cdouble* G_array = new cdouble [Nalpha_in_3N_chn * Np_WP * Nq_WP];
 
-		printf("Constructing 3N resolvents ... \n");
-		calculate_resolvent_array_in_SWP_basis(G_array,
-											   E_on_shell,
-											   Np_WP,
-											   e_SWP_unco_array,
-											   e_SWP_coup_array,
-											   Nq_WP, q_WP_array,
-											   Nalpha_in_3N_chn,
-											   L_2N_subarray,
-											   S_2N_subarray,
-											   J_2N_subarray,
-											   T_2N_subarray);
-		printf(" - Done \n");
+			printf("Constructing 3N resolvents ... \n");
+			calculate_resolvent_array_in_SWP_basis(G_array,
+												   E_on_shell,
+												   Np_WP,
+												   e_SWP_unco_array,
+												   e_SWP_coup_array,
+												   Nq_WP, q_WP_array,
+												   Nalpha_in_3N_chn,
+												   L_2N_subarray,
+												   S_2N_subarray,
+												   J_2N_subarray,
+												   T_2N_subarray);
+			printf(" - Done \n");
 
-		/* End of code segment for resolvent matrix (diagonal array) construction */
-		/* Start of code segment for iterations of elastic Faddeev equations */
-		cdouble* U_array = NULL;//
+			/* End of code segment for resolvent matrix (diagonal array) construction */
+			/* Start of code segment for iterations of elastic Faddeev equations */
+			cdouble* U_array = NULL;//
 
-		/* Index of on-shell element (deuteron channel) */
-		int idx_on_shell = 0;
+			/* Index of on-shell element (deuteron channel) */
+			int idx_on_shell = 0;
 
-		printf("Solving Faddeev equations ... \n");
-		solve_faddeev_equations(U_array,
-								G_array,
-								P123_sparse_val_array,
-								P123_sparse_row_array,
-								P123_sparse_col_array,
-								P123_sparse_dim,
-								C_WP_unco_array,
-								C_WP_coup_array,
-								V_WP_unco_array,
-								V_WP_coup_array,
-								idx_on_shell,
-								J_2N_max,
-								Nq_WP,
-								Np_WP,
-								Nalpha_in_3N_chn,
-								L_2N_subarray,
-								S_2N_subarray,
-								J_2N_subarray,
-								T_2N_subarray,
-								L_1N_subarray, 
-								two_J_1N_subarray);
-		printf(" - Done \n");
-	
-		/* End of code segment for iterations of elastic Faddeev equations */
+			printf("Solving Faddeev equations ... \n");
+			solve_faddeev_equations(U_array,
+									G_array,
+									P123_sparse_val_array,
+									P123_sparse_row_array,
+									P123_sparse_col_array,
+									P123_sparse_dim,
+									C_WP_unco_array,
+									C_WP_coup_array,
+									V_WP_unco_array,
+									V_WP_coup_array,
+									idx_on_shell,
+									J_2N_max,
+									Nq_WP,
+									Np_WP,
+									Nalpha_in_3N_chn,
+									L_2N_subarray,
+									S_2N_subarray,
+									J_2N_subarray,
+									T_2N_subarray,
+									L_1N_subarray, 
+									two_J_1N_subarray);
+			printf(" - Done \n");
+
+			/* End of code segment for iterations of elastic Faddeev equations */
+		}
 	}
 	/* Start of code segment for calculating scattering observables */
 

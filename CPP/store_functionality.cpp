@@ -541,7 +541,7 @@ void write_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 									};
 								   
 	/* Assign values to data structure */
-	Psparse_table Psparse_data[P123_sparse_dim];
+	Psparse_table* Psparse_data = new Psparse_table [P123_sparse_dim];
 	for (int i=0; i<P123_sparse_dim; i++){
 		Psparse_data[i].index_row_Ptable = P123_sparse_row_array[i];
 		Psparse_data[i].index_col_Ptable = P123_sparse_col_array[i];
@@ -571,6 +571,8 @@ void write_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 
 	/* Close the group */
 	status = H5Gclose(group_id);
+
+	delete [] Psparse_data;
 }
 void read_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 									   int*    P123_sparse_row_array,
@@ -585,7 +587,8 @@ void read_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 					  H5P_DEFAULT);
 
 	/* Calculate the size and the offsets of our struct members in memory */
-	Psparse_table P123_h5[P123_sparse_dim];
+	//Psparse_table P123_h5[P123_sparse_dim];
+	Psparse_table* P123_h5 = new Psparse_table [P123_sparse_dim];
 
 	size_t P123_dst_size = sizeof( Psparse_table );
 
@@ -617,4 +620,6 @@ void read_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 	/* Close file */
 	status = H5Fclose(file_id);
 	check_h5_close_call(status);
+
+	delete [] P123_h5;
 }

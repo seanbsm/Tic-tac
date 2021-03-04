@@ -37,8 +37,8 @@ void make_swp_bin_boundaries(double* eigenvalues,
 							 bool    coupled,
 							 bool    chn_3S1);
 
-void make_swp_states(double* p_SWP_unco_array,
-					 double* p_SWP_coup_array,
+void make_swp_states(double* e_SWP_unco_array,
+					 double* e_SWP_coup_array,
 					 double* C_WP_unco_array,
 					 double* C_WP_coup_array,
 					 double* V_WP_unco_array,

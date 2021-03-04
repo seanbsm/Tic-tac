@@ -7,9 +7,6 @@ void calculate_CPVC_product_row(){
 void pade_method_solve(){
 }
 
-void direct_sparse_solve(){
-}
-
 /* Solves the Faddeev equations
  * U = P*V + P*V*G*U
  * on the form L*U = R, where L and R are the left-
@@ -291,26 +288,19 @@ void calculate_CPVC_col(double*  col_array,
 	}
 }
 
-void CPVC_col_brute_force_test(double*  CPVC_col_array,
-						  	   int      idx_alpha_c, int idx_p_c, int idx_q_c,
-						  	   int      Nalpha,      int Nq_WP,   int Np_WP,
-						  	   double** CT_RM_array,
-						  	   double** VC_CM_array,
-						  	   double*  P123_val_array,
-						  	   int*     P123_row_array,
-						  	   int*     P123_col_array,
-						  	   int      P123_dim){
+void CPVC_col_brute_force(double*  col_array,
+						  int      idx_alpha_c, int idx_p_c, int idx_q_c,
+						  int      Nalpha,      int Nq_WP,   int Np_WP,
+						  double** CT_RM_array,
+						  double** VC_CM_array,
+						  double*  P123_val_array,
+						  int*     P123_row_array,
+						  int*     P123_col_array,
+						  int      P123_dim){
 	double* CT_ptr = NULL;
 	double* VC_ptr = NULL;
 
 	bool print_content = false;
-
-	int dense_dim = Nalpha * Nq_WP * Np_WP;
-
-	double CPVC_col_array_BF [dense_dim];
-	for (int idx=0; idx<dense_dim; idx++){
-		CPVC_col_array_BF[idx] = 0;
-	}
 
 	/* Index: r */
 	for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
@@ -368,18 +358,304 @@ void CPVC_col_brute_force_test(double*  CPVC_col_array,
 				}
 
 				int idx_CPVC = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
-				CPVC_col_array_BF[idx_CPVC] = sum;
+				col_array[idx_CPVC] = sum;
+			}
+		}
+	}
+}
+
+void CPVC_col_calc_test(int      Nalpha,
+						int 	 Nq_WP,
+						int 	 Np_WP,
+						double** CT_RM_array,
+						double** VC_CM_array,
+						double*  P123_sparse_val_array,
+						int*     P123_sparse_row_array,
+						int*     P123_sparse_col_array,
+						int      P123_sparse_dim){
+
+	bool print_content = false;
+
+	int dense_dim = Nalpha * Nq_WP * Np_WP;
+
+	/* Create column of (C^T)(P)(VC) */
+	double CPVC_col_array    [dense_dim];
+	double CPVC_col_array_BF [dense_dim];
+
+	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+	
+				/* Reset array */
+				for (int idx=0; idx<dense_dim; idx++){
+					CPVC_col_array[idx]    = 0;
+					CPVC_col_array_BF[idx] = 0;
+				}
+	
+				/* Calculate CPVC-column */
+				calculate_CPVC_col(CPVC_col_array,
+								   idx_alpha_c, idx_p_c, idx_q_c,
+								   Nalpha, Nq_WP, Np_WP,
+								   CT_RM_array,
+								   VC_CM_array,
+								   P123_sparse_val_array,
+								   P123_sparse_row_array,
+								   P123_sparse_col_array,
+								   P123_sparse_dim);
+				
+				CPVC_col_brute_force(CPVC_col_array_BF,
+									 idx_alpha_c, idx_p_c, idx_q_c,
+									 Nalpha, Nq_WP, Np_WP,
+									 CT_RM_array,
+									 VC_CM_array,
+									 P123_sparse_val_array,
+									 P123_sparse_row_array,
+									 P123_sparse_col_array,
+									 P123_sparse_dim);
+				
+				for (int idx=0; idx<dense_dim; idx++){
+					double diff = abs(CPVC_col_array[idx] - CPVC_col_array_BF[idx]);
+					if ( diff > 1e-14 ){
+						printf("Element %d had a discrepency: %.16f vs. %.16f \n", idx, CPVC_col_array[idx], CPVC_col_array_BF[idx]);
+						raise_error("CPVC benchmarking failed");
+					}
+				}
+			}
+		}
+	}
+}
+
+/* Solves Faddeev on the form
+ * (1-AG)U = A
+ * where A = C^T PVC */
+void direct_sparse_solve(cdouble*  U_array,
+						 cdouble*  G_array,
+						 int       idx_on_shell,
+						 int       Nalpha,
+						 int 	   Nq_WP,
+						 int 	   Np_WP,
+						 double**  CT_RM_array,
+						 double**  VC_CM_array,
+						 double*   P123_sparse_val_array,
+						 int*      P123_sparse_row_array,
+						 int*      P123_sparse_col_array,
+						 int       P123_sparse_dim){
+	
+	/* Dense dimension of 3N-channel */
+	int dense_dim = Nalpha * Nq_WP * Np_WP;
+
+	/* Sparse dimension and step-length for incrementing sparse array size */
+	int		A_sparse_dim	   = 0;
+	int 	sparse_step_length = 0;
+	if (dense_dim>1000){
+		sparse_step_length = dense_dim/1000;
+	}
+	else{
+		sparse_step_length = dense_dim;
+	}
+	int current_array_dim  = sparse_step_length;
+
+	/* Dynamically sized sparse-storage COO (CM) array format for A-matrix */
+	double* A_sparse_val_array = new double [sparse_step_length];
+	int* 	A_sparse_row_array = new int    [sparse_step_length];
+	int* 	A_sparse_col_array = new int    [sparse_step_length];
+
+	/* Allocate column-array for (C^T)(P)(VC) */
+	double 				 CPVC_col_array 	  [dense_dim];
+
+	std::complex<double> A_on_shell_col_array [dense_dim];
+	std::complex<double>* A_dense_array = new std::complex<double> [dense_dim*dense_dim];
+	//double A_on_shell_col_array [dense_dim];
+	//double* A_dense_array	   = new double [dense_dim*dense_dim];
+	
+	for (int idx=0; idx<dense_dim*dense_dim; idx++){
+		A_dense_array[idx] = 0;
+	}
+
+	/* Calculation of columns of A */
+	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+
+				/* Reset CPVC-column array */
+				for (int row_idx=0; row_idx<dense_dim; row_idx++){
+					CPVC_col_array[row_idx]    = 0;
+				}
+
+				/* Calculate CPVC-column */
+				calculate_CPVC_col(CPVC_col_array,
+								   idx_alpha_c, idx_p_c, idx_q_c,
+								   Nalpha, Nq_WP, Np_WP,
+								   CT_RM_array,
+								   VC_CM_array,
+								   P123_sparse_val_array,
+								   P123_sparse_row_array,
+								   P123_sparse_col_array,
+								   P123_sparse_dim);
+				
+				/* Append on-shell column to right-hand side vector of Faddeev eq. (and convert type to complex) */
+				int col_idx = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
+				if (col_idx == idx_on_shell){
+					for (int row_idx=0; row_idx<dense_dim; row_idx++){
+						A_on_shell_col_array[row_idx] = CPVC_col_array[row_idx];
+					}
+				}
+				
+				/* Loop through rows of CPVC-column and append to A if non-zero */
+				for (int row_idx=0; row_idx<dense_dim; row_idx++){
+
+					double element = CPVC_col_array[row_idx];
+					/* Add element if non-zero or if this a diagonal element (needed for "1-AG" in Faddeev eq.) */
+					if (element!=0 || col_idx==row_idx){
+
+						/* Append to sparse value and index arrays */
+						A_sparse_val_array[A_sparse_dim] = element;
+						A_sparse_row_array[A_sparse_dim] = row_idx;
+						A_sparse_col_array[A_sparse_dim] = col_idx;
+
+						A_dense_array[row_idx*dense_dim + col_idx] = element;
+
+						/* Increment sparse dimension (num of non-zero elements) */
+						A_sparse_dim += 1;
+
+						/* If the dimension goes over the array dimension we increase the array size
+						 * via a copy-paste-type routine, and increment the current array dimension */
+						if ( A_sparse_dim>=current_array_dim ){  // This should occur a small amount of the time
+							increase_sparse_array_size(&A_sparse_val_array, current_array_dim, sparse_step_length);
+							increase_sparse_array_size(&A_sparse_row_array, current_array_dim, sparse_step_length);
+							increase_sparse_array_size(&A_sparse_col_array, current_array_dim, sparse_step_length);
+
+							/* Increment sparse-array dimension */
+							current_array_dim += sparse_step_length;
+						}
+					}
+				}
+			}
+		}
+	}
+	/* Contract arrays to minimal size (number of non-zero elements) */
+	reduce_sparse_array_size(&A_sparse_val_array, current_array_dim, A_sparse_dim);
+	reduce_sparse_array_size(&A_sparse_row_array, current_array_dim, A_sparse_dim);
+	reduce_sparse_array_size(&A_sparse_col_array, current_array_dim, A_sparse_dim);
+
+	/* Conversion from column-major COO to row-major COO array format for A-matrix 
+	 * !!! WARNING: THIS ROUTINE REWRITES INPUT ARRAYS TO NEW FORMAT, OLD FORMAT IS DELETED !!! */
+	coo_col_major_to_coo_row_major_converter(&A_sparse_val_array,
+											 &A_sparse_row_array,
+											 &A_sparse_col_array,
+											 A_sparse_dim,
+											 dense_dim);
+	/* Conversion from COO to CSR array format for A-matrix */
+	int* A_idx_row_array_csr = new int [dense_dim+1];
+	coo_to_csr_format_converter(A_sparse_row_array,
+                                A_idx_row_array_csr,
+                                A_sparse_dim,
+                                dense_dim);
+
+	/* Test sparse format */
+	if (false){
+		for (int row_idx=0; row_idx<dense_dim; row_idx++){
+			int nnz_idx_lower = A_idx_row_array_csr[row_idx];
+			int nnz_idx_upper = A_idx_row_array_csr[row_idx+1];
+			for (int nnz_idx=nnz_idx_lower; nnz_idx<nnz_idx_upper; nnz_idx++){
+				int col_idx = A_sparse_col_array[nnz_idx];
+
+				//double val_sparse = A_sparse_val_array[nnz_idx];
+				//double val_dense  = A_dense_array[row_idx*dense_dim + col_idx];
+				std::complex<double> val_sparse = A_sparse_val_array[nnz_idx];
+				std::complex<double> val_dense  = A_dense_array[row_idx*dense_dim + col_idx];
+				if (val_sparse!=val_dense){
+					std::cout << "Mismatch. Sparse val: " << val_sparse.real() << " " << val_sparse.imag() << std::endl;
+					std::cout << "Mismatch. Dense val:  " << val_dense.real() << " " << val_dense.imag() << std::endl;
+					raise_error("Sparse format conversion failed");
+				}
 			}
 		}
 	}
 
-	for (int idx=0; idx<dense_dim; idx++){
-		double diff = abs(CPVC_col_array[idx] - CPVC_col_array_BF[idx]);
-		if ( diff > 1e-14 ){
-			std::cout << "Element " << idx << " had a discrepency: " << CPVC_col_array[idx] << " vs " << CPVC_col_array_BF[idx] << std::endl;
-			raise_error("End");
+	/* Identity "I" minus "AG"-product and conversion to complex type */
+	std::complex<double>* IAG_sparse_val_array_cmplx = new std::complex<double> [A_sparse_dim];
+	std::complex<double>* IAG_dense_array_cmplx = new std::complex<double> [dense_dim*dense_dim];
+	//double* IAG_sparse_val_array_cmplx = new double [A_sparse_dim];
+	//double* IAG_dense_array_cmplx	   = new double [dense_dim*dense_dim];
+	for (int idx=0; idx<dense_dim*dense_dim; idx++){
+		IAG_dense_array_cmplx[idx] = 0;
+	}
+	for (int row_idx=0; row_idx<dense_dim; row_idx++){
+
+		int nnz_idx_lower = A_idx_row_array_csr[row_idx];
+		int nnz_idx_upper = A_idx_row_array_csr[row_idx+1];
+
+		for (int nnz_idx=nnz_idx_lower; nnz_idx<nnz_idx_upper; nnz_idx++){
+
+			int col_idx = A_sparse_col_array[nnz_idx];
+
+			std::complex<double> G_val = G_array[col_idx];
+
+			/* AG-multiplication and minus-sign */
+			IAG_sparse_val_array_cmplx[nnz_idx] = -A_sparse_val_array[nnz_idx] * G_val;
+			//IAG_sparse_val_array_cmplx[nnz_idx] = -A_sparse_val_array[nnz_idx] * G_val.real();
+
+			/* Add identity matrix */
+			if (row_idx==col_idx){
+				IAG_sparse_val_array_cmplx[nnz_idx] += 1;
+			}
+
+			/* Dense test case */
+			IAG_dense_array_cmplx[row_idx*dense_dim + col_idx] = IAG_sparse_val_array_cmplx[nnz_idx];
 		}
 	}
+
+	MKL_INT rows [dense_dim+1];
+	for (int row_idx=0; row_idx<dense_dim+1; row_idx++){
+		rows[row_idx] = A_idx_row_array_csr[row_idx];
+	}
+	MKL_INT cols [A_sparse_dim];
+	for (int col_idx=0; col_idx<A_sparse_dim; col_idx++){
+		cols[col_idx] = A_sparse_col_array[col_idx];
+	}
+
+	MKL_INT sparse_dim_MKL = A_sparse_dim;
+	MKL_INT dense_dim_MKL = dense_dim;
+
+	//double sols_U_col [dense_dim];
+	std::complex<double> sols_U_col [dense_dim];
+
+	/* Solve Faddeev using MKL DSS-routines */
+	auto timestamp_1 = std::chrono::system_clock::now();
+	solve_MM_sparse(IAG_sparse_val_array_cmplx,
+                 	rows,//(MKL_INT*) A_idx_row_array_csr,
+                 	cols,//(MKL_INT*) A_sparse_col_array,
+                 	sparse_dim_MKL,//(MKL_INT) A_sparse_dim,
+                 	A_on_shell_col_array,
+                 	dense_dim_MKL,//(MKL_INT) dense_dim,
+					sols_U_col);
+	auto timestamp_2 = std::chrono::system_clock::now();
+	solve_MM(IAG_dense_array_cmplx, A_dense_array, dense_dim);
+	auto timestamp_3 = std::chrono::system_clock::now();
+	std::chrono::duration<double> time_sparse = timestamp_2 - timestamp_1;
+	std::chrono::duration<double> time_dense  = timestamp_3 - timestamp_2;
+	printf("   - Time used sparse: %.6f\n", time_sparse.count());
+	printf("   - Time used dense:  %.6f\n", time_dense.count());
+
+	for (int row=0; row<dense_dim; row++){
+		//double val_sparse = sols_U_col[row];
+		//double val_dense  = IAG_dense_array_cmplx[row*dense_dim + idx_on_shell];
+		std::complex<double> val_sparse = sols_U_col[row];
+		std::complex<double> val_dense  = IAG_dense_array_cmplx[row*dense_dim + idx_on_shell];
+		//if (val_sparse!=val_dense and std::isnan(val_dense.real())!=true and std::isnan(val_sparse.real())!=true
+		//and std::isnan(val_dense.imag())!=true and std::isnan(val_sparse.imag())!=true){
+			std::cout << "Mismatch. Sparse val: " << val_sparse.real() << " " << val_sparse.imag() << std::endl;
+			std::cout << "Mismatch. Dense val:  " << val_dense.real() << " " << val_dense.imag() << std::endl;
+		//	raise_error("Exit");
+		//}
+	}
+
+	/* Delete temporary arrays */
+	delete [] A_sparse_val_array;
+	delete [] A_sparse_row_array;
+	delete [] A_sparse_col_array;
+	delete [] IAG_sparse_val_array_cmplx;
 }
 
 void solve_faddeev_equations(cdouble*  U_array,
@@ -392,6 +668,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 double*   C_WP_coup_array,
 							 double*   V_WP_unco_array,
 							 double*   V_WP_coup_array,
+							 int       idx_on_shell,
 							 int       J_2N_max,
 							 int       Nq_WP,
 							 int       Np_WP,
@@ -403,7 +680,8 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 int*      L_1N_array, 
 							 int*      two_J_1N_array){
 	
-	bool test_CPVC_col_routine = true;
+	bool test_CPVC_col_routine  = false;
+	bool use_DSS_solver_routine = false;
 
 	/* Create C^T-product pointer-arrays in row-major format */
 	double** CT_RM_array = new double* [Nalpha*Nalpha];
@@ -442,46 +720,35 @@ void solve_faddeev_equations(cdouble*  U_array,
 								dense_dim);
 	P123_sparse_row_array = idx_row_array_csr;
 		
-	/* Create column of (C^T)(P)(VC) */
-	double CPVC_col_array [dense_dim];
-	
-	/* Loop over columns of CPVC */
-	printf("   - Calculating columns of CPVC ... \n");
-	auto timestamp_calc_CPVC_start = std::chrono::system_clock::now();
-	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
-		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
-			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
-	
-				/* Reset array */
-				for (int idx=0; idx<dense_dim; idx++){
-					CPVC_col_array[idx] = 0;
-				}
-	
-				/* caluclate CPVC-column */
-				calculate_CPVC_col(CPVC_col_array,
-								   idx_alpha_c, idx_p_c, idx_q_c,
-								   Nalpha, Nq_WP, Np_WP,
-								   CT_RM_array,
-								   VC_CM_array,
-								   P123_sparse_val_array,
-								   P123_sparse_row_array,
-								   P123_sparse_col_array,
-								   P123_sparse_dim);
-				
-				if (test_CPVC_col_routine){
-					CPVC_col_brute_force_test(CPVC_col_array,
-											  idx_alpha_c, idx_p_c, idx_q_c,
-											  Nalpha, Nq_WP, Np_WP,
-											  CT_RM_array,
-											  VC_CM_array,
-											  P123_sparse_val_array,
-											  P123_sparse_row_array,
-											  P123_sparse_col_array,
-											  P123_sparse_dim);
-				}
-			}
-		}
+	/* Test optimized routine for CPVC columns */
+	if (test_CPVC_col_routine){
+		CPVC_col_calc_test(Nalpha,
+						   Nq_WP,
+						   Np_WP,
+						   CT_RM_array,
+						   VC_CM_array,
+						   P123_sparse_val_array,
+						   P123_sparse_row_array,
+						   P123_sparse_col_array,
+						   P123_sparse_dim);
 	}
+	
+	printf("   - Solving Faddeev equation ... \n");
+	auto timestamp_calc_CPVC_start = std::chrono::system_clock::now();
+	
+	direct_sparse_solve(U_array,
+						G_array,
+						idx_on_shell,
+						Nalpha,
+						Nq_WP,
+						Np_WP,
+						CT_RM_array,
+						VC_CM_array,
+						P123_sparse_val_array,
+						P123_sparse_row_array,
+						P123_sparse_col_array,
+						P123_sparse_dim);
+
 	auto timestamp_calc_CPVC_end = std::chrono::system_clock::now();
 	std::chrono::duration<double> time_calc_CPVC = timestamp_calc_CPVC_end - timestamp_calc_CPVC_start;
 	printf("   - Done. Time used: %.6f\n", time_calc_CPVC.count());
@@ -498,6 +765,7 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 										int*     S_2N_array,
 										int*     J_2N_array,
 										int*     T_2N_array){
+
 	double* C_subarray  = NULL;
 	double* CT_subarray = NULL;
 
@@ -639,7 +907,7 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 										int*     S_2N_array,
 										int*     J_2N_array,
 										int*     T_2N_array){
-	
+
 	double* V_subarray = NULL;
 	double* C_subarray = NULL;
 

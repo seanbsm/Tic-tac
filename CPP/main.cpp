@@ -16,6 +16,7 @@
 #include "make_pw_symm_states.h"
 #include "make_permutation_matrix.h"
 #include "General_functions/gauss_legendre.h"
+#include "General_functions/kinetic_conversion.h"
 #include "Interactions/potential_model.h"
 #include "make_potential_matrix.h"
 #include "make_swp_states.h"
@@ -29,6 +30,7 @@
 Faddev eqs.
 U = C^T PVC + C^T PVC G U
 
+PROGRAM STRUCTURE:
 Define PW state space:
  - input:  J_2N_max, J_3N_max, T_3N_max
  - output: {alpha=(J,L,S,T,l,j,J3,T3,P3)} (9 quantum numbers per state)
@@ -57,12 +59,13 @@ For-loop over 3N channels chn"="(J3,T3,P3) ({alpha}_chn stored congruently in me
  
  - Call function solve_faddeev_equation (Nalpha_chn = number of alpha in current 3N channel)
    - input: Nalpha_chn, Np_WP, Nq_WP, V_2N_..., C_2N_..., G_array, P123_array
-   - method: U = A + KU; A = C^T PVC; K=C^T PVC G = AG
-			   = A + KA + KKA + KKKA + KKKKA + .... (Neumann sum)
-			   = A + AGA + AGAGA + AGAGAGA + ...
-			   = sum_n=0^N A(GA)^n
-			   = sum_n=0^N (AG)^n A
-			   = sum_n=0^N (A^n)(G^n)A
+   - method (Pade): U = A + KU; A = C^T PVC; K=C^T PVC G = AG
+			          = A + KA + KKA + KKKA + KKKKA + .... (Neumann sum)
+			          = A + AGA + AGAGA + AGAGAGA + ...
+			          = sum_n=0^N A(GA)^n
+			          = sum_n=0^N (AG)^n A
+			          = sum_n=0^N (A^n)(G^n)A
+	- method (DSS): Rewrite Faddeev: (1-AG)U = A_c, where A_c is a column of interest (on-shell)
 	- bottleneck: A=C^T PVC column-calculation
 	- output: Elastic U-matrix elements (several {n}=deutron channels within one "chn")
 	
@@ -84,22 +87,25 @@ int main(int argc, char* argv[]){
 	/* Start of code segment for parameters, variables and arrays declaration */
 
 	/* Current scattering energy */
-	double E = 10;
+	double T_lab = 3;
+	double mu	 = 2*Mp*Md/(Mp+Md);
+	double q_on_shell = lab_energy_to_com_momentum(T_lab);
+	double E_on_shell = q_on_shell*q_on_shell/mu;
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
 	bool calculate_and_store_P123 = true;
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 0;//1; //5;
-	int two_J_3N_max = 1;//25;//1; //25;
+	int J_2N_max 	 = 1;//1; //5;
+	int two_J_3N_max = 3;//25;//1; //25;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 35; //30;
-	int Nq_WP	   	 = 10; //30;
+	int Np_WP	   	 = 40; //30;
+	int Nq_WP	   	 = 30; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -225,15 +231,15 @@ int main(int argc, char* argv[]){
 	/* End of code segment for potential matrix construction */
 	/* Start of code segment for scattering wave-packets construction */
 
-	double* p_SWP_unco_array = new double [  (Np_WP+1) * 2*(J_2N_max+1)];
-	double* p_SWP_coup_array = new double [2*(Np_WP+1) *    J_2N_max];
+	double* e_SWP_unco_array = new double [  (Np_WP+1) * 2*(J_2N_max+1)];
+	double* e_SWP_coup_array = new double [2*(Np_WP+1) *    J_2N_max];
 
 	double* C_WP_unco_array = new double [V_unco_array_size];
 	double* C_WP_coup_array = new double [V_coup_array_size];
 	
 	printf("Constructing 2N SWPs ... \n");
-	make_swp_states(p_SWP_unco_array,
-					p_SWP_coup_array,
+	make_swp_states(e_SWP_unco_array,
+					e_SWP_coup_array,
 					C_WP_unco_array,
 					C_WP_coup_array,
 					V_WP_unco_array,
@@ -363,10 +369,10 @@ int main(int argc, char* argv[]){
 
 		printf("Constructing 3N resolvents ... \n");
 		calculate_resolvent_array_in_SWP_basis(G_array,
-											   E,
+											   E_on_shell,
 											   Np_WP,
-											   p_SWP_unco_array,
-											   p_SWP_coup_array,
+											   e_SWP_unco_array,
+											   e_SWP_coup_array,
 											   Nq_WP, q_WP_array,
 											   Nalpha_in_3N_chn,
 											   L_2N_subarray,
@@ -378,7 +384,10 @@ int main(int argc, char* argv[]){
 		/* End of code segment for resolvent matrix (diagonal array) construction */
 		/* Start of code segment for iterations of elastic Faddeev equations */
 		cdouble* U_array = NULL;//
-	
+
+		/* Index of on-shell element (deuteron channel) */
+		int idx_on_shell = 0;
+
 		printf("Solving Faddeev equations ... \n");
 		solve_faddeev_equations(U_array,
 								G_array,
@@ -390,6 +399,7 @@ int main(int argc, char* argv[]){
 								C_WP_coup_array,
 								V_WP_unco_array,
 								V_WP_coup_array,
+								idx_on_shell,
 								J_2N_max,
 								Nq_WP,
 								Np_WP,

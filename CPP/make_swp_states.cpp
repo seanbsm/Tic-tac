@@ -159,8 +159,8 @@ void make_swp_bin_boundaries(double* eigenvalues,
 	}
 }
 
-void make_swp_states(double* p_SWP_unco_array,
-					 double* p_SWP_coup_array,
+void make_swp_states(double* e_SWP_unco_array,
+					 double* e_SWP_coup_array,
 					 double* C_WP_unco_array,
 					 double* C_WP_coup_array,
 					 double* V_WP_unco_array,
@@ -190,8 +190,6 @@ void make_swp_states(double* p_SWP_unco_array,
 	/* Boundaries of scattering wave-packets (SWP) in energy */
 	int e_SWP_unco_array_size =   (Np_WP+1) * num_unco_chns;
 	int e_SWP_coup_array_size = 2*(Np_WP+1) * num_coup_chns;
-	double* e_SWP_unco_array = new double [e_SWP_unco_array_size];
-	double* e_SWP_coup_array = new double [e_SWP_coup_array_size];
 
 	/* Set e_SWP-arrays to zero */
 	for (int i=0; i<e_SWP_unco_array_size; i++){
@@ -356,9 +354,6 @@ void make_swp_states(double* p_SWP_unco_array,
 	/* Delete temporary arrays */
 	delete [] check_list_unco;
 	delete [] check_list_coup;
-
-	delete [] e_SWP_unco_array;
-	delete [] e_SWP_coup_array;
 
 	delete [] H_WP_unco_array;
 	delete [] H_WP_coup_array;

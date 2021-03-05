@@ -239,21 +239,21 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	}*/
 
 	/* END OF OLD CODE SEGMENT WITH OLD VARIABLE-NOTATION */
-
-	int P123_dense_dim = Np_WP * Nq_WP * Nalpha;
-
+	
+	long int P123_dense_dim = Np_WP * Nq_WP * Nalpha;
+	
 	/* Preallocate array if we use dense format. Otherwise (i.e. sparse) start with
 	 * some reasonable guess (usually less than a percent), and expand if required. */
-	int dense_array_size   = P123_dense_dim * P123_dense_dim;
+	long int dense_array_size   = P123_dense_dim * P123_dense_dim;
 	int sparse_step_length = 0;
-
+	
 	if (use_dense_format){
 		*P123_val_dense_array = new double [dense_array_size];
 		P123_dim        = P123_dense_dim;
 	}
 	else{
-		if (dense_array_size>1000){
-			sparse_step_length = dense_array_size/1000;
+		if (dense_array_size>10000){
+			sparse_step_length = dense_array_size/10000;
 		}
 		else{
 			sparse_step_length = dense_array_size;
@@ -266,7 +266,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 		*P123_row_array = new int    [sparse_step_length];
 		*P123_col_array = new int    [sparse_step_length];
 	}
-
+	
 	int P123_mat_idx      = 0;
 	int P123_row_idx      = 0;
 	int P123_col_idx      = 0;

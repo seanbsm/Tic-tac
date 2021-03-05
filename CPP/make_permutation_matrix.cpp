@@ -1,288 +1,94 @@
 
 #include "make_permutation_matrix.h"
 
-void read_P123_h5_data_file(std::string file_path,
-							double* P123,
-							int Np_3N, double *p_3N_3, double *wp_3N_3,
-							int Nq_3N, double *q_3N_3, double *wq_3N_3){
-
-   
-	// ---------------------------------------------- READ 3N --------------------------------------------
-
-	bool print_content = false;
-
-	char filename[300];
-	strcpy(filename, file_path.c_str());
-
-	hid_t   file_id_3, dataset_id_3;
-	herr_t  ret_3;
-
-	printf("read file %s\n", filename);
-
-	file_id_3 = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
-
-	// determine Np, Nq and Nalpha
-	int N_h5_3[1];
-
-	// N_p
-	dataset_id_3 = H5Dopen(file_id_3, "Np", H5P_DEFAULT);
-	ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
-	check_h5_read_call(ret_3);
-	int Np_3N_3 = N_h5_3[0];
-	ret_3 = H5Dclose(dataset_id_3);
-	check_h5_close_call(ret_3);
-
-	// N_q
-	dataset_id_3 = H5Dopen(file_id_3, "Nq", H5P_DEFAULT);
-	ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
-	check_h5_read_call(ret_3);
-	int Nq_3N_3 = N_h5_3[0];
-	ret_3 = H5Dclose(dataset_id_3);
-	check_h5_close_call(ret_3);
-
-	// N_alpha
-	dataset_id_3 = H5Dopen(file_id_3, "Nalpha", H5P_DEFAULT);
-	ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
-	check_h5_read_call(ret_3);
-	int Jj_dim_3 = N_h5_3[0];
-	ret_3 = H5Dclose(dataset_id_3);
-	check_h5_close_call(ret_3);
-
-	// p_mesh
-	size_t p_dst_size_3 =  sizeof( pmesh_table );
-	pmesh_table p_h5_3[Np_3N_3];
-
-	size_t p_dst_offset_3[3] = { HOFFSET( pmesh_table, index_ptable ),
-								 HOFFSET( pmesh_table, mesh_ptable ),
-								 HOFFSET( pmesh_table, weight_ptable )
-							   };
-
-	size_t p_dst_sizes_3[3] = { sizeof( p_h5_3[0].index_ptable ),
-								sizeof( p_h5_3[0].mesh_ptable ),
-								sizeof( p_h5_3[0].weight_ptable )
-							  };
-
-	if(print_content){ printf("\np mesh:\n"); }
-
-	ret_3 = H5TBread_table( file_id_3, "p mesh", p_dst_size_3, p_dst_offset_3, p_dst_sizes_3, p_h5_3 );
-	check_h5_read_table_call(ret_3);
-	for (int i = 0; i <= Np_3N_3 - 1; i++)
-	{
-		p_3N_3[i] = p_h5_3[i].mesh_ptable;
-		wp_3N_3[i] = p_h5_3[i].weight_ptable;
-	   if(print_content){  printf("%d %.3f %.3f\n", i, p_3N_3[i], wp_3N_3[i]); }
-	}
-
-	// q_mesh
-	qmesh_table q_h5_3[Nq_3N_3];
-
-	size_t q_dst_size_3 =  sizeof( qmesh_table );
-
-	size_t q_dst_offset_3[3] = { HOFFSET( qmesh_table, index_qtable ),
-								 HOFFSET( qmesh_table, mesh_qtable ),
-								 HOFFSET( qmesh_table, weight_qtable )
-							   };
-
-	size_t q_dst_sizes_3[3] = { sizeof( q_h5_3[0].index_qtable ),
-								sizeof( q_h5_3[0].mesh_qtable ),
-								sizeof( q_h5_3[0].weight_qtable )
-							  };
-
-	if(print_content){ printf("q mesh:\n"); }
-
-	ret_3 = H5TBread_table( file_id_3, "q mesh", q_dst_size_3, q_dst_offset_3, q_dst_sizes_3, q_h5_3 );
-	check_h5_read_table_call(ret_3);
-	for (int i = 0; i <= Nq_3N - 1; i++)
-	{
-		q_3N_3[i] = q_h5_3[i].mesh_qtable;
-		wq_3N_3[i] = q_h5_3[i].weight_qtable;
-		if(print_content){ printf("%d %.3f %.3f\n", i, q_3N_3[i], wq_3N_3[i]); }
-	}
-
-	if(print_content){ printf("Check mesh systems...\n"); }
-	if ((Nq_3N != Nq_3N_3) || (Np_3N != Np_3N_3))
-	{
-		raise_error("Inconsistent mesh systems!");
-		//printf("Inconsistent mesh systems!\n");
-		//return 1;
-	}
-
-	//for (int i = 0; i <= Np_3N - 1; i++)
-	//{
-	//    if (fabs(p_3N[i] - p_3N_3[i]) > 1e-10)
-	//    {
-	//        raise_error("Inconsistent mesh systems!");
-	//        //printf("Inconsistent mesh systems!\n");
-	//        //return 1;
-	//    }
-	//}
-
-	//for (int i = 0; i <= Nq_3N - 1; i++)
-	//{
-	//    if (fabs(q_3N[i] - q_3N_3[i]) > 1e-10)
-	//    {
-	//        raise_error("Inconsistent mesh systems!");
-	//        //printf("Inconsistent mesh systems!\n");
-	//        //return 1;
-	//    }
-	//}
-
-	// PW table
-	pw_table pw_h5_3[Jj_dim_3];
-	size_t pw_dst_size_3 = sizeof( pw_table );
-	size_t pw_dst_offset_3[10] = { HOFFSET( pw_table, alpha_pwtable ),
-								   HOFFSET( pw_table, L_pwtable ),
-								   HOFFSET( pw_table, S_pwtable ),
-								   HOFFSET( pw_table, J_pwtable ),
-								   HOFFSET( pw_table, T_pwtable ),
-								   HOFFSET( pw_table, l_pwtable ),
-								   HOFFSET( pw_table, twoj_pwtable ),
-								   HOFFSET( pw_table, twoJtotal_pwtable ),
-								   HOFFSET( pw_table, PARtotal_pwtable ),
-								   HOFFSET( pw_table, twoTtotal_pwtable )
-								 };
-
-	size_t pw_dst_sizes_3[10] = { sizeof( pw_h5_3[0].alpha_pwtable ),
-								  sizeof( pw_h5_3[0].L_pwtable ),
-								  sizeof( pw_h5_3[0].S_pwtable ),
-								  sizeof( pw_h5_3[0].J_pwtable ),
-								  sizeof( pw_h5_3[0].T_pwtable ),
-								  sizeof( pw_h5_3[0].l_pwtable ),
-								  sizeof( pw_h5_3[0].twoj_pwtable ),
-								  sizeof( pw_h5_3[0].twoJtotal_pwtable ),
-								  sizeof( pw_h5_3[0].PARtotal_pwtable ),
-								  sizeof( pw_h5_3[0].twoTtotal_pwtable )
-								};
-
-	int L12_Jj_3[Jj_dim_3];
-	int S12_Jj_3[Jj_dim_3];
-	int J12_Jj_3[Jj_dim_3];
-	int T12_Jj_3[Jj_dim_3];
-	int l3_Jj_3[Jj_dim_3];
-	int two_j3_Jj_3[Jj_dim_3];
-
-	ret_3 = H5TBread_table( file_id_3, "pw channels", pw_dst_size_3, pw_dst_offset_3, pw_dst_sizes_3, pw_h5_3 );
-	check_h5_read_table_call(ret_3);
-	if(print_content){ printf("\nNalpha = %d\n", Jj_dim_3);
-					   printf("  i   L   S   J   T   l  2*j\n"); }
-	for (int i = 0; i <= Jj_dim_3 - 1; i++)
-	{
-		L12_Jj_3[i] = pw_h5_3[i].L_pwtable;
-		S12_Jj_3[i] = pw_h5_3[i].S_pwtable;
-		J12_Jj_3[i] = pw_h5_3[i].J_pwtable;
-		T12_Jj_3[i] = pw_h5_3[i].T_pwtable;
-		l3_Jj_3[i] = pw_h5_3[i].l_pwtable;
-		two_j3_Jj_3[i] = pw_h5_3[i].twoj_pwtable;
-		if(print_content){ printf("%3d %3d %3d %3d %3d %3d %3d\n", i, L12_Jj_3[i], S12_Jj_3[i], J12_Jj_3[i], T12_Jj_3[i], l3_Jj_3[i], two_j3_Jj_3[i]); }
-	}
-
-	// matrix elements
-	//H5D_layout_t layout_3;
-	//hid_t cparms_3;
-	//hid_t filespace_id_3;
-	//hsize_t filespace_dims_3[6], chunk_dims_3[6];
-	//herr_t filespace_status_n_3;
-	//int filespace_rank_3, rank_chunk_3;
-
-	// check if dimensions agree with matrix element data
-	//MKL_INT64 P123_dim = Np_3N_3 * Nq_3N_3 * Jj_dim_3;
-	//MKL_INT64 P123_dim_sq = P123_dim * P123_dim;
-
-	if(print_content){ printf("Read matrix elements...\n"); }
-
-	dataset_id_3 = H5Dopen(file_id_3, "matrix elements", H5P_DEFAULT);
-
-	// Get dataset rank and dimension.
-	/*filespace_id_3 = H5Dget_space(dataset_id_3);    // Get filespace handle first
-	filespace_rank_3 = H5Sget_simple_extent_ndims(filespace_id_3);
-	filespace_status_n_3 = H5Sget_simple_extent_dims(filespace_id_3, filespace_dims_3, NULL);
-
-	printf("dataset rank: %d\ndataset dimensions: {%lu,%lu,%lu,%lu,%lu,%lu}\n\n",
-		   filespace_rank,
-		   (unsigned long)(filespace_dims[0]),
-		   (unsigned long)(filespace_dims[1]),
-		   (unsigned long)(filespace_dims[2]),
-		   (unsigned long)(filespace_dims[3]),
-		   (unsigned long)(filespace_dims[4]),
-		   (unsigned long)(filespace_dims[5])
-
-		  );
-
-	cparms_3 = H5Dget_create_plist (dataset_id_3);
-	layout_3 = H5Pget_layout (cparms_3);
-
-	if (H5D_CHUNKED == layout_3)
-	{
-		//Get chunking information: rank and dimensions
-		rank_chunk_3 = H5Pget_chunk(cparms_3, 6, chunk_dims_3);
-		printf("chunk rank: %d\nchunk dimensions: {%lu,%lu,%lu,%lu,%lu,%lu}\n\n",
-			   rank_chunk,
-			   (unsigned long)(chunk_dims_3[0]),
-			   (unsigned long)(chunk_dims_3[1]),
-			   (unsigned long)(chunk_dims_3[2]),
-			   (unsigned long)(chunk_dims_3[3]),
-			   (unsigned long)(chunk_dims_3[4]),
-			   (unsigned long)(chunk_dims_3[5])
-			  );
-	}*/
-
-	ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, P123);
-	check_h5_read_call(ret_3);
-
-	ret_3 = H5Dclose(dataset_id_3);
-	check_h5_close_call(ret_3);
-
-	ret_3 = H5Fclose(file_id_3);
-	check_h5_close_call(ret_3);
-}
-
-void get_h5_P123_dimensions(std::string file_path, int& Nalpha, int& Np, int& Nq){
-	// ---------------------------------------------- READ 3N --------------------------------------------
-
-	char filename[300];
-	std::strcpy(filename, file_path.c_str());
-
-	hid_t   file_id_3, dataset_id_3;
-	herr_t  ret_3;
-
-	printf("read file %s\n", filename);
-
-	file_id_3 = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
-
-	// determine Np, Nq and Nalpha
-	int N_h5_3[1];
-
-	// N_p
-	dataset_id_3 = H5Dopen(file_id_3, "Np", H5P_DEFAULT);
-	ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
-	check_h5_read_call(ret_3);
-	int Np_3N_3 = N_h5_3[0];
-	ret_3 = H5Dclose(dataset_id_3);
-	check_h5_close_call(ret_3);
-
-	// N_q
-	dataset_id_3 = H5Dopen(file_id_3, "Nq", H5P_DEFAULT);
-	ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
-	check_h5_read_call(ret_3);
-	int Nq_3N_3 = N_h5_3[0];
-	ret_3 = H5Dclose(dataset_id_3);
-	check_h5_close_call(ret_3);
-
-	// N_alpha
-	dataset_id_3 = H5Dopen(file_id_3, "Nalpha", H5P_DEFAULT);
-	ret_3 = H5Dread (dataset_id_3, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5_3);
-	check_h5_read_call(ret_3);
-	int Jj_dim_3 = N_h5_3[0];
-	ret_3 = H5Dclose(dataset_id_3);
-	check_h5_close_call(ret_3);
-
-	Nalpha = Jj_dim_3;
-	Np     = Np_3N_3;
-	Nq     = Nq_3N_3;
-}
-
 /* Add this if 6j takes a while */
 void precalculate_Wigner_6j_symbols(){
+}
+
+void calculate_Gtilde_array(double* Gtilde_array,
+							double* Atilde_array,
+							int  Nx, double* x_array,
+							int  Nq, double* q_array,
+							int  Np, double* p_array,
+							int  Nalpha,
+							int  L_max,
+							int* L_2N_array,
+							int* L_1N_array,
+							int  two_J_3N){
+
+	bool print_Gtilde_progress = false;
+
+	long int fullsize = Np*Nq*Nx*Nalpha*(Nalpha - 1);
+	long int counter = 0;
+	int frac_n, frac_o=0;
+	
+	#pragma omp parallel
+	{
+		#pragma omp for
+
+		for (MKL_INT64 p_idx=0; p_idx<Np; p_idx++){
+			for (MKL_INT64 q_idx=0; q_idx<Nq; q_idx++){
+				for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
+					for (MKL_INT64 alpha=0; alpha<Nalpha; alpha++){
+						for (MKL_INT64 alpha_p=0; alpha_p<Nalpha; alpha_p++){
+							Gtilde_array[alpha*Nalpha*Np*Nq*Nx + alpha_p*Np*Nq*Nx + p_idx*Nq*Nx + q_idx*Nx + x_idx]
+								= Gtilde_new (p_array[p_idx], q_array[q_idx], x_array[x_idx], alpha, alpha_p, Nalpha, L_max, L_2N_array, L_1N_array, Atilde_array, two_J_3N);
+
+							counter += 1;
+			
+							if (print_Gtilde_progress){
+								frac_n = (100*counter)/fullsize;
+								if (frac_n>frac_o){std::cout << frac_n << "%" << std::endl; frac_o=frac_n;}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void calculate_Gtilde_subarray(double* Gtilde_subarray,
+							   double* Atilde_subarray,
+							   int  Nx, double* x_array,
+							   int  Nq, double* q_array,
+							   int  Np, double* p_array,
+							   int  L_2N, int L_2N_prime,
+							   int  L_1N, int L_1N_prime,
+							   int  two_J_3N){
+
+	bool print_Gtilde_progress = false;
+
+	long int fullsize = Np*Nq*Nx;
+	long int counter = 0;
+	int frac_n, frac_o=0;
+	
+	#pragma omp parallel
+	{
+		#pragma omp for
+
+		for (MKL_INT64 p_idx=0; p_idx<Np; p_idx++){
+			for (MKL_INT64 q_idx=0; q_idx<Nq; q_idx++){
+				for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
+					Gtilde_subarray[p_idx*Nq*Nx + q_idx*Nx + x_idx]
+						= Gtilde_subarray_new (p_array[p_idx],
+											   q_array[q_idx],
+											   x_array[x_idx],
+											   L_2N, L_2N_prime,
+											   L_1N, L_1N_prime,
+											   Atilde_subarray,
+											   two_J_3N);
+
+					counter += 1;
+			
+					if (print_Gtilde_progress){
+						frac_n = (100*counter)/fullsize;
+						if (frac_n>frac_o){std::cout << frac_n << "%" << std::endl; frac_o=frac_n;}
+					}
+				}
+			}
+		}
+	}
 }
 
 void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
@@ -307,7 +113,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	/* Notation change */
 	int two_J = two_J_3N;
 	int two_T = two_T_3N;
-	//int PAR   = parity_3N;
+	
 	int Nx_Gtilde = Nx;
 	int Jj_dim = Nalpha;
 	int Np_3N = Np;
@@ -321,7 +127,6 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	int* two_j3_Jj = two_J_1N_array;
 
 	bool print_content = true;
-	bool print_Gtilde_progress = false;
 
 	double* p_3N = p_array;
 	double* q_3N = q_array;
@@ -329,10 +134,6 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 	/* START OF OLD CODE SEGMENT WITH OLD VARIABLE-NOTATION */
 	/* This code calculates the geometric function Gtilde_{alpha,alpha'}(p',q',x) as an array */
-
-	int J12_max;
-	double pmax_3N;
-	double qmax_3N;
 
 	// determine optimized Lmax: Lmax = max(get_L)+max(get_l)
 	int max_L12 = 0;
@@ -350,80 +151,11 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	int l_interpolate_max = l_interpolate_max = 2 * (lmax - 3) + 3;
 
 	if (print_content){
-		std::cout << "lmax = " << lmax << ", l_interpolate_max = " << l_interpolate_max << "\n";
+		std::cout << "   - lmax = " << lmax << ", l_interpolate_max = " << l_interpolate_max << "\n";
 	}
 
 	int Lmax = max_L12 + max_l3;
-	int kLegendremax = 2 * max_L12;
-
-	int two_jmax_Clebsch = 2 * lmax;
-	int jmax_Clebsch = lmax;
 	int two_jmax_SixJ = 2 * lmax; // do we need to prestore 6j??
-	
-	// prestore Clebsch Gordan coefficients
-	//if (print_content){
-	//    std::cout << "prestore ClebschGordan...\n";
-	//}
-	//double *ClebschGordan_data = new double[(two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (2 * two_jmax_Clebsch + 1)];
-//
-	//#pragma omp parallel
-	//{
-	//    #pragma omp for collapse(3)
-//
-	//    for (int two_j1 = 0; two_j1 <= two_jmax_Clebsch; two_j1++){
-	//        for (int two_j2 = 0; two_j2 <= two_jmax_Clebsch; two_j2++){
-	//            for (int two_j3 = 0; two_j3 <= 2 * two_jmax_Clebsch; two_j3++){
-	//                for (int two_m1 = -two_j1; two_m1 <= two_j1; two_m1++){
-	//                    for (int two_m2 = -two_j2; two_m2 <= two_j2; two_m2++){
-	//                        ClebschGordan_data[((two_j1 + 1) * (two_j1 + 1) + two_m1 - two_j1 - 1) * (two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (2 * two_jmax_Clebsch + 1)
-	//                                           + ((two_j2 + 1) * (two_j2 + 1) + two_m2 - two_j2 - 1) * (2 * two_jmax_Clebsch + 1)
-	//                                           + two_j3]
-	//                            = ClebschGordan(two_j1, two_j2, two_j3, two_m1, two_m2, two_m1 + two_m2);
-	//                    }
-	//                }
-	//            }
-	//        }
-	//    }
-	//}
-
-	//if (print_content){
-	//    std::cout << "prestore ClebschGordan_int...\n";
-	//}
-	//double *ClebschGordan_int_data = new double[(jmax_Clebsch + 1) * (jmax_Clebsch + 1) * (jmax_Clebsch + 1) * (jmax_Clebsch + 1) * (2 * jmax_Clebsch + 1)];
-//
-	//#pragma omp parallel
-	//{
-	//    #pragma omp for collapse(3)
-//
-	//    for (int j1 = 0; j1 <= jmax_Clebsch; j1++){
-	//        for (int j2 = 0; j2 <= jmax_Clebsch; j2++){
-	//            for (int j3 = 0; j3 <= 2 * jmax_Clebsch; j3++){
-	//                for (int m1 = -j1; m1 <= j1; m1++){
-	//                    for (int m2 = -j2; m2 <= j2; m2++){
-	//                        ClebschGordan_int_data[((j1 + 1) * (j1 + 1) + m1 - j1 - 1) * (jmax_Clebsch + 1) * (jmax_Clebsch + 1) * (2 * jmax_Clebsch + 1)
-	//                                               + ((j2 + 1) * (j2 + 1) + m2 - j2 - 1) * (2 * jmax_Clebsch + 1)
-	//                                               + j3]
-	//                            = ClebschGordan(2 * j1, 2 * j2, 2 * j3, 2 * m1, 2 * m2, 2 * m1 + 2 * m2);
-	//                    }
-	//                }
-	//            }
-	//        }
-	//    }
-	//}
-	
-	//int shat_dim = 1000;
-	//double *shat_data = new double[shat_dim];
-	//for (int j = 0; j <= shat_dim - 1; j++)
-	//{
-	//    shat_data[j] = sqrt(2 * j + 1);
-	//}
-	
-	//MKL_INT64 Pdim = Np_3N * Nq_3N * Jj_dim;
-	//double *P123_store = new double[Pdim * Pdim];
-	//
-	//for (MKL_INT64 i = 0; i <= Pdim * Pdim - 1; i++){
-	//    P123_store[i] = 0.0;
-	//}
 	
 	// for angular integration in Gtilde
 	double x_Gtilde[Nx_Gtilde];
@@ -431,28 +163,19 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 	calc_gauss_points (x_Gtilde, wx_Gtilde, -1.0, 1.0, Nx_Gtilde);
 
-	MKL_INT64 g_N = (kLegendremax + 1) * (Lmax + 1) * (Lmax + 1) * Jj_dim * Jj_dim;
-	double *gtilde_array = new double[g_N];
-
-	MKL_INT64 Gtilde_N = Jj_dim * Jj_dim * Np_3N * Nq_3N * Nx_Gtilde;
-	MKL_INT64 Atilde_N = Jj_dim * Jj_dim * (Lmax + 1);
-
-	double *Gtilde_store = new double[Gtilde_N];
-	double *Atilde_store = new double[Atilde_N];
-
-	for (MKL_INT64 i = 0; i <= Atilde_N - 1; i++)
-	{
-		Atilde_store[i] = 0.0;
-	}
+	if (print_content){std::cout << "   - Nalpha    = " <<  Jj_dim << std::endl;}
+	if (print_content){std::cout << "   - Np        = " <<  Np_3N << std::endl;}
+	if (print_content){std::cout << "   - Nq        = " <<  Nq_3N << std::endl;}
+	if (print_content){std::cout << "   - Nx_Gtilde = " <<  Nx_Gtilde << std::endl;}
 
 	if (print_content){
-		std::cout << "prestore SixJ...\n";
+		std::cout << "   - prestore SixJ...\n";
 	}
 	double *SixJ_array = new double[(two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1)];
-	if (print_content){
-		std::cout << "SixJ_test (>0?):" << (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) << "\n";
+	int SixJ_size = (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1);
+	if (SixJ_size < 0){
+		raise_error("SixJ_array in make_permutation_matrix had negative size, likely an integer overflow. Check your dimensions.");
 	}
-
 	#pragma omp parallel for collapse(3)
 	for (int two_l1 = 0; two_l1 <= two_jmax_SixJ; two_l1++){
 		for (int two_l2 = 0; two_l2 <= two_jmax_SixJ; two_l2++){
@@ -478,57 +201,42 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	}
 
 	if (print_content){
-		std::cout << "calculate permutation matrix elements\n";
+		std::cout << "   - Started working on Atilde\n";
 	}
-
-	pmax_3N = 0.0;
-	qmax_3N = 0.0;
-
-	/* WARNING: This loop ASSUMES two_J and two_T are already conserved between alpha and alphaprime */
+	MKL_INT64 Atilde_N = Jj_dim * Jj_dim * (Lmax + 1);
+	double *Atilde_store = new double[Atilde_N];
+	for (MKL_INT64 i=0; i<Atilde_N; i++){
+		Atilde_store[i] = 0.0;
+	}
 	for (int alpha = 0; alpha <= Jj_dim - 1; alpha++){
-		//int two_J = two_J_3N_array[alpha];
-		//int two_T = two_T_3N_array[alpha];
 		for (int alphaprime = 0; alphaprime <= Jj_dim - 1; alphaprime++){
 			for (int Ltotal = 0; Ltotal <= Lmax; Ltotal++){
 				Atilde_store[alpha * Jj_dim * (Lmax + 1) + alphaprime * (Lmax + 1) + Ltotal] = Atilde (alpha, alphaprime, Ltotal, Jj_dim, L12_Jj, l3_Jj, J12_Jj, two_j3_Jj, S12_Jj, T12_Jj, two_J, two_T, SixJ_array, two_jmax_SixJ);
 			}
 		}
 	}
-
 	if (print_content){
-		std::cout << "Started working on Gtilde\n";
+		std::cout << "   - Finished working on Atilde\n";
 	}
-	long int fullsize = Np_3N*Nq_3N*Nx_Gtilde*Jj_dim*(Jj_dim - 1);
-	long int counter = 0;
-	int frac_n, frac_o=0;
-	#pragma omp parallel
-	{
-		#pragma omp for
 
-		for (MKL_INT64 p_index = 0; p_index <= Np_3N - 1; p_index++){
-			for (MKL_INT64 q_index = 0; q_index <= Nq_3N - 1; q_index++){
-				for (MKL_INT64 x_index = 0; x_index <= Nx_Gtilde - 1; x_index++){
-					for (MKL_INT64 alpha = 0; alpha <= Jj_dim - 1; alpha++){
-						//int two_J = two_J_3N_array[alpha];
-						for (MKL_INT64 alphaprime = 0; alphaprime <= Jj_dim - 1; alphaprime++){
-							Gtilde_store[alpha * Jj_dim * Np_3N * Nq_3N * Nx_Gtilde + alphaprime * Np_3N * Nq_3N * Nx_Gtilde + p_index * Nq_3N * Nx_Gtilde + q_index * Nx_Gtilde + x_index]
-								= Gtilde_new (p_3N[p_index], q_3N[q_index], x_Gtilde[x_index], alpha, alphaprime, Jj_dim, Lmax, L12_Jj, l3_Jj, Atilde_store, two_J);
-
-							counter += 1;
-			
-							if (print_Gtilde_progress){
-								frac_n = (100*counter)/fullsize;
-								if (frac_n>frac_o){std::cout << frac_n << "%" << std::endl; frac_o=frac_n;}
-							}
-						}
-					}
-				}
-			}
-		}
+	/*if (print_content){
+		std::cout << "   - Started working on Gtilde\n";
 	}
+	MKL_INT64 Gtilde_N = Jj_dim * Jj_dim * Np_3N * Nq_3N * Nx_Gtilde;
+	double *Gtilde_store = new double[Gtilde_N];
+	calculate_Gtilde_array(Gtilde_store,
+						   Atilde_store,
+						   Nx_Gtilde, x_Gtilde,
+						   Nq_3N, q_3N,
+						   Np_3N, p_3N,
+						   Jj_dim,
+						   Lmax,
+						   L12_Jj,
+						   l3_Jj,
+						   two_J);
 	if (print_content){
-		std::cout << "Finished working on Gtilde\n";
-	}
+		std::cout << "   - Finished working on Gtilde\n";
+	}*/
 
 	/* END OF OLD CODE SEGMENT WITH OLD VARIABLE-NOTATION */
 
@@ -563,6 +271,9 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	int P123_row_idx      = 0;
 	int P123_col_idx      = 0;
 	int current_array_dim = sparse_step_length;
+
+	MKL_INT64 Gtilde_subarray_N = Np_per_WP * Nq_per_WP * Nx_Gtilde;
+	double *Gtilde_subarray = new double[Gtilde_subarray_N];
 	/* <X_i'j'^alpha'| - loops (rows of P123) */
 	for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
 		if (print_content){
@@ -570,11 +281,39 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 		}
 		for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
 			for (int pp_idx_WP = 0; pp_idx_WP < Np_WP; pp_idx_WP++){
-
 				P123_row_idx = alphap_idx*Nq_WP*Np_WP + qp_idx_WP*Np_WP +  pp_idx_WP;
-
 				/* |X_ij^alpha> - loops (columns of P123) */
 				for (int alpha_idx = 0; alpha_idx < Nalpha; alpha_idx++){
+
+					int L_2N = L_2N_array[alphap_idx];
+					int L_1N = L_1N_array[alphap_idx];
+					
+					int L_2N_prime = L_2N_array[alpha_idx];
+					int L_1N_prime = L_1N_array[alpha_idx];
+
+					calculate_Gtilde_subarray(Gtilde_subarray,
+											  &Atilde_store[alphap_idx*Nalpha*(Lmax+1) + alpha_idx*(Lmax+1)],
+											  Nx, x_array,
+											  Nq_per_WP, &q_array[qp_idx_WP*Nq_per_WP],
+											  Np_per_WP, &p_array[pp_idx_WP*Np_per_WP],
+											  L_2N, L_2N_prime,
+											  L_1N, L_1N_prime,
+											  two_J_3N);
+						
+					//printf("%d %d %d %d \n", alphap_idx, qp_idx_WP, pp_idx_WP, alpha_idx);
+					//for (MKL_INT64 p_idx=pp_idx_WP*Np_per_WP; p_idx<(pp_idx_WP+1)*Np_per_WP; p_idx++){
+					//	for (MKL_INT64 q_idx=qp_idx_WP*Nq_per_WP; q_idx<(qp_idx_WP+1)*Nq_per_WP; q_idx++){
+					//		for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
+					//			double G_sub  = Gtilde_subarray[(p_idx-pp_idx_WP*Np_per_WP)*Nq_per_WP*Nx + (q_idx-qp_idx_WP*Nq_per_WP)*Nx + x_idx];
+					//			double G_full = Gtilde_store[alphap_idx*Nalpha*Np*Nq*Nx + alpha_idx*Np*Nq*Nx + p_idx*Nq*Nx + q_idx*Nx + x_idx];
+					//			printf("%d %d %d %.16f %.16f \n", p_idx, q_idx, x_idx, G_sub, G_full);
+					//			if (abs(G_full-G_sub)>1e-15){
+					//				raise_error("fuck");
+					//			}
+					//		}
+					//	}
+					//}
+
 					for (int q_idx_WP = 0; q_idx_WP < Nq_WP; q_idx_WP++){
 						for (int p_idx_WP = 0; p_idx_WP < Np_WP; p_idx_WP++){
 
@@ -588,7 +327,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 																					   Np_WP, p_array_WP_bounds,
 																					   Nq_WP, q_array_WP_bounds,
 																					   Nalpha,
-																					   Gtilde_store );
+																					   Gtilde_subarray);
+																					   //Gtilde_store );
 																					   
 							if (use_dense_format){
 								int P123_mat_idx              = (int) P123_row_idx*P123_dense_dim + P123_col_idx;
@@ -632,8 +372,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	}
 
 	/* Delete all temporary arrays */
-	delete [] gtilde_array;
-	delete [] Gtilde_store;
+	//delete [] Gtilde_store;
+	delete [] Gtilde_subarray;
 	delete [] Atilde_store;
 	delete [] SixJ_array;
 }

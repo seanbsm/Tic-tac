@@ -693,7 +693,8 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
 
             for (int x_idx = 0; x_idx <= Nx - 1; x_idx++){
                 
-                double G_element = Gtilde_store[alphap_idx*Nalpha*Np*Nq*Nx + alpha_idx*Np*Nq*Nx + pp_idx*Nq*Nx + qp_idx*Nx + x_idx];
+                //double G_element = Gtilde_store[alphap_idx*Nalpha*Np*Nq*Nx + alpha_idx*Np*Nq*Nx + pp_idx*Nq*Nx + qp_idx*Nx + x_idx];
+                double G_element = Gtilde_store[(pp_idx-pp_idx_lower)*Nq_per_WP*Nx + (qp_idx-qp_idx_lower)*Nx + x_idx];
 
                 double p_bar = pi1_tilde(p_array[pp_idx], q_array[qp_idx], x_array[x_idx]);
                 double q_bar = pi2_tilde(p_array[pp_idx], q_array[qp_idx], x_array[x_idx]);
@@ -792,6 +793,63 @@ double Gtilde_new (double p, double q, double x, int alpha, int alphaprime, int 
     for (int Ltotal = max(abs(L12 - l3), abs(L12prime - l3prime)); Ltotal <= min((two_Jtotal + 5) / 2, min(L12 + l3, L12prime + l3prime)); Ltotal++)
     {
         fac1 = 8.0 * M_PI * M_PI * A_store[alpha * N_alpha * (Lmax + 1) + alphaprime * (Lmax + 1) + Ltotal];
+        
+        for (int Mtotal = -min(l3, Ltotal); Mtotal <= min(l3, Ltotal); Mtotal++)
+        {
+
+            fac2 = ClebschGordan(2 * L12, 2 * l3, 2 * Ltotal, 0, 2 * Mtotal, 2 * Mtotal)
+                   * sqrt((2.0 * L12 + 1) / (4 * M_PI))
+                   * gsl_sf_pow_int(-1, Mtotal)
+                   * Plm(l3, Mtotal, x); // -1^M phase since azimutal angles of p' and q' = pi
+
+            for (int M12primesum = -L12prime; M12primesum <= L12prime; M12primesum++)
+            {
+                if (abs(Mtotal - M12primesum) <= l3prime)
+                {
+                    ret += fac1
+                           * fac2
+                           * ClebschGordan(2 * L12prime, 2 * l3prime, 2 * Ltotal, 2 * M12primesum, 2 * Mtotal - 2 * M12primesum, 2 * Mtotal)
+                           * Plm(L12prime, M12primesum, costheta1)
+                           * Plm(l3prime, Mtotal - M12primesum, costheta2);
+                }
+            }
+        }
+    }
+
+    return ret;
+
+}
+
+double Gtilde_subarray_new (double p, double q, double x, int L12, int L12prime, int l3, int l3prime, double *A_store_alpha_alphaprime_subarray, int two_Jtotal){
+
+    double ret = 0.0;
+
+    double fac1, fac2;
+
+    double pi1 = pi1_tilde(p, q, x);
+    double pi2 = pi2_tilde(p, q, x);
+
+    double costheta1 = -(0.5 * p + 0.75 * q * x) / pi1;
+    double costheta2 = (p - 0.5 * q * x) / pi2;
+
+    /* Prevent numerical error in Plm */
+    if ( costheta1>1 ){
+        costheta1 = 1;
+    }
+    else if( costheta1<-1 ){
+        costheta1 = -1;
+    }
+    
+    /* Prevent numerical error in Plm */
+    if ( costheta2>1 ){
+        costheta2 = 1;
+    }
+    else if( costheta2<-1 ){
+        costheta2 = -1;
+    }
+
+    for (int Ltotal = max(abs(L12 - l3), abs(L12prime - l3prime)); Ltotal <= min((two_Jtotal + 5) / 2, min(L12 + l3, L12prime + l3prime)); Ltotal++){
+        fac1 = 8.0 * M_PI * M_PI * A_store_alpha_alphaprime_subarray[Ltotal];
 
         for (int Mtotal = -min(l3, Ltotal); Mtotal <= min(l3, Ltotal); Mtotal++)
         {

@@ -324,7 +324,7 @@ int main(int argc, char* argv[]){
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
 			
-		//if (calculate_and_store_P123){
+		if (calculate_and_store_P123){
 			int Nx 			 = 20;
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];
@@ -354,38 +354,35 @@ int main(int argc, char* argv[]){
 	
 			printf("Storing P123 to h5 ... \n");
 			auto timestamp_P123_store_start = chrono::system_clock::now();
-			//store_sparse_permutation_matrix_for_3N_channel_h5(P123_sparse_val_array,
-			//												  P123_sparse_row_array,
-			//												  P123_sparse_col_array,
-			//												  P123_sparse_dim,
-			//												  Np_WP, p_WP_array,
-			//												  Nq_WP, q_WP_array,
-			//												  Nalpha_in_3N_chn,
-			//												  L_2N_subarray,
-			//												  S_2N_subarray,
-			//												  J_2N_subarray,
-			//												  T_2N_subarray,
-			//												  L_1N_subarray,
-			//												  two_J_1N_subarray,
-			//												  two_J_3N,
-			//												  two_T_3N,
-			//												  P_3N,
-			//										   		  P123_filename);
+			store_sparse_permutation_matrix_for_3N_channel_h5(P123_sparse_val_array,
+															  P123_sparse_row_array,
+															  P123_sparse_col_array,
+															  P123_sparse_dim,
+															  Np_WP, p_WP_array,
+															  Nq_WP, q_WP_array,
+															  Nalpha_in_3N_chn,
+															  L_2N_subarray,
+															  S_2N_subarray,
+															  J_2N_subarray,
+															  T_2N_subarray,
+															  L_1N_subarray,
+															  two_J_1N_subarray,
+															  two_J_3N,
+															  two_T_3N,
+															  P_3N,
+													   		  P123_filename);
 			auto timestamp_P123_store_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
-		//}
-		//else if (solve_faddeev){
+		}
+		else if (solve_faddeev){
 			printf("Reading P123 from h5 ... \n");
-		double* P123_sparse_val_array_t = NULL;
-		int* 	P123_sparse_row_array_t = NULL;
-		int* 	P123_sparse_col_array_t = NULL;
-		int	    P123_sparse_dim_t		  = 0;
+	
 			auto timestamp_P123_read_start = chrono::system_clock::now();
-			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array_t,
-															  &P123_sparse_row_array_t,
-															  &P123_sparse_col_array_t,
-															  P123_sparse_dim_t,
+			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array,
+															  &P123_sparse_row_array,
+															  &P123_sparse_col_array,
+															  P123_sparse_dim,
 															  Np_WP, p_WP_array,
 															  Nq_WP, q_WP_array,
 															  Nalpha_in_3N_chn,
@@ -402,14 +399,7 @@ int main(int argc, char* argv[]){
 			auto timestamp_P123_read_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_read.count());
-
-			for (int idx=0; idx<P123_sparse_dim; idx++){
-				if (abs(P123_sparse_val_array_t[idx]-P123_sparse_val_array[idx])>1e-15){
-					printf("%.16f %.16f \n", P123_sparse_val_array_t[idx], P123_sparse_val_array[idx]);
-					//raise_error("test failed");
-				}
-			}
-		//}
+		}
 		
 		/* End of code segment for permutation matrix construction */
 

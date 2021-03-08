@@ -63,28 +63,23 @@ void calculate_Gtilde_subarray(double* Gtilde_subarray,
 	long int counter = 0;
 	int frac_n, frac_o=0;
 	
-	#pragma omp parallel
-	{
-		#pragma omp for
+	for (MKL_INT64 p_idx=0; p_idx<Np; p_idx++){
+		for (MKL_INT64 q_idx=0; q_idx<Nq; q_idx++){
+			for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
+				Gtilde_subarray[p_idx*Nq*Nx + q_idx*Nx + x_idx]
+					= Gtilde_subarray_new (p_array[p_idx],
+										   q_array[q_idx],
+										   x_array[x_idx],
+										   L_2N, L_2N_prime,
+										   L_1N, L_1N_prime,
+										   Atilde_subarray,
+										   two_J_3N);
 
-		for (MKL_INT64 p_idx=0; p_idx<Np; p_idx++){
-			for (MKL_INT64 q_idx=0; q_idx<Nq; q_idx++){
-				for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
-					Gtilde_subarray[p_idx*Nq*Nx + q_idx*Nx + x_idx]
-						= Gtilde_subarray_new (p_array[p_idx],
-											   q_array[q_idx],
-											   x_array[x_idx],
-											   L_2N, L_2N_prime,
-											   L_1N, L_1N_prime,
-											   Atilde_subarray,
-											   two_J_3N);
-
-					counter += 1;
+				counter += 1;
 			
-					if (print_Gtilde_progress){
-						frac_n = (100*counter)/fullsize;
-						if (frac_n>frac_o){std::cout << frac_n << "%" << std::endl; frac_o=frac_n;}
-					}
+				if (print_Gtilde_progress){
+					frac_n = (100*counter)/fullsize;
+					if (frac_n>frac_o){std::cout << frac_n << "%" << std::endl; frac_o=frac_n;}
 				}
 			}
 		}
@@ -171,8 +166,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	if (print_content){
 		std::cout << "   - prestore SixJ...\n";
 	}
-	double *SixJ_array = new double[(two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1)];
 	int SixJ_size = (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1);
+	double *SixJ_array = new double[SixJ_size];
 	if (SixJ_size < 0){
 		raise_error("SixJ_array in make_permutation_matrix had negative size, likely an integer overflow. Check your dimensions.");
 	}
@@ -240,40 +235,40 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 	/* END OF OLD CODE SEGMENT WITH OLD VARIABLE-NOTATION */
 	
-	long int P123_dense_dim = Np_WP * Nq_WP * Nalpha;
-	
 	/* Preallocate array if we use dense format. Otherwise (i.e. sparse) start with
 	 * some reasonable guess (usually less than a percent), and expand if required. */
-	long int dense_array_size   = P123_dense_dim * P123_dense_dim;
-	int sparse_step_length = 0;
+	long int P123_dense_dim    = Np_WP * Nq_WP * Nalpha;
+	long int P123_dense_dim_sq = P123_dense_dim * P123_dense_dim;
+	int sparse_step_length     = 0;
 	
+	/* WRITE CODE TO BE PARALLEL OVER COLUMNS, AND EXTEND ARRAYS BY SOME MULTIPLE OF COLUMN LENGTH */
+
 	if (use_dense_format){
-		*P123_val_dense_array = new double [dense_array_size];
+		*P123_val_dense_array = new double [P123_dense_dim_sq];
 		P123_dim        = P123_dense_dim;
 	}
 	else{
-		if (dense_array_size>10000){
-			sparse_step_length = dense_array_size/10000;
+		if (P123_dense_dim_sq>1e6){
+			sparse_step_length = P123_dense_dim;
 		}
 		else{
-			sparse_step_length = dense_array_size;
+			sparse_step_length = P123_dense_dim_sq;
 		}
 
 		/* The sparse dimension is determined by counting, see the loops below */
 		P123_dim = 0;
 
 		*P123_val_sparse_array = new double [sparse_step_length];
-		*P123_row_array = new int    [sparse_step_length];
-		*P123_col_array = new int    [sparse_step_length];
+		*P123_row_array 	   = new int    [sparse_step_length];
+		*P123_col_array 	   = new int    [sparse_step_length];
 	}
 	
-	int P123_mat_idx      = 0;
-	int P123_row_idx      = 0;
-	int P123_col_idx      = 0;
 	int current_array_dim = sparse_step_length;
 
 	MKL_INT64 Gtilde_subarray_N = Np_per_WP * Nq_per_WP * Nx_Gtilde;
-	double *Gtilde_subarray = new double[Gtilde_subarray_N];
+	//double *Gtilde_subarray = new double[Gtilde_subarray_N];
+
+	double *P123_col_val_array = new double[P123_dense_dim];
 	/* <X_i'j'^alpha'| - loops (rows of P123) */
 	for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
 		if (print_content){
@@ -281,82 +276,93 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 		}
 		for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
 			for (int pp_idx_WP = 0; pp_idx_WP < Np_WP; pp_idx_WP++){
-				P123_row_idx = alphap_idx*Nq_WP*Np_WP + qp_idx_WP*Np_WP +  pp_idx_WP;
+				int P123_row_idx = alphap_idx*Nq_WP*Np_WP + qp_idx_WP*Np_WP +  pp_idx_WP;
+				
 				/* |X_ij^alpha> - loops (columns of P123) */
-				for (int alpha_idx = 0; alpha_idx < Nalpha; alpha_idx++){
+				#pragma omp parallel
+				{
+					#pragma omp for
+					for (int alpha_idx = 0; alpha_idx < Nalpha; alpha_idx++){
 
-					int L_2N = L_2N_array[alphap_idx];
-					int L_1N = L_1N_array[alphap_idx];
-					
-					int L_2N_prime = L_2N_array[alpha_idx];
-					int L_1N_prime = L_1N_array[alpha_idx];
+						int L_2N = L_2N_array[alphap_idx];
+						int L_1N = L_1N_array[alphap_idx];
 
-					calculate_Gtilde_subarray(Gtilde_subarray,
-											  &Atilde_store[alphap_idx*Nalpha*(Lmax+1) + alpha_idx*(Lmax+1)],
-											  Nx, x_array,
-											  Nq_per_WP, &q_array[qp_idx_WP*Nq_per_WP],
-											  Np_per_WP, &p_array[pp_idx_WP*Np_per_WP],
-											  L_2N, L_2N_prime,
-											  L_1N, L_1N_prime,
-											  two_J_3N);
-						
-					//printf("%d %d %d %d \n", alphap_idx, qp_idx_WP, pp_idx_WP, alpha_idx);
-					//for (MKL_INT64 p_idx=pp_idx_WP*Np_per_WP; p_idx<(pp_idx_WP+1)*Np_per_WP; p_idx++){
-					//	for (MKL_INT64 q_idx=qp_idx_WP*Nq_per_WP; q_idx<(qp_idx_WP+1)*Nq_per_WP; q_idx++){
-					//		for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
-					//			double G_sub  = Gtilde_subarray[(p_idx-pp_idx_WP*Np_per_WP)*Nq_per_WP*Nx + (q_idx-qp_idx_WP*Nq_per_WP)*Nx + x_idx];
-					//			double G_full = Gtilde_store[alphap_idx*Nalpha*Np*Nq*Nx + alpha_idx*Np*Nq*Nx + p_idx*Nq*Nx + q_idx*Nx + x_idx];
-					//			printf("%d %d %d %.16f %.16f \n", p_idx, q_idx, x_idx, G_sub, G_full);
-					//			if (abs(G_full-G_sub)>1e-15){
-					//				raise_error("fuck");
-					//			}
-					//		}
-					//	}
-					//}
+						int L_2N_prime = L_2N_array[alpha_idx];
+						int L_1N_prime = L_1N_array[alpha_idx];
 
-					for (int q_idx_WP = 0; q_idx_WP < Nq_WP; q_idx_WP++){
-						for (int p_idx_WP = 0; p_idx_WP < Np_WP; p_idx_WP++){
+						double Gtilde_subarray [Gtilde_subarray_N];
+						calculate_Gtilde_subarray(Gtilde_subarray,
+												  &Atilde_store[alphap_idx*Nalpha*(Lmax+1) + alpha_idx*(Lmax+1)],
+												  Nx, x_array,
+												  Nq_per_WP, &q_array[qp_idx_WP*Nq_per_WP],
+												  Np_per_WP, &p_array[pp_idx_WP*Np_per_WP],
+												  L_2N, L_2N_prime,
+												  L_1N, L_1N_prime,
+												  two_J_3N);
 
-							P123_col_idx = alpha_idx*Nq_WP*Np_WP + q_idx_WP*Np_WP + p_idx_WP;
-							
-							double P123_element = calculate_P123_element_in_WP_basis (  alpha_idx,  p_idx_WP,  q_idx_WP, 
-																					   alphap_idx, pp_idx_WP, qp_idx_WP, 
-																					   Np_per_WP, p_array, wp_array,
-																					   Nq_per_WP, q_array, wq_array,
-																					   Nx,    x_array, wx_array,
-																					   Np_WP, p_array_WP_bounds,
-																					   Nq_WP, q_array_WP_bounds,
-																					   Nalpha,
-																					   Gtilde_subarray);
-																					   //Gtilde_store );
-																					   
-							if (use_dense_format){
-								int P123_mat_idx              = (int) P123_row_idx*P123_dense_dim + P123_col_idx;
-								(*P123_val_dense_array)[P123_mat_idx] = P123_element;
-							}
-							else if (P123_element!=0){  // For a sparse matrix this should enacted very few times
-								/* Append to sparse value and index arrays */
-								(*P123_val_sparse_array)[P123_dim] = P123_element;
-								(*P123_row_array)[P123_dim]        = P123_row_idx;
-								(*P123_col_array)[P123_dim]        = P123_col_idx;
+						//printf("%d %d %d %d \n", alphap_idx, qp_idx_WP, pp_idx_WP, alpha_idx);
+						//for (MKL_INT64 p_idx=pp_idx_WP*Np_per_WP; p_idx<(pp_idx_WP+1)*Np_per_WP; p_idx++){
+						//	for (MKL_INT64 q_idx=qp_idx_WP*Nq_per_WP; q_idx<(qp_idx_WP+1)*Nq_per_WP; q_idx++){
+						//		for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
+						//			double G_sub  = Gtilde_subarray[(p_idx-pp_idx_WP*Np_per_WP)*Nq_per_WP*Nx + (q_idx-qp_idx_WP*Nq_per_WP)*Nx + x_idx];
+						//			double G_full = Gtilde_store[alphap_idx*Nalpha*Np*Nq*Nx + alpha_idx*Np*Nq*Nx + p_idx*Nq*Nx + q_idx*Nx + x_idx];
+						//			printf("%d %d %d %.16f %.16f \n", p_idx, q_idx, x_idx, G_sub, G_full);
+						//			if (abs(G_full-G_sub)>1e-15){
+						//				raise_error("fuck");
+						//			}
+						//		}
+						//	}
+						//}
 
-								/* Increment sparse dimension (num of non-zero elements) */
-								P123_dim += 1;
+						for (int q_idx_WP = 0; q_idx_WP < Nq_WP; q_idx_WP++){
+							for (int p_idx_WP = 0; p_idx_WP < Np_WP; p_idx_WP++){
 
-								/* If the dimension goes over the array dimension we increase the array size
-								 * via a copy-paste-type routine, and increment the current array dimension */
-								if ( P123_dim>=current_array_dim ){  // This should occur a small amount of the time
-									increase_sparse_array_size(P123_val_sparse_array, current_array_dim, sparse_step_length);
-									increase_sparse_array_size(P123_row_array,        current_array_dim, sparse_step_length);
-									increase_sparse_array_size(P123_col_array,        current_array_dim, sparse_step_length);
+								int P123_col_idx = alpha_idx*Nq_WP*Np_WP + q_idx_WP*Np_WP + p_idx_WP;
 
-									/* Increment sparse-array dimension */
-									current_array_dim += sparse_step_length;
+								double P123_element = calculate_P123_element_in_WP_basis (  alpha_idx,  p_idx_WP,  q_idx_WP, 
+																						   alphap_idx, pp_idx_WP, qp_idx_WP, 
+																						   Np_per_WP, p_array, wp_array,
+																						   Nq_per_WP, q_array, wq_array,
+																						   Nx,    x_array, wx_array,
+																						   Np_WP, p_array_WP_bounds,
+																						   Nq_WP, q_array_WP_bounds,
+																						   Nalpha,
+																						   Gtilde_subarray);
+																						   //Gtilde_store );
+
+								if (use_dense_format){
+									int P123_mat_idx              = (int) P123_row_idx*P123_dense_dim + P123_col_idx;
+									(*P123_val_dense_array)[P123_mat_idx] = P123_element;
+								}
+								else{
+									P123_col_val_array[P123_col_idx] = P123_element;
 								}
 							}
-							else{ // If the element is zero and a sparse format is in use, simply move on
-								continue;
-							}
+						}
+					}
+				}
+
+				/* Loop through column-element and append non-zero elements */
+				for (int P123_col_idx = 0; P123_col_idx < P123_dense_dim; P123_col_idx++){
+					double P123_element = P123_col_val_array[P123_col_idx];
+					if (P123_element!=0){
+						/* Append to sparse value and index arrays */
+						(*P123_val_sparse_array)[P123_dim] = P123_element;
+						(*P123_row_array)[P123_dim]        = P123_row_idx;
+						(*P123_col_array)[P123_dim]        = P123_col_idx;
+
+						/* Increment sparse dimension (num of non-zero elements) */
+						P123_dim += 1;
+
+						/* If the dimension goes over the array dimension we increase the array size
+						 * via a copy-paste-type routine, and increment the current array dimension */
+						if ( P123_dim>=current_array_dim ){  // This should occur a small amount of the time
+							increase_sparse_array_size(P123_val_sparse_array, current_array_dim, sparse_step_length);
+							increase_sparse_array_size(P123_row_array,        current_array_dim, sparse_step_length);
+							increase_sparse_array_size(P123_col_array,        current_array_dim, sparse_step_length);
+
+							/* Increment sparse-array dimension */
+							current_array_dim += sparse_step_length;
 						}
 					}
 				}
@@ -373,7 +379,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 	/* Delete all temporary arrays */
 	//delete [] Gtilde_store;
-	delete [] Gtilde_subarray;
+	//delete [] Gtilde_subarray;
 	delete [] Atilde_store;
 	delete [] SixJ_array;
 }

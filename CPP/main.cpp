@@ -185,6 +185,22 @@ int main(int argc, char* argv[]){
 								  &two_T_3N_array,
 								  &P_3N_array);
 	printf(" - There are %d 3N-channels \n", N_chn_3N);
+	/* Small script for finding the largest 3N-channel */
+	if (true){
+		int largest_Nalpha 	   = 0;
+		int largest_Nalpha_idx = 0;
+		for (int chn_3N=0; chn_3N<N_chn_3N; chn_3N++){
+			int idx_alpha_lower  = chn_3N_idx_array[chn_3N];
+			int idx_alpha_upper  = chn_3N_idx_array[chn_3N+1];
+			int Nalpha_in_3N_chn = idx_alpha_upper - idx_alpha_lower;
+
+			if (Nalpha_in_3N_chn>largest_Nalpha){
+				largest_Nalpha 	   = Nalpha_in_3N_chn;
+				largest_Nalpha_idx = chn_3N;
+			}
+		}
+		printf(" - Channel number %d is the largest channel (%d partial-wave states) \n", largest_Nalpha_idx, largest_Nalpha);
+	}
 	printf(" - Done \n");
 
 	//double estimate = 0;

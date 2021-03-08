@@ -153,8 +153,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	int two_jmax_SixJ = 2 * lmax; // do we need to prestore 6j??
 	
 	// for angular integration in Gtilde
-	double x_Gtilde[Nx_Gtilde];
-	double wx_Gtilde[Nx_Gtilde];
+	double x_Gtilde  [Nx_Gtilde];
+	double wx_Gtilde [Nx_Gtilde];
 
 	calc_gauss_points (x_Gtilde, wx_Gtilde, -1.0, 1.0, Nx_Gtilde);
 
@@ -273,11 +273,14 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
 		if (print_content){
 			printf("   - Working on row state %d/%d \n", alphap_idx, Nalpha);
+			fflush(stdout);
 		}
 		for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
 			for (int pp_idx_WP = 0; pp_idx_WP < Np_WP; pp_idx_WP++){
 				int P123_row_idx = alphap_idx*Nq_WP*Np_WP + qp_idx_WP*Np_WP +  pp_idx_WP;
-				
+				if (print_content){
+					printf("   - Working on row %d of %d\n", P123_row_idx, P123_dense_dim);
+				}
 				/* |X_ij^alpha> - loops (columns of P123) */
 				#pragma omp parallel
 				{

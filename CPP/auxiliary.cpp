@@ -684,35 +684,61 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
     int Np = Np_per_WP*Np_WP;
     int Nq = Nq_per_WP*Nq_WP;
     
+    double pp = 0;
+    double qp = 0;
+    double wp_p_f = 0;
+    double wq_q_f = 0;
+    double integral_factors = 0;
+    double p_bar = 0;
+    double q_bar = 0;
+    double x     = 0;
+    double G_element = 0;
+
+    int G_pp_idx = 0;
+    int G_pp_qp_idx = 0;
+
     for (int pp_idx=pp_idx_lower; pp_idx<pp_idx_upper; pp_idx++){
+        /* p' momentum */
+        pp = p_array[pp_idx];
+        /* Numerical integral coefficients */
+        wp_p_f = wp_array[pp_idx]*pp*p_weight_function(pp);
+
+        G_pp_idx = (pp_idx-pp_idx_lower)*Nq_per_WP*Nx;
+
         for (int qp_idx=qp_idx_lower; qp_idx<qp_idx_upper; qp_idx++){
+            /* q' momentum */
+            qp = q_array[qp_idx];
+            /* Numerical integral coefficients */
+            wq_q_f = wq_array[qp_idx]*qp*q_weight_function(qp);
 
-            double wp_p_f = wp_array[pp_idx]*p_array[pp_idx]*p_weight_function(p_array[pp_idx]);
-            double wq_q_f = wq_array[qp_idx]*q_array[qp_idx]*q_weight_function(q_array[qp_idx]);
-            double integral_factors = wp_p_f * wq_q_f;
+            G_pp_qp_idx = G_pp_idx + (qp_idx-qp_idx_lower)*Nx;
 
-            for (int x_idx = 0; x_idx <= Nx - 1; x_idx++){
-                
-                //double G_element = Gtilde_store[alphap_idx*Nalpha*Np*Nq*Nx + alpha_idx*Np*Nq*Nx + pp_idx*Nq*Nx + qp_idx*Nx + x_idx];
-                double G_element = Gtilde_store[(pp_idx-pp_idx_lower)*Nq_per_WP*Nx + (qp_idx-qp_idx_lower)*Nx + x_idx];
+            integral_factors = wp_p_f * wq_q_f;
 
-                double p_bar = pi1_tilde(p_array[pp_idx], q_array[qp_idx], x_array[x_idx]);
-                double q_bar = pi2_tilde(p_array[pp_idx], q_array[qp_idx], x_array[x_idx]);
+            for (int x_idx=0; x_idx<Nx; x_idx++){
+                x = x_array[x_idx];
+
+                p_bar = pi1_tilde(pp, qp, x);
                 /* Check if p_bar is in bin p_idx_WP, if not then move on to next loop iteration */
                 if ( p_bar<WP_p_bound_lower or WP_p_bound_upper<p_bar ){
                     continue;
                 }
+
+                q_bar = pi2_tilde(pp, qp, x);
                 /* Check if q_bar is in bin q_idx_WP, if not then move on to next loop iteration */
                 if ( q_bar<WP_q_bound_lower or WP_q_bound_upper<q_bar ){
                     continue;
                 }
                 
                 if (run_tests){
-                    double costheta1 = -(0.5 * p_array[pp_idx] + 0.75 * q_array[qp_idx] * x_array[x_idx]) / p_bar;
-                    double costheta2 =        (p_array[pp_idx] - 0.5  * q_array[qp_idx] * x_array[x_idx]) / q_bar;
+                    double costheta1 = -(0.5 * pp + 0.75 * qp * x) / p_bar;
+                    double costheta2 =        (pp - 0.5  * qp * x) / q_bar;
                     if (fabs(costheta1) > 1) cout << "costheta1 problem: " << costheta1 << "\n";
                     if (fabs(costheta2) > 1) cout << "costheta2 problem: " << costheta2 << "\n";
                 }
+
+                //G_element = Gtilde_store[alphap_idx*Nalpha*Np*Nq*Nx + alpha_idx*Np*Nq*Nx + pp_idx*Nq*Nx + qp_idx*Nx + x_idx];
+                G_element = Gtilde_store[G_pp_qp_idx + x_idx];
                 
                 /* BEWARE: I'M NOT 100% SURE ON THE GTILDE ALPHA-INDEXING */
                 integral_sum += integral_factors * wx_array[x_idx] * G_element / (p_bar*q_bar);

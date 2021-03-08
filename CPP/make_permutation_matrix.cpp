@@ -269,19 +269,27 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	//double *Gtilde_subarray = new double[Gtilde_subarray_N];
 
 	double *P123_col_val_array = new double[P123_dense_dim];
+	double  P123_col_tot_time  = 0;
+	double  P123_av_row_time   = 0;
+	int 	P123_rows_left	   = 0;
+	double 	P123_est_time_left = 0;
 	/* <X_i'j'^alpha'| - loops (rows of P123) */
 	for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
-		if (print_content){
-			printf("   - Working on row state %d/%d \n", alphap_idx, Nalpha);
-			fflush(stdout);
-		}
 		for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
 			for (int pp_idx_WP = 0; pp_idx_WP < Np_WP; pp_idx_WP++){
 				int P123_row_idx = alphap_idx*Nq_WP*Np_WP + qp_idx_WP*Np_WP +  pp_idx_WP;
+
+				/* Progress printout */
 				if (print_content){
-					printf("   - Working on row %d of %d\n", P123_row_idx, P123_dense_dim);
+					P123_av_row_time = P123_col_tot_time/P123_row_idx;
+					P123_rows_left   = P123_dense_dim - P123_row_idx;
+					P123_est_time_left = P123_rows_left*P123_av_row_time / 3600.;
+					printf("\r   - Working on row %d of %d. Av. time per row: %.3f s. Est. completion time: %.1f h", P123_row_idx, P123_dense_dim, P123_av_row_time, P123_est_time_left);
+					fflush(stdout);
 				}
+
 				/* |X_ij^alpha> - loops (columns of P123) */
+				auto timestamp_P123_col_start = chrono::system_clock::now();
 				#pragma omp parallel
 				{
 					#pragma omp for
@@ -369,6 +377,10 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 						}
 					}
 				}
+
+				auto timestamp_P123_col_end = chrono::system_clock::now();
+				chrono::duration<double> time_P123_col = timestamp_P123_col_end - timestamp_P123_col_start;
+				P123_col_tot_time += time_P123_col.count();
 			}
 		}
 	}

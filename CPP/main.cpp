@@ -327,6 +327,10 @@ int main(int argc, char* argv[]){
 
 		printf("Working on 3N-channel J_3N=%.d/2, T_3N=%.d/2, PAR=%.d (channel %.d of %.d) with %.d partial-wave states \n", two_J_3N, two_T_3N, P_3N, chn_3N+1, N_chn_3N, Nalpha_in_3N_chn);
 
+		//if (chn_3N!=12){
+		//	continue;
+		//}
+
 		/* End of 3N-channel setup */
 		/* Start of code segment for permutation matrix construction */
 		double* P123_sparse_val_array = NULL;

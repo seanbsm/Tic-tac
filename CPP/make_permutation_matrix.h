@@ -29,6 +29,10 @@
 #include "hdf5/serial/hdf5.h"
 #include "hdf5/serial/hdf5_hl.h"
 
+/* Time-keeping modules */
+#include <chrono>
+#include <ctime>
+
 /* Project headers */
 #include "error_management.h"
 #include "General_functions/matrix_routines.h"

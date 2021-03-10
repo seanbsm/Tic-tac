@@ -234,14 +234,114 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	}*/
 
 	/* END OF OLD CODE SEGMENT WITH OLD VARIABLE-NOTATION */
-	
+
+	/* Precalculate overlapping bins and where p_bar and q_bar are non-zero */
+	bool* pq_WP_overlap_array = new bool [Nq_WP*Nq_WP*Np_WP*Np_WP];
+
+	double qp_WP_bound_lower = 0; double q_WP_bound_lower = 0;
+	double qp_WP_bound_upper = 0; double q_WP_bound_upper = 0;
+
+	double pp_WP_bound_lower = 0; double p_WP_bound_lower = 0;
+	double pp_WP_bound_upper = 0; double p_WP_bound_upper = 0;
+
+	int counter = 0;
+	for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
+		qp_WP_bound_lower = q_array_WP_bounds[qp_idx_WP];
+		qp_WP_bound_upper = q_array_WP_bounds[qp_idx_WP+1];
+		for (int pp_idx_WP = 0; pp_idx_WP < Np_WP; pp_idx_WP++){
+			pp_WP_bound_lower = p_array_WP_bounds[pp_idx_WP];
+			pp_WP_bound_upper = p_array_WP_bounds[pp_idx_WP+1];
+			
+			double p_bar_max = 0;
+			double p_bar_min = 0;
+			double q_bar_max = 0;
+			double q_bar_min = 0;
+
+			p_bar_max = pi1_tilde(pp_WP_bound_upper, qp_WP_bound_upper, +1); // x=+1
+			p_bar_min = pi1_tilde(pp_WP_bound_lower, qp_WP_bound_lower, -1); // x=-1
+			q_bar_max = pi2_tilde(pp_WP_bound_upper, qp_WP_bound_upper, -1); // x=-1
+			q_bar_min = pi2_tilde(pp_WP_bound_lower, qp_WP_bound_lower, +1); // x=+1
+
+			int pp_idx_lower = Np_per_WP* pp_idx_WP;
+    		int pp_idx_upper = Np_per_WP*(pp_idx_WP+1);
+
+    		int qp_idx_lower = Nq_per_WP* qp_idx_WP;
+    		int qp_idx_upper = Nq_per_WP*(qp_idx_WP+1);
+
+			for (int pp_idx=pp_idx_lower; pp_idx<pp_idx_upper; pp_idx++){
+				double pp = p_array[pp_idx];
+				if (pp<pp_WP_bound_lower || pp_WP_bound_upper<pp){
+					raise_error("Found bin-quadrature p-momentum outside of bin-boundaries");
+				}
+        		for (int qp_idx=qp_idx_lower; qp_idx<qp_idx_upper; qp_idx++){
+					double qp = q_array[qp_idx];
+					if (qp<qp_WP_bound_lower || qp_WP_bound_upper<qp){
+						raise_error("Found bin-quadrature q-momentum outside of bin-boundaries");
+					}
+					for (int x_idx=0; x_idx<Nx; x_idx++){
+                		double x = x_array[x_idx];
+						double p_bar = pi1_tilde(pp, qp, x);
+						double q_bar = pi2_tilde(pp, qp, x);
+						if (p_bar>p_bar_max){
+							p_bar_max = p_bar;
+						}
+						if (p_bar<p_bar_min){
+							p_bar_min = p_bar;
+						}
+						if (q_bar>q_bar_max){
+							q_bar_max = q_bar;
+						}
+						if (q_bar<q_bar_min){
+							q_bar_min = q_bar;
+						}
+					}
+				}
+			}
+
+			if (p_bar_min>p_bar_max || q_bar_min>q_bar_max){
+				raise_error("Wrongful p_bar or q_bar calculation in make_permutation_matrix.cpp");
+			}
+
+			for (int q_idx_WP = 0; q_idx_WP < Nq_WP; q_idx_WP++){
+				q_WP_bound_lower = q_array_WP_bounds[q_idx_WP];
+				q_WP_bound_upper = q_array_WP_bounds[q_idx_WP+1];
+				for (int p_idx_WP = 0; p_idx_WP < Np_WP; p_idx_WP++){
+					p_WP_bound_lower = p_array_WP_bounds[p_idx_WP];
+					p_WP_bound_upper = p_array_WP_bounds[p_idx_WP+1];
+
+					bool WP_overlap = true;
+
+            		/* Check if p_bar can have values in current bin */
+            		if ( p_bar_max<p_WP_bound_lower || p_WP_bound_upper<p_bar_min ){
+						WP_overlap = false;
+            		}
+					/* Check if q_bar can have values in current bin */
+            		if ( q_bar_max<q_WP_bound_lower || q_WP_bound_upper<q_bar_min ){
+						WP_overlap = false;
+            		}
+
+					/* Unique index for current combination of WPs */
+					int pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
+							  	  + pp_idx_WP*Nq_WP*Np_WP
+							  	  +  q_idx_WP*Np_WP
+							  	  +  p_idx_WP;
+
+					pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
+
+					if (WP_overlap==false){
+						counter += 1;
+					}
+				}
+			}
+		}
+	}
+	printf("   - %.3f%% of P123-matrix violates momentum-conservation \n", 100.*counter/(Nq_WP*Nq_WP*Np_WP*Np_WP));
+
 	/* Preallocate array if we use dense format. Otherwise (i.e. sparse) start with
 	 * some reasonable guess (usually less than a percent), and expand if required. */
 	long int P123_dense_dim    = Np_WP * Nq_WP * Nalpha;
 	long int P123_dense_dim_sq = P123_dense_dim * P123_dense_dim;
 	int sparse_step_length     = 0;
-	
-	/* WRITE CODE TO BE PARALLEL OVER COLUMNS, AND EXTEND ARRAYS BY SOME MULTIPLE OF COLUMN LENGTH */
 
 	if (use_dense_format){
 		*P123_val_dense_array = new double [P123_dense_dim_sq];
@@ -265,14 +365,14 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	
 	int current_array_dim = sparse_step_length;
 
-	MKL_INT64 Gtilde_subarray_N = Np_per_WP * Nq_per_WP * Nx_Gtilde;
-	//double *Gtilde_subarray = new double[Gtilde_subarray_N];
+	int Gtilde_subarray_size = Np_per_WP * Nq_per_WP * Nx_Gtilde;
 
 	double *P123_col_val_array = new double[P123_dense_dim];
 	double  P123_col_tot_time  = 0;
 	double  P123_av_row_time   = 0;
 	int 	P123_rows_left	   = 0;
 	double 	P123_est_time_left = 0;
+	
 	/* <X_i'j'^alpha'| - loops (rows of P123) */
 	for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
 		for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
@@ -301,7 +401,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 						int L_2N_prime = L_2N_array[alpha_idx];
 						int L_1N_prime = L_1N_array[alpha_idx];
 
-						double Gtilde_subarray [Gtilde_subarray_N];
+						double Gtilde_subarray [Gtilde_subarray_size];
 						calculate_Gtilde_subarray(Gtilde_subarray,
 												  &Atilde_store[alphap_idx*Nalpha*(Lmax+1) + alpha_idx*(Lmax+1)],
 												  Nx, x_array,
@@ -330,19 +430,30 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 								int P123_col_idx = alpha_idx*Nq_WP*Np_WP + q_idx_WP*Np_WP + p_idx_WP;
 
-								double P123_element = calculate_P123_element_in_WP_basis (  alpha_idx,  p_idx_WP,  q_idx_WP, 
-																						   alphap_idx, pp_idx_WP, qp_idx_WP, 
-																						   Np_per_WP, p_array, wp_array,
-																						   Nq_per_WP, q_array, wq_array,
-																						   Nx,    x_array, wx_array,
-																						   Np_WP, p_array_WP_bounds,
-																						   Nq_WP, q_array_WP_bounds,
-																						   Nalpha,
-																						   Gtilde_subarray);
-																						   //Gtilde_store );
+								/* Unique index for current combination of WPs */
+								int pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
+										      + pp_idx_WP*Nq_WP*Np_WP
+										      +  q_idx_WP*Np_WP
+										      +  p_idx_WP;
+								bool WP_overlap = pq_WP_overlap_array[pq_WP_idx];
+
+								double P123_element = 0;
+								/* Only calculate P123 if there is WP bin-overlap in Heaviside functions */
+								if (WP_overlap){
+									P123_element = calculate_P123_element_in_WP_basis (  alpha_idx,  p_idx_WP,  q_idx_WP, 
+																					    alphap_idx, pp_idx_WP, qp_idx_WP, 
+																					    Np_per_WP, p_array, wp_array,
+																					    Nq_per_WP, q_array, wq_array,
+																					    Nx,    x_array, wx_array,
+																					    Np_WP, p_array_WP_bounds,
+																					    Nq_WP, q_array_WP_bounds,
+																					    Nalpha,
+																					    Gtilde_subarray);
+																					    //Gtilde_store );
+								}
 
 								if (use_dense_format){
-									int P123_mat_idx              = (int) P123_row_idx*P123_dense_dim + P123_col_idx;
+									int P123_mat_idx = (int) P123_row_idx*P123_dense_dim + P123_col_idx;
 									(*P123_val_dense_array)[P123_mat_idx] = P123_element;
 								}
 								else{
@@ -385,6 +496,10 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 		}
 	}
 
+	if (print_content){
+		std::cout << "\n";
+	}
+
 	/* Contract arrays to minimal size (number of non-zero elements) */
 	if (use_dense_format==false){
 		reduce_sparse_array_size(P123_val_sparse_array, current_array_dim, P123_dim);
@@ -395,6 +510,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	/* Delete all temporary arrays */
 	//delete [] Gtilde_store;
 	//delete [] Gtilde_subarray;
+	delete [] pq_WP_overlap_array;
 	delete [] Atilde_store;
 	delete [] SixJ_array;
 }

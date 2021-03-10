@@ -62,7 +62,7 @@ void construct_symmetric_pw_states(int   J_2N_max,
 	/* two_J_3N loop */
 	for (int two_J_3N=1; two_J_3N<two_J_3N_max+1; two_J_3N+=2){
 		/* two_T_3N loop */
-		for (int two_T_3N=1; two_T_3N<4; two_T_3N+=2){
+		for (int two_T_3N=1; two_T_3N<2; two_T_3N+=2){
 			/* Parity loop: P_3N_remainder is the remainder of (l+L)/2 */
 			for (int P_3N_remainder=0; P_3N_remainder<2; P_3N_remainder++){
 				/* Used to cound how many PW states are in current channel (J_3N, T_3N, P_3N) */
@@ -100,11 +100,11 @@ void construct_symmetric_pw_states(int   J_2N_max,
 											/* Check 3N-system total parity given by P_3N */
 											if ( ((L_2N+L_1N)%2)==P_3N_remainder ){
 
-												if (two_T_3N==3){
-												    if ( (S_2N==0 && L_2N==0 && J_2N==0)==false ){
-												        continue;
-												    }
-												}
+												//if (two_T_3N==3){
+												//    if ( (S_2N==0 && L_2N==0 && J_2N==0)==false ){
+												//        continue;
+												//    }
+												//}
 
 												/* We've found a physical state.
 												 * Append to temporary vectors */

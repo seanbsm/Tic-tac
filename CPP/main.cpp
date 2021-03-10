@@ -327,10 +327,6 @@ int main(int argc, char* argv[]){
 
 		printf("Working on 3N-channel J_3N=%.d/2, T_3N=%.d/2, PAR=%.d (channel %.d of %.d) with %.d partial-wave states \n", two_J_3N, two_T_3N, P_3N, chn_3N+1, N_chn_3N, Nalpha_in_3N_chn);
 
-		//if (chn_3N!=12){
-		//	continue;
-		//}
-
 		/* End of 3N-channel setup */
 		/* Start of code segment for permutation matrix construction */
 		double* P123_sparse_val_array = NULL;
@@ -343,7 +339,9 @@ int main(int argc, char* argv[]){
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-			
+		//if (chn_3N!=7){
+		//	continue;
+		//}
 		if (calculate_and_store_P123){
 			int Nx 			 = 20;
 			double* x_array  = new double [Nx];
@@ -397,12 +395,15 @@ int main(int argc, char* argv[]){
 		}
 		else if (solve_faddeev){
 			printf("Reading P123 from h5 ... \n");
-	
+			double* P123_sparse_val_array_t = NULL;
+			int* 	P123_sparse_row_array_t = NULL;
+			int* 	P123_sparse_col_array_t = NULL;
+			int	    P123_sparse_dim_t		  = 0;
 			auto timestamp_P123_read_start = chrono::system_clock::now();
-			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array,
-															  &P123_sparse_row_array,
-															  &P123_sparse_col_array,
-															  P123_sparse_dim,
+			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array_t,
+															  &P123_sparse_row_array_t,
+															  &P123_sparse_col_array_t,
+															  P123_sparse_dim_t,
 															  Np_WP, p_WP_array,
 															  Nq_WP, q_WP_array,
 															  Nalpha_in_3N_chn,
@@ -420,6 +421,15 @@ int main(int argc, char* argv[]){
 			chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_read.count());
 		}
+
+		//printf("Running tests on P123 \n");
+		//for (int idx=0; idx<P123_sparse_dim; idx++){
+		//	if (abs(P123_sparse_val_array_t[idx]-P123_sparse_val_array[idx])>1e-15){
+		//		printf("%.16f %.16f \n", P123_sparse_val_array_t[idx], P123_sparse_val_array[idx]);
+		//		//raise_error("test failed");
+		//	}
+		//}
+		//printf(" - Done \n");
 		
 		/* End of code segment for permutation matrix construction */
 
@@ -428,7 +438,7 @@ int main(int argc, char* argv[]){
 
 			/* Resolvent array */
 			cdouble* G_array = new cdouble [Nalpha_in_3N_chn * Np_WP * Nq_WP];
-
+			
 			printf("Constructing 3N resolvents ... \n");
 			calculate_resolvent_array_in_SWP_basis(G_array,
 												   E_on_shell,

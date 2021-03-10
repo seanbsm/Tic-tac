@@ -675,6 +675,11 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
     double WP_p_bound_lower = p_array_WP_bounds[p_idx_WP];
     double WP_p_bound_upper = p_array_WP_bounds[p_idx_WP+1];
 
+    double WP_qp_bound_lower = q_array_WP_bounds[qp_idx_WP];
+    double WP_qp_bound_upper = q_array_WP_bounds[qp_idx_WP+1];
+    double WP_pp_bound_lower = p_array_WP_bounds[pp_idx_WP];
+    double WP_pp_bound_upper = p_array_WP_bounds[pp_idx_WP+1];
+
     int pp_idx_lower = Np_per_WP* pp_idx_WP;
     int pp_idx_upper = Np_per_WP*(pp_idx_WP+1);
 
@@ -696,6 +701,11 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
 
     int G_pp_idx = 0;
     int G_pp_qp_idx = 0;
+
+    //bool printstuff = false;
+    //if( qp_idx_WP==0 &&  pp_idx_WP==10 && q_idx_WP==2 && p_idx_WP==6){
+    //    printstuff = true;
+    //}
 
     for (int pp_idx=pp_idx_lower; pp_idx<pp_idx_upper; pp_idx++){
         /* p' momentum */
@@ -720,15 +730,23 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
 
                 p_bar = pi1_tilde(pp, qp, x);
                 /* Check if p_bar is in bin p_idx_WP, if not then move on to next loop iteration */
-                if ( p_bar<WP_p_bound_lower or WP_p_bound_upper<p_bar ){
+                if ( p_bar<WP_p_bound_lower || WP_p_bound_upper<p_bar ){
                     continue;
                 }
 
                 q_bar = pi2_tilde(pp, qp, x);
                 /* Check if q_bar is in bin q_idx_WP, if not then move on to next loop iteration */
-                if ( q_bar<WP_q_bound_lower or WP_q_bound_upper<q_bar ){
+                if ( q_bar<WP_q_bound_lower || WP_q_bound_upper<q_bar ){
                     continue;
                 }
+
+                //if (printstuff){
+                //    printf("q_bar: %.4f %.4f %.4f \n", q_bar, WP_q_bound_lower, WP_q_bound_upper);
+				//	printf("p_bar: %.4f %.4f %.4f \n", p_bar, WP_p_bound_lower, WP_p_bound_upper);
+                //    printf("pp:    %.4f %.4f %.4f \n", pp, WP_pp_bound_lower, WP_pp_bound_upper);
+                //    printf("qp:    %.4f %.4f %.4f \n", qp, WP_qp_bound_lower, WP_qp_bound_upper);
+                //    printf("x:     %.4f \n", x);
+                //}
                 
                 if (run_tests){
                     double costheta1 = -(0.5 * pp + 0.75 * qp * x) / p_bar;
@@ -745,11 +763,6 @@ double calculate_P123_element_in_WP_basis ( int  alpha_idx, int  p_idx_WP, int  
             } // x_idx
         } // qp_idx
     } // pp_idx
-
-    double WP_qp_bound_lower = q_array_WP_bounds[qp_idx_WP];
-    double WP_qp_bound_upper = q_array_WP_bounds[qp_idx_WP+1];
-    double WP_pp_bound_lower = p_array_WP_bounds[pp_idx_WP];
-    double WP_pp_bound_upper = p_array_WP_bounds[pp_idx_WP+1];
 
     double norm_WP = q_normalization( WP_q_bound_lower,  WP_q_bound_upper)
                     *p_normalization( WP_p_bound_lower,  WP_p_bound_upper)

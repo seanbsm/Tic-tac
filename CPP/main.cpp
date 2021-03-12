@@ -113,19 +113,19 @@ int main(int argc, char* argv[]){
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
 	 * and solve Faddeev in a single run */
-	bool solve_faddeev		      = false;
+	bool solve_faddeev		      = true;
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 3;//1; //5;
-	int two_J_3N_max = 11;//25;//1; //25;
+	int J_2N_max 	 = 1;//1; //5;
+	int two_J_3N_max = 3;//25;//1; //25;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 150; //30;
-	int Nq_WP	   	 = 150; //30;
+	int Np_WP	   	 = 40; //30;
+	int Nq_WP	   	 = 40; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -338,8 +338,8 @@ int main(int argc, char* argv[]){
 		std::string P123_filename =    "P123_sparse_JTP_"
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
-									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		//if (chn_3N!=7){
+									 + "_J2max_" + to_string(J_2N_max) + ".h5";//"_NQ_10.h5";
+		//if (chn_3N!=-1){
 		//	continue;
 		//}
 		if (calculate_and_store_P123){
@@ -394,6 +394,10 @@ int main(int argc, char* argv[]){
 			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
 		}
 		else if (solve_faddeev){
+			std::string P123_filename_2 =    "P123_sparse_JTP_"
+									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
+									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
+									 + "_J2max_" + to_string(J_2N_max) + "_NQ_8.h5";
 			printf("Reading P123 from h5 ... \n");
 			double* P123_sparse_val_array_t = NULL;
 			int* 	P123_sparse_row_array_t = NULL;
@@ -417,9 +421,80 @@ int main(int argc, char* argv[]){
 															  two_T_3N,
 															  P_3N,
 													   		  P123_filename);
+			/*double* P123_sparse_val_array_2 = NULL;
+			int* 	P123_sparse_row_array_2 = NULL;
+			int* 	P123_sparse_col_array_2 = NULL;
+			int	    P123_sparse_dim_2		  = 0;
+			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array_2,
+															  &P123_sparse_row_array_2,
+															  &P123_sparse_col_array_2,
+															  P123_sparse_dim_2,
+															  Np_WP, p_WP_array,
+															  Nq_WP, q_WP_array,
+															  Nalpha_in_3N_chn,
+															  L_2N_subarray,
+															  S_2N_subarray,
+															  J_2N_subarray,
+															  T_2N_subarray,
+															  L_1N_subarray,
+															  two_J_1N_subarray,
+															  two_J_3N,
+															  two_T_3N,
+															  P_3N,
+													   		  P123_filename_2);
 			auto timestamp_P123_read_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_read.count());
+
+			printf("Running tests on P123 \n");
+			for (int idx_t=0; idx_t<P123_sparse_dim_t; idx_t++){
+				int row_t = P123_sparse_row_array_t[idx_t];
+				int col_t = P123_sparse_col_array_t[idx_t];
+				double val_t = P123_sparse_val_array_t[idx_t];
+
+				if (abs(val_t)>1){
+					printf("%d %d %.16f\n", row_t, col_t, val_t);
+				}
+
+				for (int idx_2=0; idx_2<P123_sparse_dim_t; idx_2++){
+					int row_2 = P123_sparse_row_array_2[idx_2];
+					int col_2 = P123_sparse_col_array_2[idx_2];
+					if (row_t==row_2 and col_t==col_2){
+						
+						div_t divresult1 = std::div(col_t, Np_WP*Nq_WP);
+						div_t divresult2 = std::div(divresult1.rem, Np_WP);
+						//int idx_alpha_c = divresult1.quot;
+						int idx_q_c     = divresult2.quot;
+						int idx_p_c 	= divresult2.rem;
+
+						divresult1 = std::div(row_t, Np_WP*Nq_WP);
+						divresult2 = std::div(divresult1.rem, Np_WP);
+						//int idx_alpha_r = divresult1.quot;
+						int idx_q_r     = divresult2.quot;
+						int idx_p_r 	= divresult2.rem;
+
+						double p_c = p_WP_array[idx_p_c];
+						double q_c = q_WP_array[idx_q_c];
+
+						double p_r = p_WP_array[idx_p_r];
+						double q_r = q_WP_array[idx_q_r];
+
+						if (abs(P123_sparse_val_array_t[idx_t]-P123_sparse_val_array_2[idx_2])>1e-10){
+							printf("%d %d %.16f %.16f \n", row_t, col_t, P123_sparse_val_array_t[idx_t], P123_sparse_val_array_2[idx_2]);
+							printf("q': %.16f p':%.16f q:%.16f p:%.16f \n", q_r, p_r, q_c, p_c);
+						}
+						if (p_c>1e3 or q_c>1e3 or p_r>1e3 or q_r>1e3){
+							printf("HIGH MOMENTA REGION \n");
+							printf("%d %d %.16f %.16f \n", row_t, col_t, P123_sparse_val_array_t[idx_t], P123_sparse_val_array_2[idx_2]);
+							printf("q': %.16f p':%.16f q:%.16f p:%.16f \n", q_r, p_r, q_c, p_c);
+						}
+						//else{
+						//	printf("Good: %d %d %.16f %.16f \n", row_t, col_t, P123_sparse_val_array_t[idx_t], P123_sparse_val_array_2[idx_2]);
+						//}
+					}
+				}
+			}
+			printf(" - Done \n");*/
 		}
 
 		//printf("Running tests on P123 \n");

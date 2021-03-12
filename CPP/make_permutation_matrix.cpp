@@ -372,12 +372,22 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	double  P123_av_row_time   = 0;
 	int 	P123_rows_left	   = 0;
 	double 	P123_est_time_left = 0;
+
+	//int row_step_length = P123_dense_dim/100;
+	//int row_multiplier = 1;
 	
 	/* <X_i'j'^alpha'| - loops (rows of P123) */
 	for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
 		for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
 			for (int pp_idx_WP = 0; pp_idx_WP < Np_WP; pp_idx_WP++){
 				int P123_row_idx = alphap_idx*Nq_WP*Np_WP + qp_idx_WP*Np_WP +  pp_idx_WP;
+
+				//if (P123_row_idx!=row_step_length*row_multiplier){
+				//	continue;
+				//}
+				//else{
+				//	row_multiplier += 1;
+				//}
 
 				/* Progress printout */
 				if (print_content){

@@ -4,9 +4,6 @@
 void calculate_CPVC_product_row(){
 }
 
-void pade_method_solve(){
-}
-
 /* Solves the Faddeev equations
  * U = P*V + P*V*G*U
  * on the form L*U = R, where L and R are the left-
@@ -420,6 +417,46 @@ void CPVC_col_calc_test(int      Nalpha,
 						raise_error("CPVC benchmarking failed");
 					}
 				}
+			}
+		}
+	}
+}
+
+void pade_approximant(cdouble* a_coeff_array,
+					  int N,
+					  int M,
+					  cdouble z){
+
+}
+
+void pade_method_solve(cdouble*  U_array,
+					   cdouble*  G_array,
+					   int       idx_on_shell,
+					   int       Nalpha,
+					   int 	     Nq_WP,
+					   int 	     Np_WP,
+					   double**  CT_RM_array,
+					   double**  VC_CM_array,
+					   double*   P123_sparse_val_array,
+					   int*      P123_sparse_row_array,
+					   int*      P123_sparse_col_array,
+					   int       P123_sparse_dim){
+	
+	/* Upper limit on polynomial approximation of Faddeev eq. */
+	int N_pade = 5;
+	int M_pade = 5;
+
+	/* Loop over number of terms we use */
+	for (int N=0; N<N_pade; N++){
+		for (int M=0; M<M_pade; M++){
+		
+		}
+	}
+
+	/* Iterate through columns of A */
+	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
 			}
 		}
 	}

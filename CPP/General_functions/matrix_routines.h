@@ -16,6 +16,8 @@ void solve_MM(double *A, double *B, int N);
 void solve_MM(std::complex<float> *A, std::complex<float> *B, int N);
 void solve_MM(std::complex<double> *A, std::complex<double> *B, int N);
 
+double determinant(double* A, int N);
+
 /* Solves linear system A*X=B for sparse NxN matrix A and column B, for column X
  * The logic in this function follows exactly that listed in
  * https://scc.ustc.edu.cn/zlsc/sugon/intel/mkl/mkl_manual/GUID-24A41D50-4D0A-471B-9722-EA59E443ABC8.htm*/

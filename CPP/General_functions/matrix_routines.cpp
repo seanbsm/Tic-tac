@@ -44,21 +44,21 @@ void solve_MM(std::complex<double> *A, std::complex<double> *B, int N){
 	LAPACKE_zgetrs(LAPACK_ROW_MAJOR, trans, N, N, A, N, ipiv, B, N);
 }
 
-double determinant(double* A, int N){
-	char trans = 'N';
-	long long int ipiv [N];
-	
-	/* Perform LU decomposition, A is overwritten by L */
-	LAPACKE_zgetrf(LAPACK_ROW_MAJOR, N, N, A, N, ipiv);
-
-	/* Diagonal of L equals determinant of A */
-	double sum_diagonal = 0;
-	for (int i=0; i<N; i++){
-		sum_diagonal += A[i*N+i];
-	}
-
-	return sum_diagonal;
-}
+//double determinant(double* A, int N){
+//	char trans = 'N';
+//	long long int ipiv [N];
+//	
+//	/* Perform LU decomposition, A is overwritten by L */
+//	LAPACKE_zgetrf(LAPACK_ROW_MAJOR, N, N, A, N, ipiv);
+//
+//	/* Diagonal of L equals determinant of A */
+//	double sum_diagonal = 0;
+//	for (int i=0; i<N; i++){
+//		sum_diagonal += A[i*N+i];
+//	}
+//
+//	return sum_diagonal;
+//}
 
 void solve_MM_sparse(double*  A_val_array,
 					 MKL_INT* A_idx_row_array,

@@ -30,8 +30,10 @@ void make_chebyshev_distribution(int N_WP,
 	for (int i=0; i<N_WP+1; i++){
 		tan_term = tan( (2*i)*M_PI/(4*(N_WP+1)) );
 		
+		//boundary_array[i] = i;
 		boundary_array[i] = scale*pow(tan_term, sparseness_degree);
 	}
+	//boundary_array[0] = 0.001;
 }
 
 void make_p_bin_grid(int Np_WP, double* p_WP_array){

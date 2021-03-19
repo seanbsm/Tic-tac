@@ -86,6 +86,44 @@ void calculate_Gtilde_subarray(double* Gtilde_subarray,
 	}
 }
 
+void calculate_Gtilde_subarray_mod(double* Gtilde_subarray,
+								   double* Atilde_subarray,
+								   int  Nx, double* x_array,
+								   int  Nphi,
+								   double* sin_phi_subarray,
+								   double* cos_phi_subarray,
+								   int  L_2N, int L_2N_prime,
+								   int  L_1N, int L_1N_prime,
+								   int  two_J_3N){
+
+	bool print_Gtilde_progress = false;
+
+	long int fullsize = Nphi*Nx;
+	long int counter = 0;
+	int frac_n, frac_o=0;
+	
+	for (MKL_INT64 phi_idx=0; phi_idx<Nphi; phi_idx++){
+		for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
+			Gtilde_subarray[phi_idx*Nx+ x_idx]
+				= Gtilde_subarray_new (sin_phi_subarray[phi_idx],
+									   cos_phi_subarray[phi_idx],
+									   x_array[x_idx],
+									   L_2N, L_2N_prime,
+									   L_1N, L_1N_prime,
+									   Atilde_subarray,
+									   two_J_3N);
+
+			counter += 1;
+			
+			if (print_Gtilde_progress){
+				frac_n = (100*counter)/fullsize;
+				if (frac_n>frac_o){std::cout << frac_n << "%" << std::endl; frac_o=frac_n;}
+			}
+		}
+	}
+}
+
+
 void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 												 double** P123_val_sparse_array,
 												 int** P123_row_array,
@@ -95,6 +133,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 												 int  Nq, double* q_array, double* wq_array, int Np_per_WP, int Np_WP, double *p_array_WP_bounds,
 												 int  Np, double* p_array, double* wp_array, int Nq_per_WP, int Nq_WP, double *q_array_WP_bounds,
 												 int  Nx, double* x_array, double* wx_array,
+												 int  Nphi,
 												 int  Nalpha,
 												 int* L_2N_array,
 												 int* S_2N_array,
@@ -236,50 +275,151 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	/* END OF OLD CODE SEGMENT WITH OLD VARIABLE-NOTATION */
 
 	/* Precalculate overlapping bins and where p_bar and q_bar are non-zero */
-	bool* pq_WP_overlap_array = new bool [Nq_WP*Nq_WP*Np_WP*Np_WP];
+	//int Nphi = 6;
 
-	double qp_WP_bound_lower = 0; double q_WP_bound_lower = 0;
-	double qp_WP_bound_upper = 0; double q_WP_bound_upper = 0;
+	bool*    pq_WP_overlap_array = new bool   [Nq_WP*Nq_WP*Np_WP*Np_WP];
+	double*   phi_array      = new double [Nq_WP*Np_WP*Nphi];
+	double*  wphi_array      = new double [Nq_WP*Np_WP*Nphi];
+	printf("   - Precalculating momentum conservations \n");
+	#pragma omp parallel
+	{
+		#pragma omp for
+	for (int qp_idx_WP=0; qp_idx_WP<Nq_WP; qp_idx_WP++){
+		double qp_l = q_array_WP_bounds[qp_idx_WP];
+		double qp_u = q_array_WP_bounds[qp_idx_WP+1];
+		for (int pp_idx_WP=0; pp_idx_WP<Np_WP; pp_idx_WP++){
+			double pp_l = p_array_WP_bounds[pp_idx_WP];
+			double pp_u = p_array_WP_bounds[pp_idx_WP+1];
 
-	double pp_WP_bound_lower = 0; double p_WP_bound_lower = 0;
-	double pp_WP_bound_upper = 0; double p_WP_bound_upper = 0;
+			double phi_lower = atan(pp_l/qp_u);
+			double phi_upper = atan(pp_u/qp_l);
+			
+			/* Create phi-mesh */
+			calc_gauss_points ( &phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+							   &wphi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+							   phi_lower, phi_upper,
+							   Nphi);
+							   
+			/* Verify that on-shell elements can exist for given phi-boundaries */
+			for (int q_idx_WP=0; q_idx_WP<Nq_WP; q_idx_WP++){
+				double q_l = q_array_WP_bounds[q_idx_WP];
+				double q_u = q_array_WP_bounds[q_idx_WP+1];
+				for (int p_idx_WP=0; p_idx_WP<Np_WP; p_idx_WP++){
+					double p_l = p_array_WP_bounds[p_idx_WP];
+					double p_u = p_array_WP_bounds[p_idx_WP+1];
 
+					bool WP_overlap = false;
+					/* Ensure possible phi boundaries */
+					if (phi_lower<phi_upper){
+						/* Search for on-shell elements */
+						for (int phi_idx=0; phi_idx<Nphi; phi_idx++){
+							double phi = phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi + phi_idx];
+							double sin_phi = std::sin(phi);
+							double cos_phi = std::cos(phi);
+
+							double kmin = std::max(pp_l/sin_phi, qp_l/cos_phi);
+							double kmax = std::min(pp_u/sin_phi, qp_u/cos_phi);
+
+							/* Ensure possible k-boundaries */
+							if (kmin<kmax){
+								for (int x_idx=0; x_idx<Nx; x_idx++){
+									double x = x_array[x_idx];
+
+									double zeta_1 = pi1_tilde(sin_phi, cos_phi, x);
+									double zeta_2 = pi2_tilde(sin_phi, cos_phi, x);
+
+									double Heaviside_lower = std::max(p_l/zeta_1, q_l/zeta_2);
+									double Heaviside_upper = std::min(p_u/zeta_1, q_u/zeta_2);
+
+									/* Ensure overlapping Heaviside boundaries */
+									if (Heaviside_lower<Heaviside_upper){
+										double kpmin = std::max(kmin, Heaviside_lower);
+										double kpmax = std::min(kmax, Heaviside_upper);
+
+										/* Skip momentum-violating integral boundaries */
+										if (kpmin<kpmax){
+											WP_overlap = true;
+											break;
+										}
+									}
+								}
+							}
+							if (WP_overlap){
+								break;
+							}
+						}
+					}
+
+					/* Unique index for current combination of WPs */
+					int pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
+							  	  + pp_idx_WP*Nq_WP*Np_WP
+							  	  +  q_idx_WP*Np_WP
+							  	  +  p_idx_WP;
+
+					pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
+				}
+			}
+		}
+	}
+	}
 	int counter = 0;
+	for (int idx=0; idx<Nq_WP*Np_WP*Nq_WP*Np_WP;idx++){
+		if (pq_WP_overlap_array[idx]==false){
+			counter += 1;
+		}
+	}
+
+	printf("   - %.3f%% of P123-matrix violates momentum-conservation \n", 100.*counter/(Nq_WP*Nq_WP*Np_WP*Np_WP));
+	double*  sin_phi_array = new double [Nq_WP*Np_WP*Nphi];
+	double*  cos_phi_array = new double [Nq_WP*Np_WP*Nphi];
+	for (int idx=0; idx<Nq_WP*Np_WP*Nphi; idx++){
+		sin_phi_array[idx] = sin(phi_array[idx]);
+		cos_phi_array[idx] = cos(phi_array[idx]);
+	}
+
+	/*counter = 0;
 	for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
-		qp_WP_bound_lower = q_array_WP_bounds[qp_idx_WP];
-		qp_WP_bound_upper = q_array_WP_bounds[qp_idx_WP+1];
+		double qp_WP_bound_lower = q_array_WP_bounds[qp_idx_WP];
+		double qp_WP_bound_upper = q_array_WP_bounds[qp_idx_WP+1];
 		for (int pp_idx_WP = 0; pp_idx_WP < Np_WP; pp_idx_WP++){
-			pp_WP_bound_lower = p_array_WP_bounds[pp_idx_WP];
-			pp_WP_bound_upper = p_array_WP_bounds[pp_idx_WP+1];
+			double pp_WP_bound_lower = p_array_WP_bounds[pp_idx_WP];
+			double pp_WP_bound_upper = p_array_WP_bounds[pp_idx_WP+1];
 			
 			double p_bar_max = 0;
 			double p_bar_min = 0;
 			double q_bar_max = 0;
 			double q_bar_min = 0;
-
+	
 			p_bar_max = pi1_tilde(pp_WP_bound_upper, qp_WP_bound_upper, +1); // x=+1
 			p_bar_min = pi1_tilde(pp_WP_bound_lower, qp_WP_bound_lower, -1); // x=-1
 			q_bar_max = pi2_tilde(pp_WP_bound_upper, qp_WP_bound_upper, -1); // x=-1
 			q_bar_min = pi2_tilde(pp_WP_bound_lower, qp_WP_bound_lower, +1); // x=+1
-
+	
 			int pp_idx_lower = Np_per_WP* pp_idx_WP;
-    		int pp_idx_upper = Np_per_WP*(pp_idx_WP+1);
+			int pp_idx_upper = Np_per_WP*(pp_idx_WP+1);
+	
+			int qp_idx_lower = Nq_per_WP* qp_idx_WP;
+			int qp_idx_upper = Nq_per_WP*(qp_idx_WP+1);
 
-    		int qp_idx_lower = Nq_per_WP* qp_idx_WP;
-    		int qp_idx_upper = Nq_per_WP*(qp_idx_WP+1);
-
-			for (int pp_idx=pp_idx_lower; pp_idx<pp_idx_upper; pp_idx++){
-				double pp = p_array[pp_idx];
-				if (pp<pp_WP_bound_lower || pp_WP_bound_upper<pp){
-					raise_error("Found bin-quadrature p-momentum outside of bin-boundaries");
-				}
-        		for (int qp_idx=qp_idx_lower; qp_idx<qp_idx_upper; qp_idx++){
-					double qp = q_array[qp_idx];
-					if (qp<qp_WP_bound_lower || qp_WP_bound_upper<qp){
-						raise_error("Found bin-quadrature q-momentum outside of bin-boundaries");
-					}
+			int Np_in_WP = 200;
+			int Nq_in_WP = 200;
+	
+			//for (int pp_idx=pp_idx_lower; pp_idx<pp_idx_upper; pp_idx++){
+			//	double pp = p_array[pp_idx];
+			//	if (pp<pp_WP_bound_lower || pp_WP_bound_upper<pp){
+			//		raise_error("Found bin-quadrature p-momentum outside of bin-boundaries");
+			//	}
+	    	//	for (int qp_idx=qp_idx_lower; qp_idx<qp_idx_upper; qp_idx++){
+			//		double qp = q_array[qp_idx];
+			//		if (qp<qp_WP_bound_lower || qp_WP_bound_upper<qp){
+			//			raise_error("Found bin-quadrature q-momentum outside of bin-boundaries");
+			//		}
+			for (int p_idx=0; p_idx<Np_in_WP; p_idx++){
+				double pp = pp_WP_bound_lower + p_idx*(pp_WP_bound_upper-pp_WP_bound_lower)/Np_in_WP;
+				for (int q_idx=0; q_idx<Nq_in_WP; q_idx++){
+					double qp = qp_WP_bound_lower + q_idx*(qp_WP_bound_upper-qp_WP_bound_lower)/Nq_in_WP;
 					for (int x_idx=0; x_idx<Nx; x_idx++){
-                		double x = x_array[x_idx];
+						double x = x_array[x_idx];
 						double p_bar = pi1_tilde(pp, qp, x);
 						double q_bar = pi2_tilde(pp, qp, x);
 						if (p_bar>p_bar_max){
@@ -297,37 +437,34 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 					}
 				}
 			}
-
+	
 			if (p_bar_min>p_bar_max || q_bar_min>q_bar_max){
 				raise_error("Wrongful p_bar or q_bar calculation in make_permutation_matrix.cpp");
 			}
-
+	
 			for (int q_idx_WP = 0; q_idx_WP < Nq_WP; q_idx_WP++){
-				q_WP_bound_lower = q_array_WP_bounds[q_idx_WP];
-				q_WP_bound_upper = q_array_WP_bounds[q_idx_WP+1];
+				double q_WP_bound_lower = q_array_WP_bounds[q_idx_WP];
+				double q_WP_bound_upper = q_array_WP_bounds[q_idx_WP+1];
 				for (int p_idx_WP = 0; p_idx_WP < Np_WP; p_idx_WP++){
-					p_WP_bound_lower = p_array_WP_bounds[p_idx_WP];
-					p_WP_bound_upper = p_array_WP_bounds[p_idx_WP+1];
-
+					double p_WP_bound_lower = p_array_WP_bounds[p_idx_WP];
+					double p_WP_bound_upper = p_array_WP_bounds[p_idx_WP+1];
+	
 					bool WP_overlap = true;
-
-            		/* Check if p_bar can have values in current bin */
-            		if ( p_bar_max<p_WP_bound_lower || p_WP_bound_upper<p_bar_min ){
+	
+	        		if ( p_bar_max<p_WP_bound_lower || p_WP_bound_upper<p_bar_min ){
 						WP_overlap = false;
-            		}
-					/* Check if q_bar can have values in current bin */
-            		if ( q_bar_max<q_WP_bound_lower || q_WP_bound_upper<q_bar_min ){
+	        		}
+					if ( q_bar_max<q_WP_bound_lower || q_WP_bound_upper<q_bar_min ){
 						WP_overlap = false;
-            		}
-
-					/* Unique index for current combination of WPs */
+	        		}
+	
 					int pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
 							  	  + pp_idx_WP*Nq_WP*Np_WP
 							  	  +  q_idx_WP*Np_WP
 							  	  +  p_idx_WP;
-
+	
 					pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
-
+	
 					if (WP_overlap==false){
 						counter += 1;
 					}
@@ -335,7 +472,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 			}
 		}
 	}
-	printf("   - %.3f%% of P123-matrix violates momentum-conservation \n", 100.*counter/(Nq_WP*Nq_WP*Np_WP*Np_WP));
+	printf("   - %.3f%% of P123-matrix violates momentum-conservation \n", 100.*counter/(Nq_WP*Nq_WP*Np_WP*Np_WP));*/
 
 	/* Preallocate array if we use dense format. Otherwise (i.e. sparse) start with
 	 * some reasonable guess (usually less than a percent), and expand if required. */
@@ -365,7 +502,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	
 	int current_array_dim = sparse_step_length;
 
-	int Gtilde_subarray_size = Np_per_WP * Nq_per_WP * Nx_Gtilde;
+	//int Gtilde_subarray_size = Np_per_WP * Nq_per_WP * Nx_Gtilde;
+	int Gtilde_subarray_size = Nphi * Nx;
 
 	double *P123_col_val_array = new double[P123_dense_dim];
 	double  P123_col_tot_time  = 0;
@@ -373,8 +511,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	int 	P123_rows_left	   = 0;
 	double 	P123_est_time_left = 0;
 
-	//int row_step_length = P123_dense_dim/100;
-	//int row_multiplier = 1;
+	int row_step_length = P123_dense_dim/100;
+	int row_multiplier = 1;
 	
 	/* <X_i'j'^alpha'| - loops (rows of P123) */
 	for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
@@ -412,14 +550,24 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 						int L_1N_prime = L_1N_array[alpha_idx];
 
 						double Gtilde_subarray [Gtilde_subarray_size];
-						calculate_Gtilde_subarray(Gtilde_subarray,
-												  &Atilde_store[alphap_idx*Nalpha*(Lmax+1) + alpha_idx*(Lmax+1)],
-												  Nx, x_array,
-												  Nq_per_WP, &q_array[qp_idx_WP*Nq_per_WP],
-												  Np_per_WP, &p_array[pp_idx_WP*Np_per_WP],
-												  L_2N, L_2N_prime,
-												  L_1N, L_1N_prime,
-												  two_J_3N);
+						//calculate_Gtilde_subarray(Gtilde_subarray,
+						//						  &Atilde_store[alphap_idx*Nalpha*(Lmax+1) + alpha_idx*(Lmax+1)],
+						//						  Nx, x_array,
+						//						  Nq_per_WP, &q_array[qp_idx_WP*Nq_per_WP],
+						//						  Np_per_WP, &p_array[pp_idx_WP*Np_per_WP],
+						//						  L_2N, L_2N_prime,
+						//						  L_1N, L_1N_prime,
+						//						  two_J_3N);
+						
+						calculate_Gtilde_subarray_mod(Gtilde_subarray,
+												  	  &Atilde_store[alphap_idx*Nalpha*(Lmax+1) + alpha_idx*(Lmax+1)],
+								   					  Nx, x_array,
+								   					  Nphi,
+								   					  &sin_phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+								   					  &cos_phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+								   					  L_2N, L_2N_prime,
+												  	  L_1N, L_1N_prime,
+												  	  two_J_3N);
 
 						//printf("%d %d %d %d \n", alphap_idx, qp_idx_WP, pp_idx_WP, alpha_idx);
 						//for (MKL_INT64 p_idx=pp_idx_WP*Np_per_WP; p_idx<(pp_idx_WP+1)*Np_per_WP; p_idx++){
@@ -442,24 +590,34 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 								/* Unique index for current combination of WPs */
 								int pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
-										      + pp_idx_WP*Nq_WP*Np_WP
-										      +  q_idx_WP*Np_WP
-										      +  p_idx_WP;
+											  + pp_idx_WP*Nq_WP*Np_WP
+											  +  q_idx_WP*Np_WP
+											  +  p_idx_WP;
 								bool WP_overlap = pq_WP_overlap_array[pq_WP_idx];
 
 								double P123_element = 0;
 								/* Only calculate P123 if there is WP bin-overlap in Heaviside functions */
 								if (WP_overlap){
-									P123_element = calculate_P123_element_in_WP_basis (  alpha_idx,  p_idx_WP,  q_idx_WP, 
-																					    alphap_idx, pp_idx_WP, qp_idx_WP, 
-																					    Np_per_WP, p_array, wp_array,
-																					    Nq_per_WP, q_array, wq_array,
-																					    Nx,    x_array, wx_array,
-																					    Np_WP, p_array_WP_bounds,
-																					    Nq_WP, q_array_WP_bounds,
-																					    Nalpha,
-																					    Gtilde_subarray);
-																					    //Gtilde_store );
+									//P123_element = calculate_P123_element_in_WP_basis (  alpha_idx,  p_idx_WP,  q_idx_WP, 
+									//													alphap_idx, pp_idx_WP, qp_idx_WP, 
+									//													Np_per_WP, p_array, wp_array,
+									//													Nq_per_WP, q_array, wq_array,
+									//													Nx,    x_array, wx_array,
+									//													Np_WP, p_array_WP_bounds,
+									//													Nq_WP, q_array_WP_bounds,
+									//													Nalpha,
+									//													Gtilde_subarray);
+									//													//Gtilde_store );
+									P123_element = calculate_P123_element_in_WP_basis_mod (Gtilde_subarray,
+											   												p_idx_WP, q_idx_WP,
+											   												pp_idx_WP, qp_idx_WP,
+											   												Np_WP,p_array_WP_bounds,
+											   												Nq_WP,q_array_WP_bounds,
+											   												Nx, x_array, wx_array,
+											   												Nphi,
+											   												&sin_phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+											   												&cos_phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+											   												&wphi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi]);
 								}
 
 								if (use_dense_format){
@@ -532,6 +690,7 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 														int  Nq, double* q_array, double* wq_array, int Np_per_WP, int Np_WP, double *p_array_WP_bounds,
 														int  Np, double* p_array, double* wp_array, int Nq_per_WP, int Nq_WP, double *q_array_WP_bounds,
 														int  Nx, double* x_array, double* wx_array,
+														int  Nphi,
 														int  Nalpha,
 														int* L_2N_array,
 														int* S_2N_array,
@@ -563,6 +722,7 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 							  					Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_array_WP_bounds,
 							  					Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_array_WP_bounds,
 							  					Nx, x_array, wx_array,
+												Nphi,
 							  					Nalpha,
 							  					L_2N_array,
 							  					S_2N_array,

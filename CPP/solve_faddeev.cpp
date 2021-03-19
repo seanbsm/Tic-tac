@@ -424,9 +424,23 @@ void CPVC_col_calc_test(int      Nalpha,
 
 void pade_approximant(cdouble* a_coeff_array,
 					  int N,
-					  int M,
-					  cdouble z){
+					  int M){
 
+	/* a_coeff_array must have length N+M+1 */
+
+	/*cdouble P_array [(M+1)*(M+1)];
+	cdouble Q_array [(M+1)*(M+1)];
+
+	for (int row_idx=0; row_idx<M+1; row_idx++){
+		for (int col_idx=0; col_idx<M; col_idx++){
+			P_array[row_idx*(M+1) + col_idx] = a_coeff_array[M-N+1 + row_idx + col_idx];
+		}
+	}
+
+	for (int col_idx=0; col_idx<M; col_idx++){
+		for (int col_idx=0; col_idx<M; col_idx++){
+		}
+	}*/
 }
 
 void pade_method_solve(cdouble*  U_array,

@@ -6,6 +6,7 @@
 #include<fstream>
 #include<math.h>
 #include<complex>
+#include <algorithm> // std::max, std::min
 #include"mkl.h"
 #include<fstream>
 #include<time.h>
@@ -108,6 +109,17 @@ double pi1_prime_tilde(double p, double q, double x);
 
 
 double pi2_prime_tilde(double p, double q, double x);
+
+double calculate_P123_element_in_WP_basis_mod (double* Gtilde_subarray,
+											   int  p_idx_WP, int  q_idx_WP,
+											   int pp_idx_WP, int qp_idx_WP,
+											   int Np_WP,     double *p_array_WP_bounds,
+											   int Nq_WP,     double *q_array_WP_bounds,
+											   int Nx, double *x_array, double *wx_array,
+											   int Nphi,
+											   double* sin_phi_subarray,
+											   double* cos_phi_subarray,
+											   double* wphi_subarray);
 
 void generate_Ptilde_new(double *P123_store, MKL_INT64 Pdim,
                          MKL_INT64 N_p, double *p,

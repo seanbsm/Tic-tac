@@ -113,25 +113,26 @@ int main(int argc, char* argv[]){
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
 	 * and solve Faddeev in a single run */
-	bool solve_faddeev		      = true;
+	bool solve_faddeev		      = false;
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 1;//1; //5;
-	int two_J_3N_max = 3;//25;//1; //25;
+	int J_2N_max 	 = 3;//1; //5;
+	int two_J_3N_max = 11;//25;//1; //25;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 40; //30;
-	int Nq_WP	   	 = 40; //30;
+	int Np_WP	   	 = 150; //30;
+	int Nq_WP	   	 = 150; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
 	/* Quadrature 3N momenta per WP cell */
-	int Np_per_WP	 = 8;
-	int Nq_per_WP	 = 8;
+	int Nphi		 = 48;
+	int Np_per_WP	 = 48;
+	int Nq_per_WP	 = 48;
 	double* p_array  = NULL;
 	double* q_array  = NULL;
 	double* wp_array = NULL;
@@ -338,8 +339,8 @@ int main(int argc, char* argv[]){
 		std::string P123_filename =    "P123_sparse_JTP_"
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
-									 + "_J2max_" + to_string(J_2N_max) + ".h5";//"_NQ_10.h5";
-		//if (chn_3N!=-1){
+									 + "_J2max_" + to_string(J_2N_max) + ".h5";
+		//if (chn_3N!=0){
 		//	continue;
 		//}
 		if (calculate_and_store_P123){
@@ -357,6 +358,7 @@ int main(int argc, char* argv[]){
 															   Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
 														   	   Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
 														   	   Nx, x_array, wx_array,
+															   Nphi,
 														   	   Nalpha_in_3N_chn,
 														   	   L_2N_subarray,
 							  								   S_2N_subarray,
@@ -397,7 +399,7 @@ int main(int argc, char* argv[]){
 			std::string P123_filename_2 =    "P123_sparse_JTP_"
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
-									 + "_J2max_" + to_string(J_2N_max) + "_NQ_8.h5";
+									 + "_J2max_" + to_string(J_2N_max) + ".h5";
 			printf("Reading P123 from h5 ... \n");
 			double* P123_sparse_val_array_t = NULL;
 			int* 	P123_sparse_row_array_t = NULL;

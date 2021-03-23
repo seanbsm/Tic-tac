@@ -278,6 +278,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	//int Nphi = 6;
 
 	bool*    pq_WP_overlap_array = new bool   [Nq_WP*Nq_WP*Np_WP*Np_WP];
+	//bool*    pq_WP_single_hit = new bool   [Nq_WP*Nq_WP*Np_WP*Np_WP];
 	double*   phi_array      = new double [Nq_WP*Np_WP*Nphi];
 	double*  wphi_array      = new double [Nq_WP*Np_WP*Nphi];
 	printf("   - Precalculating momentum conservations \n");
@@ -310,6 +311,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 					bool WP_overlap = false;
 					/* Ensure possible phi boundaries */
+					int hit_counter = 0;
 					if (phi_lower<phi_upper){
 						/* Search for on-shell elements */
 						for (int phi_idx=0; phi_idx<Nphi; phi_idx++){
@@ -339,6 +341,10 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 										/* Skip momentum-violating integral boundaries */
 										if (kpmin<kpmax){
 											WP_overlap = true;
+											
+											//if (std::abs(kpmax-kpmin)>1e-15){
+											//	hit_counter += 1;
+											//}
 											break;
 										}
 									}
@@ -357,19 +363,26 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 							  	  +  p_idx_WP;
 
 					pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
+					
+					//pq_WP_single_hit[pq_WP_idx] = (hit_counter==1);
 				}
 			}
 		}
 	}
 	}
 	int counter = 0;
+	//int single_hit_counter = 0;
 	for (int idx=0; idx<Nq_WP*Np_WP*Nq_WP*Np_WP;idx++){
 		if (pq_WP_overlap_array[idx]==false){
 			counter += 1;
 		}
+		//if (pq_WP_single_hit[idx]==true){
+		//	single_hit_counter += 1;
+		//}
 	}
 
 	printf("   - %.3f%% of P123-matrix violates momentum-conservation \n", 100.*counter/(Nq_WP*Nq_WP*Np_WP*Np_WP));
+	//printf("   - Polar single-hit density: %.3f%% \n", 100.*single_hit_counter/(Nq_WP*Nq_WP*Np_WP*Np_WP));
 	double*  sin_phi_array = new double [Nq_WP*Np_WP*Nphi];
 	double*  cos_phi_array = new double [Nq_WP*Np_WP*Nphi];
 	for (int idx=0; idx<Nq_WP*Np_WP*Nphi; idx++){
@@ -377,7 +390,11 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 		cos_phi_array[idx] = cos(phi_array[idx]);
 	}
 
-	/*counter = 0;
+	/* CARTESIAN APPROACH */
+	//counter = 0;
+	/*#pragma omp parallel
+	{
+		#pragma omp for
 	for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
 		double qp_WP_bound_lower = q_array_WP_bounds[qp_idx_WP];
 		double qp_WP_bound_upper = q_array_WP_bounds[qp_idx_WP+1];
@@ -401,20 +418,59 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 			int qp_idx_lower = Nq_per_WP* qp_idx_WP;
 			int qp_idx_upper = Nq_per_WP*(qp_idx_WP+1);
 
-			int Np_in_WP = 200;
-			int Nq_in_WP = 200;
+			int Np_in_WP = 48;
+			int Nq_in_WP = 48;
+
+			for (int q_idx_WP = 0; q_idx_WP < Nq_WP; q_idx_WP++){
+				double q_WP_bound_lower = q_array_WP_bounds[q_idx_WP];
+				double q_WP_bound_upper = q_array_WP_bounds[q_idx_WP+1];
+				for (int p_idx_WP = 0; p_idx_WP < Np_WP; p_idx_WP++){
+					double p_WP_bound_lower = p_array_WP_bounds[p_idx_WP];
+					double p_WP_bound_upper = p_array_WP_bounds[p_idx_WP+1];
+
+					bool WP_overlap = false;
+					//int  hit_counter = 0;
+					for (int p_idx=0; p_idx<Np_in_WP; p_idx++){
+						double pp = pp_WP_bound_lower + p_idx*(pp_WP_bound_upper-pp_WP_bound_lower)/Np_in_WP;
+						for (int q_idx=0; q_idx<Nq_in_WP; q_idx++){
+							double qp = qp_WP_bound_lower + q_idx*(qp_WP_bound_upper-qp_WP_bound_lower)/Nq_in_WP;
+							for (int x_idx=0; x_idx<Nx; x_idx++){
+								double x = x_array[x_idx];
+
+								double p_bar = pi1_tilde(pp, qp, x);
+								double q_bar = pi2_tilde(pp, qp, x);
+								
+								if (p_WP_bound_lower<=p_bar && p_bar<=p_WP_bound_upper &&
+									q_WP_bound_lower<=q_bar && q_bar<=q_WP_bound_upper){
+									WP_overlap = true;
+									break;
+									//hit_counter += 1;
+								}
+							}
+							if (WP_overlap){
+								break;
+							}
+						}
+						if (WP_overlap){
+							break;
+						}
+					}
+
+					int pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
+							  	  + pp_idx_WP*Nq_WP*Np_WP
+							  	  +  q_idx_WP*Np_WP
+							  	  +  p_idx_WP;
 	
-			//for (int pp_idx=pp_idx_lower; pp_idx<pp_idx_upper; pp_idx++){
-			//	double pp = p_array[pp_idx];
-			//	if (pp<pp_WP_bound_lower || pp_WP_bound_upper<pp){
-			//		raise_error("Found bin-quadrature p-momentum outside of bin-boundaries");
-			//	}
-	    	//	for (int qp_idx=qp_idx_lower; qp_idx<qp_idx_upper; qp_idx++){
-			//		double qp = q_array[qp_idx];
-			//		if (qp<qp_WP_bound_lower || qp_WP_bound_upper<qp){
-			//			raise_error("Found bin-quadrature q-momentum outside of bin-boundaries");
-			//		}
-			for (int p_idx=0; p_idx<Np_in_WP; p_idx++){
+					pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
+					//pq_WP_single_hit[pq_WP_idx] = (hit_counter==1);
+	
+					if (WP_overlap==false){
+						counter += 1;
+					}
+				}
+			}*/
+
+			/*for (int p_idx=0; p_idx<Np_in_WP; p_idx++){
 				double pp = pp_WP_bound_lower + p_idx*(pp_WP_bound_upper-pp_WP_bound_lower)/Np_in_WP;
 				for (int q_idx=0; q_idx<Nq_in_WP; q_idx++){
 					double qp = qp_WP_bound_lower + q_idx*(qp_WP_bound_upper-qp_WP_bound_lower)/Nq_in_WP;
@@ -469,10 +525,22 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 						counter += 1;
 					}
 				}
-			}
-		}
-	}
-	printf("   - %.3f%% of P123-matrix violates momentum-conservation \n", 100.*counter/(Nq_WP*Nq_WP*Np_WP*Np_WP));*/
+			}*/
+	//	}
+	//}
+	//}
+	//counter = 0;
+	////single_hit_counter = 0;
+	//for (int idx=0; idx<Nq_WP*Np_WP*Nq_WP*Np_WP;idx++){
+	//	if (pq_WP_overlap_array[idx]==false){
+	//		counter += 1;
+	//	}
+	//	//if (pq_WP_single_hit[idx]==true){
+	//	//	single_hit_counter += 1;
+	//	//}
+	//}
+	//printf("   - %.3f%% of P123-matrix violates momentum-conservation \n", 100.*counter/(Nq_WP*Nq_WP*Np_WP*Np_WP));
+	////printf("   - Cartesian single-hit density: %.3f%% \n", 100.*single_hit_counter/(Nq_WP*Nq_WP*Np_WP*Np_WP));
 
 	/* Preallocate array if we use dense format. Otherwise (i.e. sparse) start with
 	 * some reasonable guess (usually less than a percent), and expand if required. */

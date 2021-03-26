@@ -165,10 +165,6 @@ int main(int argc, char* argv[]){
 	potential_model* pot_ptr_np = NULL;
 	potential_model* pot_ptr_nn = NULL;
 
-	/* printf buffer used to add text to current terminal printout */
-	//char buffer[1024];
-	//setvbuf(stdout, buffer, _IOFBF, 1024);
-
 	/* End of code segment for variables and arrays declaration */
 	/* Start of code segment for state space construction */
 	printf("Constructing 3N partial-wave basis ... \n");
@@ -187,6 +183,7 @@ int main(int argc, char* argv[]){
 								  &two_T_3N_array,
 								  &P_3N_array);
 	printf(" - There are %d 3N-channels \n", N_chn_3N);
+
 	/* Small script for finding the largest 3N-channel */
 	if (true){
 		int largest_Nalpha 	   = 0;
@@ -204,16 +201,6 @@ int main(int argc, char* argv[]){
 		printf(" - Channel number %d is the largest channel (%d partial-wave states) \n", largest_Nalpha_idx, largest_Nalpha);
 	}
 	printf(" - Done \n");
-
-	//double estimate = 0;
-	//for (int chn=0; chn<N_chn_3N; chn++){
-	//	int al = chn_3N_idx_array[chn];
-	//	int au = chn_3N_idx_array[chn+1];
-	//	double num_vals = (au-al)*150*150;
-	//	estimate+=0.008*8*num_vals*num_vals/(1024.*1024.*1024.);
-	//}
-	//printf("Estimated P size with %d channels and %d PW states: %.0f GB \n", N_chn_3N, Nalpha, estimate);
-	//return 0;
 
 	printf("Constructing wave-packet (WP) p-momentum bin boundaries ... \n");
 	p_WP_array = new double [Np_WP+1];
@@ -423,91 +410,7 @@ int main(int argc, char* argv[]){
 															  two_T_3N,
 															  P_3N,
 													   		  P123_filename);
-			/*double* P123_sparse_val_array_2 = NULL;
-			int* 	P123_sparse_row_array_2 = NULL;
-			int* 	P123_sparse_col_array_2 = NULL;
-			int	    P123_sparse_dim_2		  = 0;
-			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array_2,
-															  &P123_sparse_row_array_2,
-															  &P123_sparse_col_array_2,
-															  P123_sparse_dim_2,
-															  Np_WP, p_WP_array,
-															  Nq_WP, q_WP_array,
-															  Nalpha_in_3N_chn,
-															  L_2N_subarray,
-															  S_2N_subarray,
-															  J_2N_subarray,
-															  T_2N_subarray,
-															  L_1N_subarray,
-															  two_J_1N_subarray,
-															  two_J_3N,
-															  two_T_3N,
-															  P_3N,
-													   		  P123_filename_2);
-			auto timestamp_P123_read_end = chrono::system_clock::now();
-			chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
-			printf(" - Done. Time used: %.6f\n", time_P123_read.count());
-
-			printf("Running tests on P123 \n");
-			for (int idx_t=0; idx_t<P123_sparse_dim_t; idx_t++){
-				int row_t = P123_sparse_row_array_t[idx_t];
-				int col_t = P123_sparse_col_array_t[idx_t];
-				double val_t = P123_sparse_val_array_t[idx_t];
-
-				if (abs(val_t)>1){
-					printf("%d %d %.16f\n", row_t, col_t, val_t);
-				}
-
-				for (int idx_2=0; idx_2<P123_sparse_dim_t; idx_2++){
-					int row_2 = P123_sparse_row_array_2[idx_2];
-					int col_2 = P123_sparse_col_array_2[idx_2];
-					if (row_t==row_2 and col_t==col_2){
-						
-						div_t divresult1 = std::div(col_t, Np_WP*Nq_WP);
-						div_t divresult2 = std::div(divresult1.rem, Np_WP);
-						//int idx_alpha_c = divresult1.quot;
-						int idx_q_c     = divresult2.quot;
-						int idx_p_c 	= divresult2.rem;
-
-						divresult1 = std::div(row_t, Np_WP*Nq_WP);
-						divresult2 = std::div(divresult1.rem, Np_WP);
-						//int idx_alpha_r = divresult1.quot;
-						int idx_q_r     = divresult2.quot;
-						int idx_p_r 	= divresult2.rem;
-
-						double p_c = p_WP_array[idx_p_c];
-						double q_c = q_WP_array[idx_q_c];
-
-						double p_r = p_WP_array[idx_p_r];
-						double q_r = q_WP_array[idx_q_r];
-
-						if (abs(P123_sparse_val_array_t[idx_t]-P123_sparse_val_array_2[idx_2])>1e-10){
-							printf("%d %d %.16f %.16f \n", row_t, col_t, P123_sparse_val_array_t[idx_t], P123_sparse_val_array_2[idx_2]);
-							printf("q': %.16f p':%.16f q:%.16f p:%.16f \n", q_r, p_r, q_c, p_c);
-						}
-						if (p_c>1e3 or q_c>1e3 or p_r>1e3 or q_r>1e3){
-							printf("HIGH MOMENTA REGION \n");
-							printf("%d %d %.16f %.16f \n", row_t, col_t, P123_sparse_val_array_t[idx_t], P123_sparse_val_array_2[idx_2]);
-							printf("q': %.16f p':%.16f q:%.16f p:%.16f \n", q_r, p_r, q_c, p_c);
-						}
-						//else{
-						//	printf("Good: %d %d %.16f %.16f \n", row_t, col_t, P123_sparse_val_array_t[idx_t], P123_sparse_val_array_2[idx_2]);
-						//}
-					}
-				}
-			}
-			printf(" - Done \n");*/
 		}
-
-		//printf("Running tests on P123 \n");
-		//for (int idx=0; idx<P123_sparse_dim; idx++){
-		//	if (abs(P123_sparse_val_array_t[idx]-P123_sparse_val_array[idx])>1e-15){
-		//		printf("%.16f %.16f \n", P123_sparse_val_array_t[idx], P123_sparse_val_array[idx]);
-		//		//raise_error("test failed");
-		//	}
-		//}
-		//printf(" - Done \n");
-		
 		/* End of code segment for permutation matrix construction */
 
 		if (solve_faddeev){

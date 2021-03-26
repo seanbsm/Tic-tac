@@ -388,15 +388,12 @@ int main(int argc, char* argv[]){
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
 			printf("Reading P123 from h5 ... \n");
-			double* P123_sparse_val_array_t = NULL;
-			int* 	P123_sparse_row_array_t = NULL;
-			int* 	P123_sparse_col_array_t = NULL;
-			int	    P123_sparse_dim_t		  = 0;
+			
 			auto timestamp_P123_read_start = chrono::system_clock::now();
-			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array_t,
-															  &P123_sparse_row_array_t,
-															  &P123_sparse_col_array_t,
-															  P123_sparse_dim_t,
+			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array,
+															  &P123_sparse_row_array,
+															  &P123_sparse_col_array,
+															  P123_sparse_dim,
 															  Np_WP, p_WP_array,
 															  Nq_WP, q_WP_array,
 															  Nalpha_in_3N_chn,

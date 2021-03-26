@@ -1,100 +1,15 @@
 
 #include "make_permutation_matrix.h"
 
-/* Add this if 6j takes a while */
-void precalculate_Wigner_6j_symbols(){
-}
-
-void calculate_Gtilde_array(double* Gtilde_array,
-							double* Atilde_array,
-							int  Nx, double* x_array,
-							int  Nq, double* q_array,
-							int  Np, double* p_array,
-							int  Nalpha,
-							int  L_max,
-							int* L_2N_array,
-							int* L_1N_array,
-							int  two_J_3N){
-
-	bool print_Gtilde_progress = false;
-
-	long int fullsize = Np*Nq*Nx*Nalpha*(Nalpha - 1);
-	long int counter = 0;
-	int frac_n, frac_o=0;
-	
-	#pragma omp parallel
-	{
-		#pragma omp for
-
-		for (MKL_INT64 p_idx=0; p_idx<Np; p_idx++){
-			for (MKL_INT64 q_idx=0; q_idx<Nq; q_idx++){
-				for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
-					for (MKL_INT64 alpha=0; alpha<Nalpha; alpha++){
-						for (MKL_INT64 alpha_p=0; alpha_p<Nalpha; alpha_p++){
-							Gtilde_array[alpha*Nalpha*Np*Nq*Nx + alpha_p*Np*Nq*Nx + p_idx*Nq*Nx + q_idx*Nx + x_idx]
-								= Gtilde_new (p_array[p_idx], q_array[q_idx], x_array[x_idx], alpha, alpha_p, Nalpha, L_max, L_2N_array, L_1N_array, Atilde_array, two_J_3N);
-
-							counter += 1;
-			
-							if (print_Gtilde_progress){
-								frac_n = (100*counter)/fullsize;
-								if (frac_n>frac_o){std::cout << frac_n << "%" << std::endl; frac_o=frac_n;}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
 void calculate_Gtilde_subarray(double* Gtilde_subarray,
 							   double* Atilde_subarray,
 							   int  Nx, double* x_array,
-							   int  Nq, double* q_array,
-							   int  Np, double* p_array,
+							   int  Nphi,
+							   double* sin_phi_subarray,
+							   double* cos_phi_subarray,
 							   int  L_2N, int L_2N_prime,
 							   int  L_1N, int L_1N_prime,
 							   int  two_J_3N){
-
-	bool print_Gtilde_progress = false;
-
-	long int fullsize = Np*Nq*Nx;
-	long int counter = 0;
-	int frac_n, frac_o=0;
-	
-	for (MKL_INT64 p_idx=0; p_idx<Np; p_idx++){
-		for (MKL_INT64 q_idx=0; q_idx<Nq; q_idx++){
-			for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
-				Gtilde_subarray[p_idx*Nq*Nx + q_idx*Nx + x_idx]
-					= Gtilde_subarray_new (p_array[p_idx],
-										   q_array[q_idx],
-										   x_array[x_idx],
-										   L_2N, L_2N_prime,
-										   L_1N, L_1N_prime,
-										   Atilde_subarray,
-										   two_J_3N);
-
-				counter += 1;
-			
-				if (print_Gtilde_progress){
-					frac_n = (100*counter)/fullsize;
-					if (frac_n>frac_o){std::cout << frac_n << "%" << std::endl; frac_o=frac_n;}
-				}
-			}
-		}
-	}
-}
-
-void calculate_Gtilde_subarray_mod(double* Gtilde_subarray,
-								   double* Atilde_subarray,
-								   int  Nx, double* x_array,
-								   int  Nphi,
-								   double* sin_phi_subarray,
-								   double* cos_phi_subarray,
-								   int  L_2N, int L_2N_prime,
-								   int  L_1N, int L_1N_prime,
-								   int  two_J_3N){
 
 	bool print_Gtilde_progress = false;
 
@@ -259,7 +174,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	bool*    pq_WP_overlap_array = new bool   [Nq_WP*Nq_WP*Np_WP*Np_WP];
 	double*   phi_array      = new double [Nq_WP*Np_WP*Nphi];
 	double*  wphi_array      = new double [Nq_WP*Np_WP*Nphi];
-	
+
 	printf("   - Precalculating momentum conservations \n");
 	#pragma omp parallel
 	{

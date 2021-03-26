@@ -124,15 +124,16 @@ int main(int argc, char* argv[]){
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 50; //30;
-	int Nq_WP	   	 = 50; //30;
+	int Np_WP	   	 = 150; //30;
+	int Nq_WP	   	 = 150; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
 	/* Quadrature 3N momenta per WP cell */
-	int Nphi		 = 48;
-	int Np_per_WP	 = 48;
-	int Nq_per_WP	 = 48;
+	int Nphi		 = 12;
+	int Nx 			 = 20;
+	int Np_per_WP	 = 8;
+	int Nq_per_WP	 = 8;
 	double* p_array  = NULL;
 	double* q_array  = NULL;
 	double* wp_array = NULL;
@@ -339,12 +340,11 @@ int main(int argc, char* argv[]){
 		std::string P123_filename =    "P123_sparse_JTP_"
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
-									 + "_J2max_" + to_string(J_2N_max) + ".h5";
+									 + "_J2max_" + to_string(J_2N_max) + "_NQ_36_NX_40.h5";
 		//if (chn_3N!=-1){
 		//	continue;
 		//}
 		if (calculate_and_store_P123){
-			int Nx 			 = 20;
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];
 			gauss(x_array, wx_array, Nx);

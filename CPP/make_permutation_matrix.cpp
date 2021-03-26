@@ -666,6 +666,10 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 								double P123_element = 0;
 								/* Only calculate P123 if there is WP bin-overlap in Heaviside functions */
 								if (WP_overlap){
+
+									if (P123_row_idx==200250 && P123_col_idx==157500){
+										std::cout << "yup...\n" << std::endl;
+									}
 									//P123_element = calculate_P123_element_in_WP_basis (  alpha_idx,  p_idx_WP,  q_idx_WP, 
 									//													alphap_idx, pp_idx_WP, qp_idx_WP, 
 									//													Np_per_WP, p_array, wp_array,

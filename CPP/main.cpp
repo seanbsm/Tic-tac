@@ -114,6 +114,7 @@ int main(int argc, char* argv[]){
 	 * precalculate permutation matrices, or to calculate both permutation matrices
 	 * and solve Faddeev in a single run */
 	bool solve_faddeev		      = false;
+	bool production_run			  = false;
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
@@ -124,8 +125,8 @@ int main(int argc, char* argv[]){
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 150; //30;
-	int Nq_WP	   	 = 150; //30;
+	int Np_WP	   	 = 30; //30;
+	int Nq_WP	   	 = 30; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -328,7 +329,7 @@ int main(int argc, char* argv[]){
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		//if (chn_3N!=-1){
+		//if (chn_3N!=0){
 		//	continue;
 		//}
 		if (calculate_and_store_P123){
@@ -342,8 +343,9 @@ int main(int argc, char* argv[]){
 															   &P123_sparse_row_array,
 															   &P123_sparse_col_array,
 															   P123_sparse_dim,
-															   Nq_WP*Nq_per_WP, q_array, wq_array, Np_per_WP, Np_WP, p_WP_array,
-														   	   Np_WP*Np_per_WP, p_array, wp_array, Nq_per_WP, Nq_WP, q_WP_array,
+															   production_run,
+															   Np_WP, p_WP_array,
+														   	   Nq_WP, q_WP_array,
 														   	   Nx, x_array, wx_array,
 															   Nphi,
 														   	   Nalpha_in_3N_chn,
@@ -389,11 +391,16 @@ int main(int argc, char* argv[]){
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
 			printf("Reading P123 from h5 ... \n");
 			
+			double* P123_sparse_val_array_t = NULL;
+			int* 	P123_sparse_row_array_t = NULL;
+			int* 	P123_sparse_col_array_t = NULL;
+			int	    P123_sparse_dim_t		  = 0;
+
 			auto timestamp_P123_read_start = chrono::system_clock::now();
-			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array,
-															  &P123_sparse_row_array,
-															  &P123_sparse_col_array,
-															  P123_sparse_dim,
+			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array_t,
+															  &P123_sparse_row_array_t,
+															  &P123_sparse_col_array_t,
+															  P123_sparse_dim_t,
 															  Np_WP, p_WP_array,
 															  Nq_WP, q_WP_array,
 															  Nalpha_in_3N_chn,
@@ -407,6 +414,25 @@ int main(int argc, char* argv[]){
 															  two_T_3N,
 															  P_3N,
 													   		  P123_filename);
+			
+			//if (P123_sparse_dim_t==P123_sparse_dim){
+			//	for (int idx=0; idx<P123_sparse_dim; idx++){
+			//		bool check1 = (P123_sparse_val_array_t[idx]!=P123_sparse_val_array[idx]);
+			//		bool check2 = (P123_sparse_row_array_t[idx]!=P123_sparse_row_array[idx]);
+			//		bool check3 = (P123_sparse_col_array_t[idx]!=P123_sparse_col_array[idx]);
+			//		if (check1||check2||check3){
+			//			std::cout << "Value wrong, idx: " << idx << std::endl;
+			//			std::cout << "BM val:   " << P123_sparse_val_array_t[idx] << std::endl;
+			//			std::cout << "BM row:   " << P123_sparse_row_array_t[idx] << std::endl;
+			//			std::cout << "BM col:   " << P123_sparse_col_array_t[idx] << std::endl;
+			//			std::cout << "Prog val: " << P123_sparse_val_array[idx] << std::endl;
+			//			std::cout << "Prog row: " << P123_sparse_row_array[idx] << std::endl;
+			//			std::cout << "Prog col: " << P123_sparse_col_array[idx] << std::endl;
+			//			raise_error("element mismatch");
+			//		}
+			//	}
+			//}
+			//else{raise_error("dim not right");}
 		}
 		/* End of code segment for permutation matrix construction */
 

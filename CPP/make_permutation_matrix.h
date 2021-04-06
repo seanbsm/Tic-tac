@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <complex>
+#include <numeric>
 #include <algorithm>
 #include <stdexcept> // std::runtime_error
 #include <sstream> // std::stringstream
@@ -39,8 +40,9 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 												 int** P123_col_array,
 												 int& P123_dim,
 												 bool use_dense_format,
-												 int Nq, double* q_array, double* wq_array, int Np_per_WP, int Np_WP, double *p_array_WP_bounds,
-												 int Np, double* p_array, double* wp_array, int Nq_per_WP, int Nq_WP, double *q_array_WP_bounds,
+												 bool production_run,
+												 int Np_WP, double *p_array_WP_bounds,
+												 int Nq_WP, double *q_array_WP_bounds,
 												 int Nx, double* x_array, double* wx_array,
 												 int  Nphi,
 												 int Nalpha,
@@ -57,8 +59,9 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 														int**    P123_sparse_row_array,
 														int**    P123_sparse_col_array,
 														int&     P123_sparse_dim_array,
-														int  Nq, double* q_array, double* wq_array, int Np_per_WP, int Np_WP, double *p_array_WP_bounds,
-														int  Np, double* p_array, double* wp_array, int Nq_per_WP, int Nq_WP, double *q_array_WP_bounds,
+														bool production_run,
+														int  Np_WP, double *p_array_WP_bounds,
+														int  Nq_WP, double *q_array_WP_bounds,
 														int  Nx, double* x_array, double* wx_array,
 														int  Nphi,
 														int  Nalpha,

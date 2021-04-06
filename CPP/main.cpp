@@ -130,7 +130,7 @@ int main(int argc, char* argv[]){
 	double* q_WP_array  = NULL;
 
 	/* Quadrature 3N momenta per WP cell */
-	int Nphi		 = 12;
+	int Nphi		 = 50;
 	int Nx 			 = 20;
 	int Np_per_WP	 = 8;
 	int Nq_per_WP	 = 8;
@@ -327,7 +327,7 @@ int main(int argc, char* argv[]){
 		std::string P123_filename =    "P123_sparse_JTP_"
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
-									 + "_J2max_" + to_string(J_2N_max) + "_NQ_36_NX_40.h5";
+									 + "_J2max_" + to_string(J_2N_max) + ".h5";
 		//if (chn_3N!=-1){
 		//	continue;
 		//}

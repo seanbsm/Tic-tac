@@ -30,7 +30,7 @@ cdouble resolvent_bound_continuum(double E,
 	double Dq = Eq_upper - Eq_lower;
 
 	/* Real part of the BC resolvent */
-	double Re_R = log( abs( (Eq_lower + e)/(Eq_upper + e) ) ) / (Dq); 
+	double Re_R = std::log( std::abs( (Eq_lower + e)/(Eq_upper + e) ) ) / (Dq); 
 	
 	/* Imaginary part of the BC resolvent */
 	double Im_R = (  heaviside_step_function( Eq_upper + e )
@@ -67,10 +67,10 @@ cdouble resolvent_continuum_continuum(double E,
 	double D  = Ep_upper + Eq_upper - E;
 	
 	/* Real part of the CC resolvent */
-	double Re_Q = (  (D+DM) * log( abs(D+DM) )
-				   + (D-DM) * log( abs(D-DM) )
-				   - (D+DP) * log( abs(D+DP) )
-				   - (D-DP) * log( abs(D-DP) ) ) / (Dp*Dq); 
+	double Re_Q = (  (D+DM) * std::log( std::abs(D+DM) )
+				   + (D-DM) * std::log( std::abs(D-DM) )
+				   - (D+DP) * std::log( std::abs(D+DP) )
+				   - (D-DP) * std::log( std::abs(D-DP) ) ) / (Dp*Dq); 
 	
 	/* Imaginary part of the CC resolvent */
 	double Im_Q = (  (D+DM) * heaviside_step_function( D+DM )

@@ -526,6 +526,14 @@ void read_PW_statespace_to_h5(int  Nalpha,
 	check_h5_close_call(status);
 }
 
+void write_sparse_permutation_matrix_chunk_h5(double* P123_sparse_val_array,
+											  int*    P123_sparse_row_array,
+											  int*    P123_sparse_col_array,
+											  int     P123_buffer_size,
+											  hid_t   file_id){
+
+}
+
 void write_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 										int*    P123_sparse_row_array,
 										int*    P123_sparse_col_array,

@@ -285,6 +285,74 @@ void calculate_CPVC_col(double*  col_array,
 	}
 }
 
+void calculate_CPVC_row(double*  row_array,
+						int      idx_alpha_r, int idx_p_r, int idx_q_r,
+						int      Nalpha,      int Nq_WP,   int Np_WP,
+						double** CT_RM_array,
+						double** VC_CM_array,
+						double*  P123_val_array,
+						int*     P123_row_array,
+						int*     P123_col_array,
+						int      P123_dim){
+	
+	/* Generate PVC-column */
+	double PVC_col [Nalpha*Nq_WP*Np_WP];
+
+	/* Generate (C^T x PVC)-column */
+	double* CT_subarray     = NULL;
+	double* CT_subarray_row = NULL;
+
+	/* Loop over cols of row */
+	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+
+				/* Ensure PVC_col contains only zeroes */
+				for (int idx=0; idx<Nalpha*Nq_WP*Np_WP; idx++){
+					PVC_col[idx] = 0;
+				}
+
+				/* Calculate PVC-column for alpha_i, p_i, q_r */
+				calculate_PVC_col(PVC_col,
+								  idx_alpha_c, idx_p_c, idx_q_c,
+								  Nalpha,      Nq_WP,   Np_WP,
+								  VC_CM_array,
+								  P123_val_array,
+								  P123_row_array,
+								  P123_col_array,
+								  P123_dim);
+
+				double inner_product_CPVC = 0;
+
+				/* Beginning of inner-product loops (index "i") */
+				for (int idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
+					int idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
+					CT_subarray = CT_RM_array[idx_CT_2N_block];
+
+					/* Only do inner-product if CT is not zero due to conservation laws */
+					if (CT_subarray!=NULL){
+						CT_subarray_row = &CT_subarray[idx_p_r*Np_WP];
+
+						for (int idx_p_i=0; idx_p_i<Np_WP; idx_p_i++){
+						
+							int    idx_PVC     = idx_alpha_i*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_i;
+							double PVC_element = PVC_col[idx_PVC];
+
+							/* I'm not sure if this is the fastest ordering of the loops */
+							double CT_element  = CT_subarray_row[idx_p_i];
+
+							inner_product_CPVC += CT_element * PVC_element;
+						}
+					}
+				}
+
+				int idx_CPVC = idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP + idx_p_c;
+				row_array[idx_CPVC] = inner_product_CPVC;
+			}
+		}
+	}
+}
+
 void CPVC_col_brute_force(double*  col_array,
 						  int      idx_alpha_c, int idx_p_c, int idx_q_c,
 						  int      Nalpha,      int Nq_WP,   int Np_WP,
@@ -430,8 +498,8 @@ cdouble pade_approximant(cdouble* a_coeff_array, int N, int M, cdouble z){
 
 	for (int row_idx=0; row_idx<M; row_idx++){
 		for (int col_idx=0; col_idx<M+1; col_idx++){
-			P_array[row_idx*(M+1) + col_idx] = a_coeff_array[M-N+1 + row_idx + col_idx];
-			Q_array[row_idx*(M+1) + col_idx] = a_coeff_array[M-N+1 + row_idx + col_idx];
+			P_array[row_idx*(M+1) + col_idx] = a_coeff_array[N-M+1 + row_idx + col_idx];
+			Q_array[row_idx*(M+1) + col_idx] = a_coeff_array[N-M+1 + row_idx + col_idx];
 		}
 	}
 
@@ -439,7 +507,7 @@ cdouble pade_approximant(cdouble* a_coeff_array, int N, int M, cdouble z){
 		Q_array[M*(M+1) + col_idx] = std::pow(z, M-col_idx);
 		P_array[M*(M+1) + col_idx] = 0;
 		for (int j=M-col_idx; j<N+1; j++){
-			P_array[M*(M+1) + col_idx] += a_coeff_array[col_idx - M] * std::pow(z, j);
+			P_array[M*(M+1) + col_idx] += a_coeff_array[j - (M-col_idx)] * std::pow(z, j);
 		}
 	}
 
@@ -464,24 +532,55 @@ void pade_method_solve(cdouble*  U_array,
 					   int       P123_sparse_dim){
 	
 	/* Upper limit on polynomial approximation of Faddeev eq. */
-	int N_pade = 10;
-	int M_pade = 10;
+	int N_pade = 14;
+	int M_pade = 14;
 
 	/* Coefficients for calculating Pade approximant */
-	cdouble* a_coeff_array = new cdouble [N_pade + M_pade + 1];
+	cdouble a_coeff_array [ (N_pade + M_pade + 1) * num_on_shell_indices];
 
 	/* Dense dimension of 3N-channel */
 	int dense_dim = Nalpha * Nq_WP * Np_WP;
 
-	/* Allocate column-array for (C^T)(P)(VC) */
+	/* Allocate row- and column-arrays for (C^T)(P)(VC) */
 	double CPVC_col_array [dense_dim];
+
+	/* Allocate row-arrays for A*A^n, where A=(C^T)(P)(VC) */
+	double A_An_row_array 	   [dense_dim * num_on_shell_indices];
+	double A_An_row_array_prev [dense_dim * num_on_shell_indices];
+
+	/* Set A_An-arrays to zero */
+	for (int i=0; i<dense_dim*num_on_shell_indices; i++){
+		A_An_row_array[i] 	   = 0;
+		A_An_row_array_prev[i] = 0;
+	}
+
+	/* Set initial values for A_Kn_row_array, where K^n=1 for n=0 */
+	for (int i=0; i<num_on_shell_indices; i++){
+		/* On-shell (OS) indices */
+		int idx_alpha_OS = on_shell_idx_array[3*num_on_shell_indices];
+		int idx_p_OS 	 = on_shell_idx_array[3*num_on_shell_indices + 1];
+		int idx_q_OS 	 = on_shell_idx_array[3*num_on_shell_indices + 2];
+
+		/* Calculate CPVC-row and write to A_Kn_row_array */
+		calculate_CPVC_row(&A_An_row_array[i*dense_dim],
+						   idx_alpha_OS, idx_p_OS, idx_q_OS,
+						   Nalpha, Nq_WP, Np_WP,
+						   CT_RM_array,
+						   VC_CM_array,
+						   P123_sparse_val_array,
+						   P123_sparse_row_array,
+						   P123_sparse_col_array,
+						   P123_sparse_dim);
+	}
 
 	/* Loop over number of Pade-terms we use */
 	for (int n=0; n<N_pade+M_pade; n++){
+
 		/* Iterate through columns of A */
 		for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 			for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
 				for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+					int idx_col = idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP + idx_p_c;
 				
 					/* Reset CPVC-column array */
 					for (int row_idx=0; row_idx<dense_dim; row_idx++){
@@ -498,14 +597,65 @@ void pade_method_solve(cdouble*  U_array,
 									   P123_sparse_row_array,
 									   P123_sparse_col_array,
 									   P123_sparse_dim);
-					
-					/* Multiply CPVC with resolvent, raised to the power n given by outer for-loop */
-					cdouble G_pow_n = std::pow(G_array[idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP + idx_p_c], n);
 
 					/* Calculate all a-coefficients for calculated CPVC-column */
-					//for (int idx=0; idx<num_on_shell_indices; idx++){
-					//}
+					for (int idx=0; idx<num_on_shell_indices; idx++){
+						
+						/* Dot product An*A */
+						double inner_product = 0;
+						for (int i=0; i<dense_dim; i++){
+							inner_product += A_An_row_array_prev[i] * CPVC_col_array[i];
+						}
+
+						A_An_row_array[idx*dense_dim + idx_col] = inner_product;
+					}
 				}
+			}
+		}
+
+		/* Rewrite previous A_An with current A_An */
+		for (int idx=0; idx<num_on_shell_indices; idx++){
+			for (int i=0; i<dense_dim; i++){
+				A_An_row_array_prev[idx*dense_dim + i] = A_An_row_array[idx*dense_dim + i];
+			}
+		}
+
+		/* Extract coefficients "a" for Pade approximant */
+		for (int idx=0; idx<num_on_shell_indices; idx++){
+			/* On-shell (OS) indices */
+			int idx_alpha_OS = on_shell_idx_array[3*num_on_shell_indices];
+			int idx_p_OS 	 = on_shell_idx_array[3*num_on_shell_indices + 1];
+			int idx_q_OS 	 = on_shell_idx_array[3*num_on_shell_indices + 2];
+			int idx_OS		 = idx_alpha_OS*Nq_WP*Np_WP + idx_q_OS*Np_WP + idx_p_OS;
+
+			/* Resolvent exponent */
+			cdouble G_pow_n = std::pow(G_array[idx_OS], n);
+
+			/* Calculate coefficient */
+			cdouble a_coeff = A_An_row_array[idx*dense_dim + idx_OS] * G_pow_n;
+
+			/* Store coefficient */
+			a_coeff_array[idx*(N_pade+M_pade+1) + n] = a_coeff;
+		}
+	}
+
+	/* Calculate Pade approximants (PA) */
+	for (int idx=0; idx<num_on_shell_indices; idx++){
+
+		cdouble pade_approximants_array [N_pade+M_pade+1];
+
+		double min_PA_diff = 0;
+		int idx_best_PA = 0;
+
+		/* Calculte Pade approximants and find most converged PA */
+		for (int NM=0; NM<N_pade+M_pade+1; NM+=2){
+			cdouble PA = pade_approximant(&a_coeff_array[idx*(N_pade+M_pade+1)], NM/2, NM/2, 1);
+			pade_approximants_array[NM/2] = PA;
+
+			double PA_diff = std::abs(PA - pade_approximants_array[NM/2 - 1]);
+			if (PA_diff < min_PA_diff){
+				idx_best_PA = NM;
+				min_PA_diff = PA_diff;
 			}
 		}
 	}
@@ -822,18 +972,34 @@ void solve_faddeev_equations(cdouble*  U_array,
 	printf("   - Solving Faddeev equation ... \n");
 	auto timestamp_calc_CPVC_start = std::chrono::system_clock::now();
 	
-	direct_sparse_solve(U_array,
-						G_array,
-						idx_on_shell,
-						Nalpha,
-						Nq_WP,
-						Np_WP,
-						CT_RM_array,
-						VC_CM_array,
-						P123_sparse_val_array,
-						P123_sparse_row_array,
-						P123_sparse_col_array,
-						P123_sparse_dim);
+	int num_on_shell_indices = 1;
+	int on_shell_idx_array [num_on_shell_indices] = {0};
+	pade_method_solve(U_array,
+					  G_array,
+					  num_on_shell_indices,
+					  on_shell_idx_array,
+					  Nalpha,
+					  Nq_WP,
+					  Np_WP,
+					  CT_RM_array,
+					  VC_CM_array,
+					  P123_sparse_val_array,
+					  P123_sparse_row_array,
+					  P123_sparse_col_array,
+					  P123_sparse_dim);
+
+	//direct_sparse_solve(U_array,
+	//					G_array,
+	//					idx_on_shell,
+	//					Nalpha,
+	//					Nq_WP,
+	//					Np_WP,
+	//					CT_RM_array,
+	//					VC_CM_array,
+	//					P123_sparse_val_array,
+	//					P123_sparse_row_array,
+	//					P123_sparse_col_array,
+	//					P123_sparse_dim);
 
 	auto timestamp_calc_CPVC_end = std::chrono::system_clock::now();
 	std::chrono::duration<double> time_calc_CPVC = timestamp_calc_CPVC_end - timestamp_calc_CPVC_start;

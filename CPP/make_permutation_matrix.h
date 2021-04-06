@@ -25,10 +25,6 @@
 #include <gsl/gsl_roots.h>
 #include <gsl/gsl_sf.h>
 
-/* .h5-file functionality */
-#include "hdf5/serial/hdf5.h"
-#include "hdf5/serial/hdf5_hl.h"
-
 /* Time-keeping modules */
 #include <chrono>
 #include <ctime>

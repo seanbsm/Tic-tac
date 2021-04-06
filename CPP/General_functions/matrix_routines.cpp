@@ -12,6 +12,16 @@ void dot_MM(float *A, float *B, float *C, int N, int K, int M){
 void dot_MM(double *A, double *B, double *C, int N, int K, int M){
 	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, 1.0, A, K, B, M, 0.0, C, M);
 }
+void cdot_MM(std::complex<float> *A, std::complex<float> *B, std::complex<float> *C, int N, int K, int M){
+	std::complex<float> beta = {0,0};
+	std::complex<float> alpha = {1,0};
+	cblas_cgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, &alpha, A, K, B, M, &beta, C, M);
+}
+void cdot_MM(std::complex<double> *A, std::complex<double> *B, std::complex<double> *C, int N, int K, int M){
+	std::complex<double> beta = {0,0};
+	std::complex<double> alpha = {1,0};
+	cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, &alpha, A, K, B, M, &beta, C, M);
+}
 
 void solve_MM(float* A, float* B, int dim){
 	char trans = 'N';
@@ -45,19 +55,18 @@ void solve_MM(std::complex<double> *A, std::complex<double> *B, int N){
 }
 
 std::complex<double> determinant(std::complex<double>* A, int N){
-	char trans = 'N';
 	long long int ipiv [N];
 	
 	/* Perform LU decomposition, A is overwritten by L */
 	LAPACKE_zgetrf(LAPACK_ROW_MAJOR, N, N, A, N, ipiv);
 
 	/* Diagonal of L equals determinant of A */
-	std::complex<double> sum_diagonal = 0;
+	std::complex<double> product_sum_diagonal = 1;
 	for (int i=0; i<N; i++){
-		sum_diagonal += A[i*N+i];
+		product_sum_diagonal *= A[i*N+i];
 	}
 
-	return sum_diagonal;
+	return product_sum_diagonal;
 }
 
 void solve_MM_sparse(double*  A_val_array,

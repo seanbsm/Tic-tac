@@ -286,7 +286,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 		for (int pp_idx_WP=0; pp_idx_WP<Np_WP; pp_idx_WP++){
 			double pp_l = p_array_WP_bounds[pp_idx_WP];
 			double pp_u = p_array_WP_bounds[pp_idx_WP+1];
-
+	
 			double phi_lower = atan(pp_l/qp_u);
 			double phi_upper = atan(pp_u/qp_l);
 			
@@ -303,7 +303,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 				for (int p_idx_WP=0; p_idx_WP<Np_WP; p_idx_WP++){
 					double p_l = p_array_WP_bounds[p_idx_WP];
 					double p_u = p_array_WP_bounds[p_idx_WP+1];
-
+	
 					bool WP_overlap = false;
 					/* Ensure possible phi boundaries */
 					int hit_counter = 0;
@@ -313,26 +313,26 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 							double phi = phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi + phi_idx];
 							double sin_phi = std::sin(phi);
 							double cos_phi = std::cos(phi);
-
+	
 							double kmin = std::max(pp_l/sin_phi, qp_l/cos_phi);
 							double kmax = std::min(pp_u/sin_phi, qp_u/cos_phi);
-
+	
 							/* Ensure possible k-boundaries */
 							if (kmin<kmax){
 								for (int x_idx=0; x_idx<Nx; x_idx++){
 									double x = x_array[x_idx];
-
+	
 									double zeta_1 = pi1_tilde(sin_phi, cos_phi, x);
 									double zeta_2 = pi2_tilde(sin_phi, cos_phi, x);
-
+	
 									double Heaviside_lower = std::max(p_l/zeta_1, q_l/zeta_2);
 									double Heaviside_upper = std::min(p_u/zeta_1, q_u/zeta_2);
-
+	
 									/* Ensure overlapping Heaviside boundaries */
 									if (Heaviside_lower<Heaviside_upper){
 										double kpmin = std::max(kmin, Heaviside_lower);
 										double kpmax = std::min(kmax, Heaviside_upper);
-
+	
 										/* Skip momentum-violating integral boundaries */
 										if (kpmin<kpmax){
 											WP_overlap = true;
@@ -350,19 +350,30 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 							}
 						}
 					}
-
+	
 					/* Unique index for current combination of WPs */
 					int pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
 							  	  + pp_idx_WP*Nq_WP*Np_WP
 							  	  +  q_idx_WP*Np_WP
 							  	  +  p_idx_WP;
-
+	
 					pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
 				}
 			}
 		}
 	}
 	}
+	//double sparsity = 0.99881;
+	//for (int i=0; i<Nq_WP*Nq_WP*Np_WP*Np_WP; i++){
+	//	double prob_nnz = (double) rand() / RAND_MAX;
+    //    if (prob_nnz>sparsity){
+	//		pq_WP_overlap_array[i] = true;
+	//	}
+	//	else{
+	//		pq_WP_overlap_array[i] = false;
+	//	}
+	//}
+
 	int counter = 0;
 	for (int idx=0; idx<Nq_WP*Np_WP*Nq_WP*Np_WP;idx++){
 		if (pq_WP_overlap_array[idx]==false){
@@ -381,13 +392,13 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 	/* Preallocate array if we use dense format. Otherwise (i.e. sparse) start with
 	 * some reasonable guess (usually less than a percent), and expand if required. */
-	long int P123_dense_dim    = Np_WP * Nq_WP * Nalpha;
-	long int P123_dense_dim_sq = P123_dense_dim * P123_dense_dim;
+	long long int P123_dense_dim    = Np_WP * Nq_WP * Nalpha;
+	long long int P123_dense_dim_sq = P123_dense_dim * P123_dense_dim;
 	int sparse_step_length     = 0;
 	
 	int P123_omp_num_threads = omp_get_max_threads();
-	if (P123_omp_num_threads>Nalpha){
-		P123_omp_num_threads = Nalpha;
+	if (P123_omp_num_threads>Nq_WP){
+		P123_omp_num_threads = Nq_WP;
 	}
 
 	/* Pointer-arrays for each OpenMP thread */
@@ -433,67 +444,86 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 	/* Code segment to check sparse matrix size */
 	double P123_density   = 1. - P123_sparsity;
-	int    mem_check_size = P123_density * P123_dense_dim_sq;
-	double double_to_GB   = sizeof(double)/std::pow(2,30);
-	printf("   - Maximum memory required for P123 :%.2f GB \n", mem_check_size * double_to_GB);
-	printf("     - Checking if required memory is available (2x max memory for P123) ... \n");
-	double* mem_check_array = NULL;
+	size_t mem_check_nnz  = (size_t) P123_density * P123_dense_dim_sq;
+	size_t mem_check_num_doubles = 2 * mem_check_nnz;
+	size_t mem_check_num_ints    = 4 * mem_check_nnz; 
+	size_t mem_check_size_in_GB  = (mem_check_num_doubles*sizeof(double) + mem_check_num_ints*sizeof(int))/std::pow(2,30);
+	printf("   - Maximum memory required for P123 calculation + storage: %.2f GB \n", mem_check_size_in_GB);
+	printf("     - Checking if required memory is available ... \n");
+	double* mem_check_array_doubles = NULL;
+	int*    mem_check_array_ints    = NULL;
 	try{
-		mem_check_array = new double [2*mem_check_size];
+		mem_check_array_doubles = new double [mem_check_num_doubles];
+		mem_check_array_ints    = new int    [mem_check_num_ints];
 	}
 	catch (...) {
 		raise_error("     - Memory allocation failed.");
 	}
-	delete [] mem_check_array;
+	delete [] mem_check_array_doubles;
+	delete [] mem_check_array_ints;
 	printf("     - Confirmed. \n");
 
 	/* Start of P123 parallel calculation */
 	printf("   - Initiating P123-matrix calculation ... \n");
 	printf("     - Running OpenMP on %d threads \n", P123_omp_num_threads);
 	auto timestamp_P123_tot_start = chrono::system_clock::now();
+	
+	//int stplngth = 10;
+	
 	#pragma omp parallel
 	{
 	int thread_idx = omp_get_thread_num();
-	double  P123_col_tot_time  = 0;
-	double  P123_av_row_time   = 0;
-	int 	P123_rows_left	   = 0;
-	double 	P123_est_time_left = 0;
 	int current_array_dim = sparse_step_length;
+
+	//#pragma omp for
+	//for (int row=0; row<P123_dense_dim; row+=stplngth){
+	//	for (int col=0; col<P123_dense_dim; col+=stplngth){
+	//		double prob_nnz = (double) rand() / RAND_MAX;
+	//		int P123_dim_omp = P123_dim_array_omp[thread_idx];;
+	//		double P123_element = (double) rand() / RAND_MAX;
+	//		(P123_val_sparse_array_omp[thread_idx])[P123_dim_omp] = P123_element;
+	//		(P123_row_array_omp[thread_idx])[P123_dim_omp]        = row;
+	//		(P123_col_array_omp[thread_idx])[P123_dim_omp]        = col;
+	//		P123_dim_omp += 1;
+	//		P123_dim_array_omp[thread_idx] = P123_dim_omp;
+	//		if ( P123_dim_omp>=current_array_dim ){  // This should occur a small amount of the time
+	//			increase_sparse_array_size(&P123_val_sparse_array_omp[thread_idx], current_array_dim, sparse_step_length);
+	//			increase_sparse_array_size(&P123_row_array_omp[thread_idx],        current_array_dim, sparse_step_length);
+	//			increase_sparse_array_size(&P123_col_array_omp[thread_idx],        current_array_dim, sparse_step_length);
+	//			current_array_dim += sparse_step_length;
+	//		}
+	//		if (P123_dim_omp>50806056/16){
+	//			break;
+	//		}
+	//	}
+	//}
+	//}
+
+	int  P123_row_idx = 0;
+	int  P123_col_idx = 0;
+	int  pq_WP_idx	  = 0;
+	bool WP_overlap	  = 0;
+	double P123_element = 0;
+	double Gtilde_subarray [Gtilde_subarray_size];
+	int L_2N	   = 0;
+	int L_1N	   = 0;
+	int L_2N_prime = 0;
+	int L_1N_prime = 0;
 	
 	#pragma omp for
 	/* <X_i'j'^alpha'| - loops (rows of P123) */
-	for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
-		for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
-			for (int pp_idx_WP = 0; pp_idx_WP < Np_WP; pp_idx_WP++){
-				int P123_row_idx = alphap_idx*Nq_WP*Np_WP + qp_idx_WP*Np_WP +  pp_idx_WP;
-
-				//if (P123_row_idx!=row_step_length*row_multiplier){
-				//	continue;
-				//}
-				//else{
-				//	row_multiplier += 1;
-				//}
-
-				/* Progress printout */
-				//if (print_content and production_run!=true){
-				//	P123_av_row_time = P123_col_tot_time/P123_row_idx;
-				//	P123_rows_left   = P123_dense_dim - P123_row_idx;
-				//	P123_est_time_left = P123_rows_left*P123_av_row_time / 3600.;
-				//	printf("\r     - Working on row %d of %d. Av. time per row: %.3f s. Est. completion time: %.1f h", P123_row_idx, P123_dense_dim, P123_av_row_time, P123_est_time_left);
-				//	fflush(stdout);
-				//}
-
+	for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
+		for (int pp_idx_WP = 0; pp_idx_WP < Np_WP; pp_idx_WP++){
+			for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
+	
 				/* |X_ij^alpha> - loops (columns of P123) */
-				auto timestamp_P123_col_start = chrono::system_clock::now();
 				for (int alpha_idx = 0; alpha_idx < Nalpha; alpha_idx++){
-
-					int L_2N = L_2N_array[alphap_idx];
-					int L_1N = L_1N_array[alphap_idx];
-
-					int L_2N_prime = L_2N_array[alpha_idx];
-					int L_1N_prime = L_1N_array[alpha_idx];
-
-					double Gtilde_subarray [Gtilde_subarray_size];
+	
+					L_2N = L_2N_array[alphap_idx];
+					L_1N = L_1N_array[alphap_idx];
+	
+					L_2N_prime = L_2N_array[alpha_idx];
+					L_1N_prime = L_1N_array[alpha_idx];
 						
 					calculate_Gtilde_subarray_polar(Gtilde_subarray,
 											  	    &Atilde_store[alphap_idx*Nalpha*(Lmax+1) + alpha_idx*(Lmax+1)],
@@ -504,20 +534,17 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 							   					    L_2N, L_2N_prime,
 											  	    L_1N, L_1N_prime,
 											  	    two_J_3N);
-
+	
 					for (int q_idx_WP = 0; q_idx_WP < Nq_WP; q_idx_WP++){
 						for (int p_idx_WP = 0; p_idx_WP < Np_WP; p_idx_WP++){
-
-							int P123_col_idx = alpha_idx*Nq_WP*Np_WP + q_idx_WP*Np_WP + p_idx_WP;
-
+	
 							/* Unique index for current combination of WPs */
-							int pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
-										  + pp_idx_WP*Nq_WP*Np_WP
-										  +  q_idx_WP*Np_WP
-										  +  p_idx_WP;
-							bool WP_overlap = pq_WP_overlap_array[pq_WP_idx];
+							pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
+									  + pp_idx_WP*Nq_WP*Np_WP
+									  +  q_idx_WP*Np_WP
+									  +  p_idx_WP;
+							WP_overlap = pq_WP_overlap_array[pq_WP_idx];
 
-							double P123_element = 0;
 							/* Only calculate P123 if there is WP bin-overlap in Heaviside functions */
 							if (WP_overlap){
 								P123_element = calculate_P123_element_in_WP_basis_mod (Gtilde_subarray,
@@ -530,40 +557,42 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 										   												&sin_phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
 										   												&cos_phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
 										   												&wphi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi]);
-							}
-							
-							if (use_dense_format){
-								int P123_mat_idx = (int) P123_row_idx*P123_dense_dim + P123_col_idx;
-								(*P123_val_dense_array)[P123_mat_idx] = P123_element;
-							}
-							else if (P123_element!=0){
-								int P123_dim_omp = P123_dim_array_omp[thread_idx];
+								
+								if (P123_element!=0){
+									P123_row_idx = alphap_idx*Nq_WP*Np_WP + qp_idx_WP*Np_WP +  pp_idx_WP;
+									P123_col_idx = alpha_idx*Nq_WP*Np_WP + q_idx_WP*Np_WP + p_idx_WP;
 
-								(P123_val_sparse_array_omp[thread_idx])[P123_dim_omp] = P123_element;
-								(P123_row_array_omp[thread_idx])[P123_dim_omp]        = P123_row_idx;
-								(P123_col_array_omp[thread_idx])[P123_dim_omp]        = P123_col_idx;
+									if (use_dense_format){
+										int P123_mat_idx = (int) P123_row_idx*P123_dense_dim + P123_col_idx;
+										(*P123_val_dense_array)[P123_mat_idx] = P123_element;
+									}
+									else{
+										int P123_dim_omp = P123_dim_array_omp[thread_idx];
 
-								/* Increment sparse dimension (num of non-zero elements) */
-								P123_dim_omp += 1;
-								P123_dim_array_omp[thread_idx] = P123_dim_omp;
-		
-								/* If the dimension goes over the array dimension we increase the array size
-								 * via a copy-paste-type routine, and increment the current array dimension */
-								if ( P123_dim_omp>=current_array_dim ){  // This should occur a small amount of the time
-									increase_sparse_array_size(&P123_val_sparse_array_omp[thread_idx], current_array_dim, sparse_step_length);
-									increase_sparse_array_size(&P123_row_array_omp[thread_idx],        current_array_dim, sparse_step_length);
-									increase_sparse_array_size(&P123_col_array_omp[thread_idx],        current_array_dim, sparse_step_length);
-		
-									/* Increment sparse-array dimension */
-									current_array_dim += sparse_step_length;
+										(P123_val_sparse_array_omp[thread_idx])[P123_dim_omp] = P123_element;
+										(P123_row_array_omp[thread_idx])[P123_dim_omp]        = P123_row_idx;
+										(P123_col_array_omp[thread_idx])[P123_dim_omp]        = P123_col_idx;
+
+										/* Increment sparse dimension (num of non-zero elements) */
+										P123_dim_omp += 1;
+										P123_dim_array_omp[thread_idx] = P123_dim_omp;
+
+										/* If the dimension goes over the array dimension we increase the array size
+										 * via a copy-paste-type routine, and increment the current array dimension */
+										if ( P123_dim_omp>=current_array_dim ){  // This should occur a small amount of the time
+											increase_sparse_array_size(&P123_val_sparse_array_omp[thread_idx], current_array_dim, sparse_step_length);
+											increase_sparse_array_size(&P123_row_array_omp[thread_idx],        current_array_dim, sparse_step_length);
+											increase_sparse_array_size(&P123_col_array_omp[thread_idx],        current_array_dim, sparse_step_length);
+
+											/* Increment sparse-array dimension */
+											current_array_dim += sparse_step_length;
+										}
+									}
 								}
 							}
 						}
 					}
 				}
-				auto timestamp_P123_col_end = chrono::system_clock::now();
-				chrono::duration<double> time_P123_col = timestamp_P123_col_end - timestamp_P123_col_start;
-				P123_col_tot_time += time_P123_col.count();
 			}
 		}
 	}
@@ -572,9 +601,9 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	chrono::duration<double> time_P123_tot = timestamp_P123_tot_end - timestamp_P123_tot_start;
 	double P123_tot_time = time_P123_tot.count();
 
-	if (print_content){
-		std::cout << "\n";
-	}
+	//if (print_content and production_run!=true){
+	//	std::cout << "\n";
+	//}
 	printf("     - Done. Tot. time used: %.1f h \n", P123_tot_time/3600.);
 
 
@@ -595,13 +624,13 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 		/* Append RANDOM ORDER matrix elements to input arrays */
 		int P123_dim_omp_sum = 0;
-		int P123_dim_omp	  = 0;
+		int P123_dim_omp	 = 0;
 		for (int thread_idx=0; thread_idx<P123_omp_num_threads; thread_idx++){
 			P123_dim_omp = P123_dim_array_omp[thread_idx];
 			for (int idx=0; idx<P123_dim_omp; idx++){
 				(*P123_val_sparse_array)[idx+P123_dim_omp_sum] = (P123_val_sparse_array_omp[thread_idx])[idx];
-				(*P123_row_array)[idx+P123_dim_omp_sum]		   = (P123_row_array_omp[thread_idx])       [idx];
-				(*P123_col_array)[idx+P123_dim_omp_sum]		   = (P123_col_array_omp[thread_idx])       [idx];
+				(*P123_row_array)       [idx+P123_dim_omp_sum] = (P123_row_array_omp[thread_idx])       [idx];
+				(*P123_col_array)       [idx+P123_dim_omp_sum] = (P123_col_array_omp[thread_idx])       [idx];
 			}
 			P123_dim_omp_sum += P123_dim_omp;
 		}
@@ -618,14 +647,14 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 		delete [] P123_dim_array_omp;
 
 		/* Index array to sort */
-		std::vector<int> P123_idx_vector (P123_dim, 0);;
+		std::vector<size_t> P123_idx_vector (P123_dim, 0);;
 		for (int idx=0; idx<P123_dim; idx++){
-			P123_idx_vector[idx] = (*P123_row_array)[idx]*P123_dense_dim + (*P123_col_array)[idx];
+			P123_idx_vector[idx] = (size_t)(*P123_row_array)[idx]*P123_dense_dim + (size_t)(*P123_col_array)[idx];
 		}
 
 		/* Sort indices using template (Warning - lambda expression - requires C++11 or newer compiler) */
 		auto sorted_indices = sort_indexes(P123_idx_vector);
-		int* sparse_array_temp = new int [P123_dim];
+		int* sparse_idx_array_temp = new int [P123_dim];
 
 		///* Sorting test */
 		//std::vector<int> test_vec (10, 0);;
@@ -640,21 +669,34 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 		/* Sort row indices */
 		for (int i=0; i<P123_dim; i++){
-			sparse_array_temp[i] = (*P123_row_array)[sorted_indices[i]];
+			sparse_idx_array_temp[i] = (*P123_row_array)[sorted_indices[i]];
 		}
-		std::copy(*P123_row_array, *P123_row_array + P123_dim, sparse_array_temp);
+		std::copy(sparse_idx_array_temp, sparse_idx_array_temp + P123_dim, *P123_row_array);
+
+		//for (int i=0; i<P123_dim-1; i++){
+		//	if (sparse_idx_array_temp[i]>sparse_idx_array_temp[i+1]){
+		//		std::cout << i << " " << sparse_idx_array_temp[i] << " " << sparse_idx_array_temp[i+1] << std::endl;
+		//		std::cout << i << " " << (*P123_row_array)[sorted_indices[i]] << " " << (*P123_row_array)[sorted_indices[i+1]] << std::endl;
+		//		std::cout << i << " " << (*P123_row_array)[i] << " " << (*P123_row_array)[i+1] << std::endl;
+		//		raise_error("row index error");
+		//	}
+		//}
 
 		/* Sort column indices */
 		for (int i=0; i<P123_dim; i++){
-			sparse_array_temp[i] = (*P123_col_array)[sorted_indices[i]];
+			sparse_idx_array_temp[i] = (*P123_col_array)[sorted_indices[i]];
 		}
-		std::copy(*P123_col_array, *P123_col_array + P123_dim, sparse_array_temp);
+		std::copy(sparse_idx_array_temp, sparse_idx_array_temp + P123_dim, *P123_col_array);
+
+		delete [] sparse_idx_array_temp;
+		double* sparse_val_array_temp = new double [P123_dim];
 
 		/* Sort values */
 		for (int i=0; i<P123_dim; i++){
-			sparse_array_temp[i] = (*P123_val_sparse_array)[sorted_indices[i]];
+			sparse_val_array_temp[i] = (*P123_val_sparse_array)[sorted_indices[i]];
 		}
-		std::copy(*P123_val_sparse_array, *P123_val_sparse_array + P123_dim, sparse_array_temp);
+		std::copy(sparse_val_array_temp, sparse_val_array_temp + P123_dim, *P123_val_sparse_array);
+		delete [] sparse_val_array_temp;
 	}
 	printf("     - Done \n");
 
@@ -691,7 +733,7 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 	bool use_dense_format = false;
 	
 	/* Dense and sparse array dimensions */
-	int     P123_array_dense_dim  = Nalpha * Np_WP * Nq_WP;
+	size_t     P123_array_dense_dim  = Nalpha * Np_WP * Nq_WP;
 	int     P123_array_dim        = 0;
 
 	/* Temporary dense matrix to be filled in subroutine if use_dense_format=true */
@@ -753,7 +795,8 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 	}
 		
 	if (print_content){
-		double P_123_subarray_density = (double) P123_sparse_dim_array / (P123_array_dense_dim*P123_array_dense_dim);
+		size_t P123_array_dense_dim_sq = P123_array_dense_dim*P123_array_dense_dim;
+		double P_123_subarray_density = (double) P123_sparse_dim_array / P123_array_dense_dim_sq;
 
 		printf(" - Dense dimension:   %dx%d \n", P123_array_dense_dim, P123_array_dense_dim);
 		printf(" - Non-zero elements: %d \n",    P123_sparse_dim_array);

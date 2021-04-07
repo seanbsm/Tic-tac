@@ -564,7 +564,7 @@ void write_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 	Psparse_field_type[1] = H5T_NATIVE_INT;
 	Psparse_field_type[2] = H5T_NATIVE_DOUBLE;
 
-	hsize_t chunk_size = 10;
+	hsize_t chunk_size = P123_sparse_dim;
 	int*    fill_data  = NULL;
 	int     compress   = 0;
 	

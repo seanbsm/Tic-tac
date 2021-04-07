@@ -100,13 +100,22 @@ int main(int argc, char* argv[]){
 	auto program_start = chrono::system_clock::now();
 	
 	/* ------------------- Start main body of code here ------------------- */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
 	/* Start of code segment for parameters, variables and arrays declaration */
 
 	/* Current scattering energy */
-	double T_lab = 3;
 	double mu	 = 2*Mp*Md/(Mp+Md);
-	double q_on_shell = lab_energy_to_com_momentum(T_lab);
-	double E_on_shell = q_on_shell*q_on_shell/mu;
+	int    num_T_lab	   = 3;
+	double T_lab_array [3] = {1.,2.,3.};
+	double q_com_array [3];
+	double E_com_array [3];
+	for (int i=0; i<num_T_lab; i++){
+		double q_com = lab_energy_to_com_momentum(T_lab_array[i]);
+		q_com_array[i] = q_com;
+		E_com_array[i] = q_com*q_com/mu;
+	}
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
 	bool calculate_and_store_P123 = true;
@@ -167,6 +176,9 @@ int main(int argc, char* argv[]){
 	potential_model* pot_ptr_nn = NULL;
 
 	/* End of code segment for variables and arrays declaration */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
 	/* Start of code segment for state space construction */
 	printf("Constructing 3N partial-wave basis ... \n");
 	construct_symmetric_pw_states(J_2N_max,
@@ -226,6 +238,9 @@ int main(int argc, char* argv[]){
 	printf(" - Done \n");
 
 	/* End of code segment for state space construction */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
 	/* Start of code segment for potential matrix construction */
 
 	int V_unco_array_size = Np_WP*Np_WP   * 2*(J_2N_max+1);
@@ -253,6 +268,9 @@ int main(int argc, char* argv[]){
 	}
 
 	/* End of code segment for potential matrix construction */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
 	/* Start of code segment for scattering wave-packets construction */
 
 	double* e_SWP_unco_array = new double [  (Np_WP+1) * 2*(J_2N_max+1)];
@@ -273,9 +291,23 @@ int main(int argc, char* argv[]){
 						J_2N_max);
 		printf(" - Done \n");
 	}
-	/* End of code segment for scattering wave-packets construction */
 
+	/* End of code segment for scattering wave-packets construction */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* Start of code segment for locating on-shell nucleon-deuteron states */
+
+	printf("Locating on-shell nucleon-deuteron indices in partial-wave WP state space ... \n");
+	double E_on_shell = E_com_array[0];
+	printf(" - Done \n");
+
+	/* End of code segment for locating on-shell nucleon-deuteron states */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
 	/* Start of looping over 3N-channels */
+
 	for (int chn_3N=0; chn_3N<N_chn_3N; chn_3N++){
 
 		/* Check channel distribution in case of parallell execution */
@@ -329,10 +361,10 @@ int main(int argc, char* argv[]){
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		//if (chn_3N!=0){
-		//	continue;
-		//}
-		if (calculate_and_store_P123){
+		if (chn_3N!=0){
+			continue;
+		}
+		//if (calculate_and_store_P123){
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];
 			gauss(x_array, wx_array, Nx);
@@ -363,28 +395,28 @@ int main(int argc, char* argv[]){
 	
 			printf("Storing P123 to h5 ... \n");
 			auto timestamp_P123_store_start = chrono::system_clock::now();
-			store_sparse_permutation_matrix_for_3N_channel_h5(P123_sparse_val_array,
-															  P123_sparse_row_array,
-															  P123_sparse_col_array,
-															  P123_sparse_dim,
-															  Np_WP, p_WP_array,
-															  Nq_WP, q_WP_array,
-															  Nalpha_in_3N_chn,
-															  L_2N_subarray,
-															  S_2N_subarray,
-															  J_2N_subarray,
-															  T_2N_subarray,
-															  L_1N_subarray,
-															  two_J_1N_subarray,
-															  two_J_3N,
-															  two_T_3N,
-															  P_3N,
-													   		  P123_filename);
+			//store_sparse_permutation_matrix_for_3N_channel_h5(P123_sparse_val_array,
+			//												  P123_sparse_row_array,
+			//												  P123_sparse_col_array,
+			//												  P123_sparse_dim,
+			//												  Np_WP, p_WP_array,
+			//												  Nq_WP, q_WP_array,
+			//												  Nalpha_in_3N_chn,
+			//												  L_2N_subarray,
+			//												  S_2N_subarray,
+			//												  J_2N_subarray,
+			//												  T_2N_subarray,
+			//												  L_1N_subarray,
+			//												  two_J_1N_subarray,
+			//												  two_J_3N,
+			//												  two_T_3N,
+			//												  P_3N,
+			//										   		  P123_filename);
 			auto timestamp_P123_store_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
-		}
-		else if (solve_faddeev){
+		//}
+		//else if (solve_faddeev){
 			std::string P123_filename_2 =    "P123_sparse_JTP_"
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
@@ -415,25 +447,29 @@ int main(int argc, char* argv[]){
 															  P_3N,
 													   		  P123_filename);
 			
-			//if (P123_sparse_dim_t==P123_sparse_dim){
-			//	for (int idx=0; idx<P123_sparse_dim; idx++){
-			//		bool check1 = (P123_sparse_val_array_t[idx]!=P123_sparse_val_array[idx]);
-			//		bool check2 = (P123_sparse_row_array_t[idx]!=P123_sparse_row_array[idx]);
-			//		bool check3 = (P123_sparse_col_array_t[idx]!=P123_sparse_col_array[idx]);
-			//		if (check1||check2||check3){
-			//			std::cout << "Value wrong, idx: " << idx << std::endl;
-			//			std::cout << "BM val:   " << P123_sparse_val_array_t[idx] << std::endl;
-			//			std::cout << "BM row:   " << P123_sparse_row_array_t[idx] << std::endl;
-			//			std::cout << "BM col:   " << P123_sparse_col_array_t[idx] << std::endl;
-			//			std::cout << "Prog val: " << P123_sparse_val_array[idx] << std::endl;
-			//			std::cout << "Prog row: " << P123_sparse_row_array[idx] << std::endl;
-			//			std::cout << "Prog col: " << P123_sparse_col_array[idx] << std::endl;
-			//			raise_error("element mismatch");
-			//		}
-			//	}
-			//}
-			//else{raise_error("dim not right");}
-		}
+			if (P123_sparse_dim_t==P123_sparse_dim){
+				for (int idx=0; idx<P123_sparse_dim; idx++){
+					bool check1 = (P123_sparse_val_array_t[idx]!=P123_sparse_val_array[idx]);
+					bool check2 = (P123_sparse_row_array_t[idx]!=P123_sparse_row_array[idx]);
+					bool check3 = (P123_sparse_col_array_t[idx]!=P123_sparse_col_array[idx]);
+					if (check1||check2||check3){
+						std::cout << "Value wrong, idx: " << idx << std::endl;
+						std::cout << "BM val:   " << P123_sparse_val_array_t[idx] << std::endl;
+						std::cout << "BM row:   " << P123_sparse_row_array_t[idx] << std::endl;
+						std::cout << "BM col:   " << P123_sparse_col_array_t[idx] << std::endl;
+						std::cout << "Prog val: " << P123_sparse_val_array[idx] << std::endl;
+						std::cout << "Prog row: " << P123_sparse_row_array[idx] << std::endl;
+						std::cout << "Prog col: " << P123_sparse_col_array[idx] << std::endl;
+						raise_error("element mismatch");
+					}
+				}
+			}
+			else{
+				std::cout << "BM dim:   " << P123_sparse_dim_t << std::endl;
+				std::cout << "Prog dim: " << P123_sparse_dim << std::endl;
+				raise_error("dim not right");
+			}
+		//}
 		/* End of code segment for permutation matrix construction */
 
 		if (solve_faddeev){
@@ -490,9 +526,12 @@ int main(int argc, char* argv[]){
 			/* End of code segment for iterations of elastic Faddeev equations */
 		}
 	}
+	/* End of looping over 3N-channels */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
 	/* Start of code segment for calculating scattering observables */
-
-
+	
 	/* End of code segment for calculating scattering observables */
 
 

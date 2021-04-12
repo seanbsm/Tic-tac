@@ -444,10 +444,10 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 	/* Code segment to check sparse matrix size */
 	double P123_density   = 1. - P123_sparsity;
-	size_t mem_check_nnz  = (size_t) P123_density * P123_dense_dim_sq;
+	size_t mem_check_nnz  = P123_density * P123_dense_dim_sq;
 	size_t mem_check_num_doubles = 2 * mem_check_nnz;
 	size_t mem_check_num_ints    = 4 * mem_check_nnz; 
-	size_t mem_check_size_in_GB  = (mem_check_num_doubles*sizeof(double) + mem_check_num_ints*sizeof(int))/std::pow(2,30);
+	double mem_check_size_in_GB  = (mem_check_num_doubles*sizeof(double) + mem_check_num_ints*sizeof(int))/std::pow(2.0,30);
 	printf("   - Maximum memory required for P123 calculation + storage: %.2f GB \n", mem_check_size_in_GB);
 	printf("     - Checking if required memory is available ... \n");
 	double* mem_check_array_doubles = NULL;

@@ -108,14 +108,18 @@ int main(int argc, char* argv[]){
 	/* Current scattering energy */
 	double mu	 = 2*Mp*Md/(Mp+Md);
 	int    num_T_lab	   = 3;
-	double T_lab_array [3] = {1.,2.,3.};
-	double q_com_array [3];
-	double E_com_array [3];
+	double T_lab_array [num_T_lab] = {1.,2.,3.};
+	double q_com_array [num_T_lab];
+	double E_com_array [num_T_lab];
 	for (int i=0; i<num_T_lab; i++){
 		double q_com = lab_energy_to_com_momentum(T_lab_array[i]);
 		q_com_array[i] = q_com;
 		E_com_array[i] = q_com*q_com/mu;
 	}
+	/* Index lookup arrays for keeping track of on-shell nucleon-deuteron channels in state space */
+	int    q_com_idx_array     [num_T_lab];
+	int**  deuteron_idx_arrays = NULL;		// Contains indices of deuteron-channels in given 3N-channel
+	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
 	bool calculate_and_store_P123 = true;
@@ -134,8 +138,8 @@ int main(int argc, char* argv[]){
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 30; //30;
-	int Nq_WP	   	 = 30; //30;
+	int Np_WP	   	 = 40; //30;
+	int Nq_WP	   	 = 40; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -197,6 +201,10 @@ int main(int argc, char* argv[]){
 								  &P_3N_array);
 	printf(" - There are %d 3N-channels \n", N_chn_3N);
 
+	/* Allocate deuteron-channel index-lookup arrays */
+	deuteron_idx_arrays = new int* [N_chn_3N];
+	deuteron_num_array  = new int  [N_chn_3N];
+
 	/* Small script for finding the largest 3N-channel */
 	if (true){
 		int largest_Nalpha 	   = 0;
@@ -238,6 +246,75 @@ int main(int argc, char* argv[]){
 	printf(" - Done \n");
 
 	/* End of code segment for state space construction */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* Start of code segment for locating on-shell nucleon-deuteron states */
+	if (solve_faddeev){
+		printf("Locating on-shell nucleon-deuteron indices in partial-wave WP state space ... \n");
+		double E_on_shell = E_com_array[0];
+		for (int idx_Tlab=0; idx_Tlab<num_T_lab; idx_Tlab++){
+			double q_com = q_com_array[idx_Tlab];
+
+			int idx_q_bin = -1;
+			for (int q_idx_WP=0; q_idx_WP<Nq_WP; q_idx_WP++){
+				if (q_WP_array[q_idx_WP]<q_com and q_com<q_WP_array[q_idx_WP+1]){
+					idx_q_bin = q_idx_WP;
+					break;
+				}
+			}
+
+			if (idx_q_bin==-1){
+				printf("On-shell kinetic energy Tlab=%.3f MeV doesn't exist in WP state space \n", T_lab_array[idx_Tlab]);
+				raise_error("Invalid Tlab enetered. Exiting ...");
+			}
+			else{
+				q_com_idx_array[idx_Tlab] = idx_q_bin;
+			}
+		}
+		printf(" - On-shell q-momentum WP bins found \n");
+
+		int deuteron_L = 0;
+		int deuteron_S = 1;
+		int deuteron_J = 1;
+		int deuteron_T = 0;
+		for (int chn_3N=0; chn_3N<N_chn_3N; chn_3N++){
+			/* Lower and upper limits on PW state space for channel */
+			int idx_alpha_lower  = chn_3N_idx_array[chn_3N];
+			int idx_alpha_upper  = chn_3N_idx_array[chn_3N+1];
+			int Nalpha_in_3N_chn = idx_alpha_upper - idx_alpha_lower;
+
+			/* Pointers to sub-arrays of PW state space corresponding to chn_3N */
+			int* L_2N_subarray 	   = &L_2N_array[idx_alpha_lower];
+			int* S_2N_subarray 	   = &S_2N_array[idx_alpha_lower];
+			int* J_2N_subarray 	   = &J_2N_array[idx_alpha_lower];
+			int* T_2N_subarray 	   = &T_2N_array[idx_alpha_lower];
+
+			std::vector<int> deuteron_chn_indices;
+
+			/* Find indices of deuteron-channels */
+			for (int idx_alpha=0; idx_alpha<Nalpha_in_3N_chn; idx_alpha++){
+				if (deuteron_L==L_2N_subarray[idx_alpha] &
+				    deuteron_S==S_2N_subarray[idx_alpha] &
+					deuteron_J==J_2N_subarray[idx_alpha] &
+					deuteron_T==T_2N_subarray[idx_alpha]){
+					deuteron_chn_indices.push_back(idx_alpha);
+				}
+			}
+			
+			/* Copy vector content into array */
+			int* chn_3N_deuteron_indices_array = new int [deuteron_chn_indices.size()];
+			std::copy(deuteron_chn_indices.begin(), deuteron_chn_indices.end(), chn_3N_deuteron_indices_array);
+
+			/* Add array length and pointer to book-keeping arrays */
+			deuteron_idx_arrays[chn_3N] = chn_3N_deuteron_indices_array;
+			deuteron_num_array [chn_3N] = deuteron_chn_indices.size();
+		}
+		printf(" - Nucleon-deuteron channel indices found \n");
+
+		printf(" - Done \n");
+	}
+	/* End of code segment for locating on-shell nucleon-deuteron states */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
@@ -293,16 +370,6 @@ int main(int argc, char* argv[]){
 	}
 
 	/* End of code segment for scattering wave-packets construction */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* Start of code segment for locating on-shell nucleon-deuteron states */
-
-	printf("Locating on-shell nucleon-deuteron indices in partial-wave WP state space ... \n");
-	double E_on_shell = E_com_array[0];
-	printf(" - Done \n");
-
-	/* End of code segment for locating on-shell nucleon-deuteron states */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
@@ -395,23 +462,23 @@ int main(int argc, char* argv[]){
 	
 			printf("Storing P123 to h5 ... \n");
 			auto timestamp_P123_store_start = chrono::system_clock::now();
-			//store_sparse_permutation_matrix_for_3N_channel_h5(P123_sparse_val_array,
-			//												  P123_sparse_row_array,
-			//												  P123_sparse_col_array,
-			//												  P123_sparse_dim,
-			//												  Np_WP, p_WP_array,
-			//												  Nq_WP, q_WP_array,
-			//												  Nalpha_in_3N_chn,
-			//												  L_2N_subarray,
-			//												  S_2N_subarray,
-			//												  J_2N_subarray,
-			//												  T_2N_subarray,
-			//												  L_1N_subarray,
-			//												  two_J_1N_subarray,
-			//												  two_J_3N,
-			//												  two_T_3N,
-			//												  P_3N,
-			//										   		  P123_filename);
+			store_sparse_permutation_matrix_for_3N_channel_h5(P123_sparse_val_array,
+															  P123_sparse_row_array,
+															  P123_sparse_col_array,
+															  P123_sparse_dim,
+															  Np_WP, p_WP_array,
+															  Nq_WP, q_WP_array,
+															  Nalpha_in_3N_chn,
+															  L_2N_subarray,
+															  S_2N_subarray,
+															  J_2N_subarray,
+															  T_2N_subarray,
+															  L_1N_subarray,
+															  two_J_1N_subarray,
+															  two_J_3N,
+															  two_T_3N,
+															  P_3N,
+													   		  P123_filename);
 			auto timestamp_P123_store_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
@@ -448,7 +515,9 @@ int main(int argc, char* argv[]){
 													   		  P123_filename);
 			
 			if (P123_sparse_dim_t==P123_sparse_dim){
+				int row_idx = 0;
 				for (int idx=0; idx<P123_sparse_dim; idx++){
+					if (P123_sparse_row_array[idx]==row_idx){
 					bool check1 = (P123_sparse_val_array_t[idx]!=P123_sparse_val_array[idx]);
 					bool check2 = (P123_sparse_row_array_t[idx]!=P123_sparse_row_array[idx]);
 					bool check3 = (P123_sparse_col_array_t[idx]!=P123_sparse_col_array[idx]);
@@ -461,6 +530,7 @@ int main(int argc, char* argv[]){
 						std::cout << "Prog row: " << P123_sparse_row_array[idx] << std::endl;
 						std::cout << "Prog col: " << P123_sparse_col_array[idx] << std::endl;
 						raise_error("element mismatch");
+					}
 					}
 				}
 			}
@@ -479,6 +549,7 @@ int main(int argc, char* argv[]){
 			cdouble* G_array = new cdouble [Nalpha_in_3N_chn * Np_WP * Nq_WP];
 			
 			printf("Constructing 3N resolvents ... \n");
+			double E_on_shell = 1;
 			calculate_resolvent_array_in_SWP_basis(G_array,
 												   E_on_shell,
 												   Np_WP,
@@ -494,7 +565,10 @@ int main(int argc, char* argv[]){
 
 			/* End of code segment for resolvent matrix (diagonal array) construction */
 			/* Start of code segment for iterations of elastic Faddeev equations */
-			cdouble* U_array = NULL;//
+			int 	 num_deuteron_states = deuteron_num_array[chn_3N];
+			int* 	 deuteron_idx_array  = deuteron_idx_arrays[chn_3N];
+
+			cdouble* U_array = new cdouble [num_T_lab * num_deuteron_states];
 
 			/* Index of on-shell element (deuteron channel) */
 			int idx_on_shell = 0;
@@ -510,7 +584,8 @@ int main(int argc, char* argv[]){
 									C_WP_coup_array,
 									V_WP_unco_array,
 									V_WP_coup_array,
-									idx_on_shell,
+									q_com_idx_array, num_T_lab,
+									deuteron_idx_array, num_deuteron_states,
 									J_2N_max,
 									Nq_WP,
 									Np_WP,

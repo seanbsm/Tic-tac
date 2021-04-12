@@ -257,7 +257,7 @@ void write_integer_to_h5(int integer, char* int_name, hid_t file_id){
 	dataset_id  = H5Dcreate(file_id, int_name, H5T_NATIVE_INT, group_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	status      = H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5);
 	
-	/* Close file */
+	/* Close dataset and group */
 	status      = H5Dclose(dataset_id);
 	status      = H5Sclose(group_id);
 }
@@ -540,47 +540,97 @@ void write_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 										int     P123_sparse_dim,
 										hid_t   file_id){
 
-	/* Calculate the size and the offsets of our struct members in memory */
-	size_t Psparse_dst_size = sizeof( Psparse_table );
-
-	size_t Psparse_dst_offset[3] = { HOFFSET( Psparse_table, index_row_Ptable ),
-									 HOFFSET( Psparse_table, index_col_Ptable ),
-									 HOFFSET( Psparse_table, value_Ptable )
-									};
-								   
-	/* Assign values to data structure */
-	Psparse_table* Psparse_data = new Psparse_table [P123_sparse_dim];
-	for (int i=0; i<P123_sparse_dim; i++){
-		Psparse_data[i].index_row_Ptable = P123_sparse_row_array[i];
-		Psparse_data[i].index_col_Ptable = P123_sparse_col_array[i];
-		Psparse_data[i].value_Ptable     = P123_sparse_val_array[i];
-	}
-
-	/* Define field information */
-	const char *Psparse_field_names[3]  = { "row idx", "col idx", "P123 value"};
-
-	hid_t Psparse_field_type[3];
-	Psparse_field_type[0] = H5T_NATIVE_INT;
-	Psparse_field_type[1] = H5T_NATIVE_INT;
-	Psparse_field_type[2] = H5T_NATIVE_DOUBLE;
-
-	hsize_t chunk_size = P123_sparse_dim;
-	int*    fill_data  = NULL;
-	int     compress   = 0;
+	hid_t       dataset_row;     /* dataset handle */
+	hid_t       dataset_col;     /* dataset handle */
+	hid_t       dataset_val;     /* dataset handle */
+    hid_t       datatype_idx;	 /* handle */
+	hid_t       datatype_val;	 /* handle */
+	hid_t		dataspace;   	 /* handle */
+    hsize_t     dimsf [1];       /* dataset dimensions */
+	herr_t      status;
 	
-	hid_t   group_id;
-	herr_t  status;
+	/* Describe the size of the array and create the data space for fixed
+     * size dataset */
+	int RANK = 1;
+    dimsf[0]  = P123_sparse_dim;
+    dataspace = H5Screate_simple(RANK, dimsf, NULL); 
+	
+	/* Define datatype for the data in the file.
+     * We will store little endian INT and DOUBLE numbers. */
+    datatype_idx = H5Tcopy(H5T_NATIVE_INT);
+	datatype_val = H5Tcopy(H5T_NATIVE_DOUBLE);
+	
+    status = H5Tset_order(datatype_idx, H5T_ORDER_LE);
+	status = H5Tset_order(datatype_val, H5T_ORDER_LE);
+	
+	/* Create a new dataset within the file using defined dataspace and
+     * datatype and default dataset creation properties. */
+    dataset_row = H5Dcreate(file_id, "row indices",    datatype_idx, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	dataset_col = H5Dcreate(file_id, "column indices", datatype_idx, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	dataset_val = H5Dcreate(file_id, "values", 		   datatype_val, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	
+	/* Write the data to the dataset using default transfer properties. */
+    status = H5Dwrite(dataset_row, datatype_idx, H5S_ALL, H5S_ALL, H5P_DEFAULT, P123_sparse_row_array);
+	status = H5Dwrite(dataset_col, datatype_idx, H5S_ALL, H5S_ALL, H5P_DEFAULT, P123_sparse_col_array);
+	status = H5Dwrite(dataset_val, datatype_val, H5S_ALL, H5S_ALL, H5P_DEFAULT, P123_sparse_val_array);
 
-	group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
+	H5Sclose(dataspace);
+    H5Tclose(datatype_idx);
+    H5Dclose(dataset_row);
+	H5Dclose(dataset_col);
+	H5Dclose(dataset_val);
 
-	status = H5TBmake_table("P123 sparse info", group_id, "sparse matrix", 3, P123_sparse_dim,
-							Psparse_dst_size, Psparse_field_names, Psparse_dst_offset, Psparse_field_type,
-							chunk_size, fill_data, compress, Psparse_data);
-
-	/* Close the group */
-	status = H5Gclose(group_id);
-
-	delete [] Psparse_data;
+	///* Calculate the size and the offsets of our struct members in memory */
+	//size_t Psparse_dst_size = sizeof( Psparse_table );
+	//
+	//size_t Psparse_dst_offset[3] = { HOFFSET( Psparse_table, index_row_Ptable ),
+	//								 HOFFSET( Psparse_table, index_col_Ptable ),
+	//								 HOFFSET( Psparse_table, value_Ptable )
+	//								};
+	//							   
+	///* Assign values to data structure */
+	//Psparse_table* Psparse_data = new Psparse_table [P123_sparse_dim];
+	//for (int i=0; i<P123_sparse_dim; i++){
+	//	Psparse_data[i].index_row_Ptable = P123_sparse_row_array[i];
+	//	Psparse_data[i].index_col_Ptable = P123_sparse_col_array[i];
+	//	Psparse_data[i].value_Ptable     = P123_sparse_val_array[i];
+	//}
+	//
+	///* Define field information */
+	//const char *Psparse_field_names[3]  = { "row idx", "col idx", "P123 value"};
+	//
+	//hid_t Psparse_field_type[3];
+	//Psparse_field_type[0] = H5T_NATIVE_INT;
+	//Psparse_field_type[1] = H5T_NATIVE_INT;
+	//Psparse_field_type[2] = H5T_NATIVE_DOUBLE;
+	//
+	//hsize_t chunk_size = 0;
+	//int max_chunk_size = 4*std::pow(2,30) / sizeof(double);
+	//if (P123_sparse_dim<max_chunk_size){
+	//	max_chunk_size = P123_sparse_dim;
+	//}
+	//else{
+	//	max_chunk_size  = max_chunk_size / 3;
+	//	max_chunk_size *= 3;
+	//}
+	//
+	//chunk_size = max_chunk_size;
+	//int*    fill_data  = NULL;
+	//int     compress   = 0;
+	//
+	//hid_t   group_id;
+	//herr_t  status;
+	//
+	//group_id = H5Gopen(file_id, "/", H5P_DEFAULT);
+	//
+	//status = H5TBmake_table("P123 sparse info", group_id, "sparse matrix", 3, P123_sparse_dim,
+	//						Psparse_dst_size, Psparse_field_names, Psparse_dst_offset, Psparse_field_type,
+	//						chunk_size, fill_data, compress, Psparse_data);
+	//
+	///* Close the group */
+	//status = H5Gclose(group_id);
+	//
+	//delete [] Psparse_data;
 }
 void read_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 									   int*    P123_sparse_row_array,
@@ -589,45 +639,77 @@ void read_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 									   char*   filename){
 	
 	hid_t  file_id;
+	hid_t  dataset_row;
+	hid_t  dataset_col;
+	hid_t  dataset_val;
+	hid_t  datatype_idx;	 /* handle */
+	hid_t  datatype_val;	 /* handle */
 	herr_t status;
-	file_id = H5Fopen(filename,
-					  H5F_ACC_RDONLY,
-					  H5P_DEFAULT);
 
-	/* Calculate the size and the offsets of our struct members in memory */
-	//Psparse_table P123_h5[P123_sparse_dim];
-	Psparse_table* P123_h5 = new Psparse_table [P123_sparse_dim];
+	/* Define datatype for the data in the file.
+     * We will read little endian INT and DOUBLE numbers. */
+    datatype_idx = H5Tcopy(H5T_NATIVE_INT);
+	datatype_val = H5Tcopy(H5T_NATIVE_DOUBLE);
 
-	size_t P123_dst_size = sizeof( Psparse_table );
+	/* open file */
+	file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
 
-	size_t P123_dst_offset[3] = { HOFFSET( Psparse_table, index_row_Ptable ),
-								  HOFFSET( Psparse_table, index_col_Ptable ),
-								  HOFFSET( Psparse_table, value_Ptable )
-								};
-	size_t P123_dst_sizes[3] =  { sizeof( P123_h5[0].index_row_Ptable ),
-								  sizeof( P123_h5[0].index_col_Ptable ),
-								  sizeof( P123_h5[0].value_Ptable )
-								};
-	
-	/* Read from file into p_h5 */
-	status = H5TBread_table(file_id,
-							"sparse matrix",
-							P123_dst_size,
-							P123_dst_offset,
-							P123_dst_sizes,
-							P123_h5);
-	check_h5_read_table_call(status);
+	/* Open file and find content correponding to variable-name int_name */
+	dataset_row = H5Dopen(file_id, "row indices", 	 H5P_DEFAULT);
+	dataset_col = H5Dopen(file_id, "column indices", H5P_DEFAULT);
+	dataset_val = H5Dopen(file_id, "values", 		 H5P_DEFAULT);
 
-	/* Write read data into argument-arrays */
-	for (int i=0; i<P123_sparse_dim; i++){
-		P123_sparse_row_array[i] = P123_h5[i].index_row_Ptable;
-		P123_sparse_col_array[i] = P123_h5[i].index_col_Ptable;
-		P123_sparse_val_array[i] = P123_h5[i].value_Ptable;
-	}
+	/* Read from file into N_h5 */
+	status = H5Dread (dataset_row, datatype_idx, H5S_ALL, H5S_ALL, H5P_DEFAULT, P123_sparse_row_array);
+	status = H5Dread (dataset_col, datatype_idx, H5S_ALL, H5S_ALL, H5P_DEFAULT, P123_sparse_col_array);
+	status = H5Dread (dataset_val, datatype_val, H5S_ALL, H5S_ALL, H5P_DEFAULT, P123_sparse_val_array);
 
 	/* Close file */
-	status = H5Fclose(file_id);
-	check_h5_close_call(status);
+	status = H5Dclose(dataset_row); check_h5_close_call(status);
+	status = H5Dclose(dataset_col); check_h5_close_call(status);
+	status = H5Dclose(dataset_val); check_h5_close_call(status);
+	status = H5Fclose(file_id);     check_h5_close_call(status);
 
-	delete [] P123_h5;
+	//hid_t  file_id;
+	//herr_t status;
+	//file_id = H5Fopen(filename,
+	//				  H5F_ACC_RDONLY,
+	//				  H5P_DEFAULT);
+	//
+	///* Calculate the size and the offsets of our struct members in memory */
+	////Psparse_table P123_h5[P123_sparse_dim];
+	//Psparse_table* P123_h5 = new Psparse_table [P123_sparse_dim];
+	//
+	//size_t P123_dst_size = sizeof( Psparse_table );
+	//
+	//size_t P123_dst_offset[3] = { HOFFSET( Psparse_table, index_row_Ptable ),
+	//							  HOFFSET( Psparse_table, index_col_Ptable ),
+	//							  HOFFSET( Psparse_table, value_Ptable )
+	//							};
+	//size_t P123_dst_sizes[3] =  { sizeof( P123_h5[0].index_row_Ptable ),
+	//							  sizeof( P123_h5[0].index_col_Ptable ),
+	//							  sizeof( P123_h5[0].value_Ptable )
+	//							};
+	//							
+	///* Read from file into p_h5 */
+	//status = H5TBread_table(file_id,
+	//						"sparse matrix",
+	//						P123_dst_size,
+	//						P123_dst_offset,
+	//						P123_dst_sizes,
+	//						P123_h5);
+	//check_h5_read_table_call(status);
+	//
+	///* Close file */
+	//status = H5Fclose(file_id);
+	//check_h5_close_call(status);
+	//
+	///* Write read data into argument-arrays */
+	//for (int i=0; i<P123_sparse_dim; i++){
+	//	P123_sparse_row_array[i] = P123_h5[i].index_row_Ptable;
+	//	P123_sparse_col_array[i] = P123_h5[i].index_col_Ptable;
+	//	P123_sparse_val_array[i] = P123_h5[i].value_Ptable;
+	//}
+	//
+	//delete [] P123_h5;
 }

@@ -176,6 +176,8 @@ void calculate_PVC_col(double*  col_array,
 		if (VC_subarray!=NULL){
 
 			VC_subarray_col = &VC_subarray[idx_p_c*Np_WP];
+
+			int idx_alpha_q_j = idx_alpha_j*Nq_WP*Np_WP + idx_q_c*Np_WP;
 			
 			/* Loop over rows of col-array */
 			for (int idx_i=0; idx_i<dense_dim; idx_i++){
@@ -188,21 +190,11 @@ void calculate_PVC_col(double*  col_array,
 				double inner_product_PVC = 0;
 				for (int idx_j=idx_j_lower; idx_j<idx_j_upper; idx_j++){
 					int col_idx = P123_col_array[idx_j];
-					
-					/* Retrieve alpha_j index by using that
-					 * the step-length per idx_alpha is Np_WP*Nq_WP */
-					div_t divresult1 = std::div(col_idx, Np_WP*Nq_WP);
 
-					/* Retrieve q_j and p_j index by using that
-					 * the step-length per idx_q is Np_WP */
-					div_t divresult2 = std::div(divresult1.rem, Np_WP);
-
-					int idx_alpha_j_check = divresult1.quot;
-					int idx_q_j_check     = divresult2.quot;
-					if (idx_alpha_j==idx_alpha_j_check and idx_q_c==idx_q_j_check){
-
-						/* Extract p-momentum index from remainder of idx_q_j/Np_WP */
-						int idx_p_j = divresult2.rem;
+					div_t div_result = std::div(col_idx, Np_WP);
+					int idx_alpha_q_j_check = div_result.quot;
+					if (idx_alpha_q_j == idx_alpha_q_j_check){
+						int idx_p_j = div_result.rem;
 
 						/* Access arrays, this whole function is written to minimize these two calls */
 						double P_element  = P123_val_array[idx_j];
@@ -229,7 +221,7 @@ void calculate_CPVC_col(double*  col_array,
 						int      P123_dim){
 	
 	/* Generate PVC-column */
-	double PVC_col [Nalpha*Nq_WP*Np_WP];
+	double* PVC_col = new double [Nalpha*Nq_WP*Np_WP];
 	/* Ensure PVC_col contains only zeroes */
 	for (int idx=0; idx<Nalpha*Nq_WP*Np_WP; idx++){
 		PVC_col[idx] = 0;
@@ -283,35 +275,43 @@ void calculate_CPVC_col(double*  col_array,
 			}
 		}
 	}
+
+	delete [] PVC_col;
 }
 
-void calculate_CPVC_row(double*  row_array,
-						int      idx_alpha_r, int idx_p_r, int idx_q_r,
-						int      Nalpha,      int Nq_WP,   int Np_WP,
-						double** CT_RM_array,
-						double** VC_CM_array,
-						double*  P123_val_array,
-						int*     P123_row_array,
-						int*     P123_col_array,
-						int      P123_dim){
+void calculate_all_CPVC_rows(double*  row_arrays,
+							 int*	  q_com_idx_array,	  int num_q_com,
+					   		 int*     deuteron_idx_array, int num_deuteron_states,
+							 int      Nalpha,      int Nq_WP,   int Np_WP,
+							 double** CT_RM_array,
+							 double** VC_CM_array,
+							 double*  P123_val_array,
+							 int*     P123_row_array,
+							 int*     P123_col_array,
+							 int      P123_dim){
 	
+	int dense_dim = Nalpha*Nq_WP*Np_WP;
+
 	/* Generate PVC-column */
-	double PVC_col [Nalpha*Nq_WP*Np_WP];
+	double* PVC_col = new double [dense_dim];
 
 	/* Generate (C^T x PVC)-column */
 	double* CT_subarray     = NULL;
 	double* CT_subarray_row = NULL;
 
 	/* Loop over cols of row */
+	#pragma omp parallel
+	{
+	#pragma omp for
 	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
 			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
 
 				/* Ensure PVC_col contains only zeroes */
-				for (int idx=0; idx<Nalpha*Nq_WP*Np_WP; idx++){
+				for (int idx=0; idx<dense_dim; idx++){
 					PVC_col[idx] = 0;
 				}
-
+				
 				/* Calculate PVC-column for alpha_i, p_i, q_r */
 				calculate_PVC_col(PVC_col,
 								  idx_alpha_c, idx_p_c, idx_q_c,
@@ -322,35 +322,50 @@ void calculate_CPVC_row(double*  row_array,
 								  P123_col_array,
 								  P123_dim);
 
-				double inner_product_CPVC = 0;
+				/* Re-use PVC-column in all relevant calculations */
+				for (int i=0; i<num_deuteron_states; i++){
+					for (int j=0; j<num_q_com; j++){
+						/* Nucleon-deuteron on-shell (NDOS) indices
+						 * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
+						int idx_alpha_r = deuteron_idx_array[i];
+						int idx_p_r     = 0;
+						int idx_q_r     = q_com_idx_array[j];
 
-				/* Beginning of inner-product loops (index "i") */
-				for (int idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
-					int idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
-					CT_subarray = CT_RM_array[idx_CT_2N_block];
+						int idx_NDOS = idx_alpha_r*num_q_com + idx_q_r;
 
-					/* Only do inner-product if CT is not zero due to conservation laws */
-					if (CT_subarray!=NULL){
-						CT_subarray_row = &CT_subarray[idx_p_r*Np_WP];
-
-						for (int idx_p_i=0; idx_p_i<Np_WP; idx_p_i++){
-						
-							int    idx_PVC     = idx_alpha_i*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_i;
-							double PVC_element = PVC_col[idx_PVC];
-
-							/* I'm not sure if this is the fastest ordering of the loops */
-							double CT_element  = CT_subarray_row[idx_p_i];
-
-							inner_product_CPVC += CT_element * PVC_element;
+						double inner_product_CPVC = 0;
+						/* Beginning of inner-product loops (index "i") */
+						for (int idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
+							int idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
+							CT_subarray = CT_RM_array[idx_CT_2N_block];
+		
+							/* Only do inner-product if CT is not zero due to conservation laws */
+							if (CT_subarray!=NULL){
+								CT_subarray_row = &CT_subarray[idx_p_r*Np_WP];
+		
+								for (int idx_p_i=0; idx_p_i<Np_WP; idx_p_i++){
+								
+									int    idx_PVC     = idx_alpha_i*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_i;
+									double PVC_element = PVC_col[idx_PVC];
+		
+									/* I'm not sure if this is the fastest ordering of the loops */
+									double CT_element  = CT_subarray_row[idx_p_i];
+		
+									inner_product_CPVC += CT_element * PVC_element;
+								}
+							}
 						}
+				
+						int idx_CPVC = idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP + idx_p_c;
+						row_arrays[idx_NDOS*dense_dim + idx_CPVC] = inner_product_CPVC;
 					}
 				}
-
-				int idx_CPVC = idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP + idx_p_c;
-				row_array[idx_CPVC] = inner_product_CPVC;
 			}
 		}
 	}
+	}
+
+	delete [] PVC_col;
 }
 
 void CPVC_col_brute_force(double*  col_array,
@@ -444,8 +459,8 @@ void CPVC_col_calc_test(int      Nalpha,
 	int dense_dim = Nalpha * Nq_WP * Np_WP;
 
 	/* Create column of (C^T)(P)(VC) */
-	double CPVC_col_array    [dense_dim];
-	double CPVC_col_array_BF [dense_dim];
+	double* CPVC_col_array    = new double [dense_dim];
+	double* CPVC_col_array_BF = new double [dense_dim];
 
 	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
@@ -478,16 +493,24 @@ void CPVC_col_calc_test(int      Nalpha,
 									 P123_sparse_col_array,
 									 P123_sparse_dim);
 				
+				double col_sum =0;
 				for (int idx=0; idx<dense_dim; idx++){
 					double diff = abs(CPVC_col_array[idx] - CPVC_col_array_BF[idx]);
 					if ( diff > 1e-14 ){
 						printf("Element %d had a discrepency: %.16f vs. %.16f \n", idx, CPVC_col_array[idx], CPVC_col_array_BF[idx]);
 						raise_error("CPVC benchmarking failed");
 					}
+					col_sum += CPVC_col_array[idx];
+				}
+				if (col_sum==0 ){
+					printf("Column &d was zero \n", idx_alpha_c*Np_WP*Nq_WP + idx_p_c + idx_q_c*Np_WP);
 				}
 			}
 		}
 	}
+
+	delete [] CPVC_col_array;
+	delete [] CPVC_col_array_BF;	
 }
 
 cdouble pade_approximant(cdouble* a_coeff_array, int N, int M, cdouble z){
@@ -519,8 +542,8 @@ cdouble pade_approximant(cdouble* a_coeff_array, int N, int M, cdouble z){
 
 void pade_method_solve(cdouble*  U_array,
 					   cdouble*  G_array,
-					   int		 num_on_shell_indices,
-					   int*      on_shell_idx_array,
+					   int*		 q_com_idx_array,	 int num_q_com,
+					   int*      deuteron_idx_array, int num_deuteron_states,
 					   int       Nalpha,
 					   int 	     Nq_WP,
 					   int 	     Np_WP,
@@ -531,22 +554,25 @@ void pade_method_solve(cdouble*  U_array,
 					   int*      P123_sparse_col_array,
 					   int       P123_sparse_dim){
 	
+	/* Number of on-shell nucleon-deuteron channels */
+	int num_on_shell_indices = num_deuteron_states * num_q_com;
+	//printf("num deuteron=%d and num q=%d\n",num_deuteron_states, num_q_com);
 	/* Upper limit on polynomial approximation of Faddeev eq. */
-	int N_pade = 14;
-	int M_pade = 14;
+	int N_pade = 7;
+	int M_pade = 7;
 
 	/* Coefficients for calculating Pade approximant */
-	cdouble a_coeff_array [ (N_pade + M_pade + 1) * num_on_shell_indices];
+	cdouble* a_coeff_array = new cdouble [ (N_pade + M_pade + 1) * num_on_shell_indices];
 
 	/* Dense dimension of 3N-channel */
 	int dense_dim = Nalpha * Nq_WP * Np_WP;
 
 	/* Allocate row- and column-arrays for (C^T)(P)(VC) */
-	double CPVC_col_array [dense_dim];
+	double* CPVC_col_array = new double [dense_dim];
 
 	/* Allocate row-arrays for A*A^n, where A=(C^T)(P)(VC) */
-	double A_An_row_array 	   [dense_dim * num_on_shell_indices];
-	double A_An_row_array_prev [dense_dim * num_on_shell_indices];
+	double* A_An_row_array 	   = new double [dense_dim * num_on_shell_indices];
+	double* A_An_row_array_prev = new double [dense_dim * num_on_shell_indices];
 
 	/* Set A_An-arrays to zero */
 	for (int i=0; i<dense_dim*num_on_shell_indices; i++){
@@ -555,28 +581,31 @@ void pade_method_solve(cdouble*  U_array,
 	}
 
 	/* Set initial values for A_Kn_row_array, where K^n=1 for n=0 */
-	for (int i=0; i<num_on_shell_indices; i++){
-		/* On-shell (OS) indices */
-		int idx_alpha_OS = on_shell_idx_array[3*num_on_shell_indices];
-		int idx_p_OS 	 = on_shell_idx_array[3*num_on_shell_indices + 1];
-		int idx_q_OS 	 = on_shell_idx_array[3*num_on_shell_indices + 2];
-
-		/* Calculate CPVC-row and write to A_Kn_row_array */
-		calculate_CPVC_row(&A_An_row_array[i*dense_dim],
-						   idx_alpha_OS, idx_p_OS, idx_q_OS,
-						   Nalpha, Nq_WP, Np_WP,
-						   CT_RM_array,
-						   VC_CM_array,
-						   P123_sparse_val_array,
-						   P123_sparse_row_array,
-						   P123_sparse_col_array,
-						   P123_sparse_dim);
-	}
+	printf("   - Starting CPVC-row calc. for all relevant rows \n");//row alpha=%d, q=%d, p=%d\n", idx_alpha_NDOS, idx_q_NDOS, idx_p_NDOS);
+	auto timestamp_start = std::chrono::system_clock::now();
+	/* Calculate CPVC-row and write to A_Kn_row_array */
+	calculate_all_CPVC_rows(A_An_row_array,
+							q_com_idx_array, num_q_com,
+			   				deuteron_idx_array, num_deuteron_states,
+							Nalpha, Nq_WP, Np_WP,
+							CT_RM_array,
+							VC_CM_array,
+							P123_sparse_val_array,
+							P123_sparse_row_array,
+							P123_sparse_col_array,
+							P123_sparse_dim);
+	auto timestamp_end = std::chrono::system_clock::now();
+	std::chrono::duration<double> time = timestamp_end - timestamp_start;
+	printf("   - Time CPVC-rows: %.6f\n", time.count());
 
 	/* Loop over number of Pade-terms we use */
-	for (int n=0; n<N_pade+M_pade; n++){
-
+	for (int n=1; n<N_pade+M_pade; n++){
+		printf("   - Pade iteration n=%d \n",n);
+		auto timestamp_start = std::chrono::system_clock::now();
 		/* Iterate through columns of A */
+		//#pragma omp parallel
+		//{
+		//#pragma omp for
 		for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 			for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
 				for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
@@ -605,38 +634,54 @@ void pade_method_solve(cdouble*  U_array,
 						double inner_product = 0;
 						for (int i=0; i<dense_dim; i++){
 							inner_product += A_An_row_array_prev[i] * CPVC_col_array[i];
+							//std::cout << "A_An, CPVC_col: " << A_An_row_array_prev[i] << " " << CPVC_col_array[i] << std::endl;
 						}
-
 						A_An_row_array[idx*dense_dim + idx_col] = inner_product;
 					}
 				}
 			}
 		}
+		//}
+		auto timestamp_end = std::chrono::system_clock::now();
+		std::chrono::duration<double> time = timestamp_end - timestamp_start;
+		printf("     - Done. Time: %.6f \n", time.count());
 
+		printf("   - Rewrite A_An \n",n);
 		/* Rewrite previous A_An with current A_An */
 		for (int idx=0; idx<num_on_shell_indices; idx++){
 			for (int i=0; i<dense_dim; i++){
 				A_An_row_array_prev[idx*dense_dim + i] = A_An_row_array[idx*dense_dim + i];
 			}
 		}
+		printf("     - Done \n",n);
 
+		printf("   - Extract a_n \n",n);
 		/* Extract coefficients "a" for Pade approximant */
-		for (int idx=0; idx<num_on_shell_indices; idx++){
-			/* On-shell (OS) indices */
-			int idx_alpha_OS = on_shell_idx_array[3*num_on_shell_indices];
-			int idx_p_OS 	 = on_shell_idx_array[3*num_on_shell_indices + 1];
-			int idx_q_OS 	 = on_shell_idx_array[3*num_on_shell_indices + 2];
-			int idx_OS		 = idx_alpha_OS*Nq_WP*Np_WP + idx_q_OS*Np_WP + idx_p_OS;
+		for (int i=0; i<num_deuteron_states; i++){
+			for (int j=0; j<num_q_com; j++){
+				/* Nucleon-deuteron on-shell (NDOS) indices
+				 * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
+				int idx_alpha_NDOS = deuteron_idx_array[i];
+				int idx_p_NDOS 	   = 0;
+				int idx_q_NDOS 	   = q_com_idx_array[j];
 
-			/* Resolvent exponent */
-			cdouble G_pow_n = std::pow(G_array[idx_OS], n);
+				int idx_NDOS   = idx_alpha_NDOS*num_q_com + idx_q_NDOS;
+				int idx_G_NDOS = idx_alpha_NDOS*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
 
-			/* Calculate coefficient */
-			cdouble a_coeff = A_An_row_array[idx*dense_dim + idx_OS] * G_pow_n;
+				/* Resolvent exponent */
+				cdouble G_pow_n = std::pow(G_array[idx_G_NDOS], n);
 
-			/* Store coefficient */
-			a_coeff_array[idx*(N_pade+M_pade+1) + n] = a_coeff;
+				std::cout << "G: " << G_pow_n.real() << " " << G_pow_n.imag() << std::endl;
+				std::cout << "A: " << A_An_row_array[idx_NDOS*dense_dim + idx_G_NDOS] << std::endl;
+
+				/* Calculate coefficient */
+				cdouble a_coeff = A_An_row_array[idx_NDOS*dense_dim + idx_G_NDOS] * G_pow_n;
+
+				/* Store coefficient */
+				a_coeff_array[idx_NDOS*(N_pade+M_pade+1) + n] = a_coeff;
+			}
 		}
+		printf("     - Done \n",n);
 	}
 
 	/* Calculate Pade approximants (PA) */
@@ -647,7 +692,7 @@ void pade_method_solve(cdouble*  U_array,
 		double min_PA_diff = 0;
 		int idx_best_PA = 0;
 
-		/* Calculte Pade approximants and find most converged PA */
+		/* Calculate PAs and find index for most converged PA */
 		for (int NM=0; NM<N_pade+M_pade+1; NM+=2){
 			cdouble PA = pade_approximant(&a_coeff_array[idx*(N_pade+M_pade+1)], NM/2, NM/2, 1);
 			pade_approximants_array[NM/2] = PA;
@@ -658,7 +703,16 @@ void pade_method_solve(cdouble*  U_array,
 				min_PA_diff = PA_diff;
 			}
 		}
+
+		/* Set U-matrix element equal "best" PA */
+		U_array[idx] = pade_approximants_array[idx_best_PA];
+		printf(" - U-matrix element: %.10e + %.10ei \n", U_array[idx].real(), U_array[idx].imag());
 	}
+
+	delete [] A_An_row_array;
+	delete [] A_An_row_array_prev;
+	delete [] a_coeff_array;
+	delete [] CPVC_col_array;
 }
 
 /* Solves Faddeev on the form
@@ -904,7 +958,8 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 double*   C_WP_coup_array,
 							 double*   V_WP_unco_array,
 							 double*   V_WP_coup_array,
-							 int       idx_on_shell,
+							 int*	   q_com_idx_array,	   int num_q_com,
+					   		 int*      deuteron_idx_array, int num_deuteron_states,
 							 int       J_2N_max,
 							 int       Nq_WP,
 							 int       Np_WP,
@@ -916,7 +971,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 int*      L_1N_array, 
 							 int*      two_J_1N_array){
 	
-	bool test_CPVC_col_routine  = false;
+	bool test_CPVC_col_routine  = true;
 	bool use_DSS_solver_routine = false;
 
 	/* Create C^T-product pointer-arrays in row-major format */
@@ -949,12 +1004,11 @@ void solve_faddeev_equations(cdouble*  U_array,
 	
 	/* Convert P123_row_array from COO to CSR format */
 	int dense_dim = Nalpha * Nq_WP * Np_WP;
-	int* idx_row_array_csr = new int [dense_dim];
+	int* P123_sparse_row_array_csr = new int [dense_dim];
 	coo_to_csr_format_converter(P123_sparse_row_array,
-								idx_row_array_csr,
+								P123_sparse_row_array_csr,
 								P123_sparse_dim,
 								dense_dim);
-	P123_sparse_row_array = idx_row_array_csr;
 		
 	/* Test optimized routine for CPVC columns */
 	if (test_CPVC_col_routine){
@@ -964,27 +1018,25 @@ void solve_faddeev_equations(cdouble*  U_array,
 						   CT_RM_array,
 						   VC_CM_array,
 						   P123_sparse_val_array,
-						   P123_sparse_row_array,
+						   P123_sparse_row_array_csr,
 						   P123_sparse_col_array,
 						   P123_sparse_dim);
 	}
 	
-	printf("   - Solving Faddeev equation ... \n");
+	printf(" - Solving Faddeev equation ... \n");
 	auto timestamp_calc_CPVC_start = std::chrono::system_clock::now();
 	
-	int num_on_shell_indices = 1;
-	int on_shell_idx_array [num_on_shell_indices] = {0};
 	pade_method_solve(U_array,
 					  G_array,
-					  num_on_shell_indices,
-					  on_shell_idx_array,
+					  q_com_idx_array,	  num_q_com,
+					  deuteron_idx_array, num_deuteron_states,
 					  Nalpha,
 					  Nq_WP,
 					  Np_WP,
 					  CT_RM_array,
 					  VC_CM_array,
 					  P123_sparse_val_array,
-					  P123_sparse_row_array,
+					  P123_sparse_row_array_csr,
 					  P123_sparse_col_array,
 					  P123_sparse_dim);
 
@@ -997,7 +1049,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 	//					CT_RM_array,
 	//					VC_CM_array,
 	//					P123_sparse_val_array,
-	//					P123_sparse_row_array,
+	//					P123_sparse_row_array_csr,
 	//					P123_sparse_col_array,
 	//					P123_sparse_dim);
 

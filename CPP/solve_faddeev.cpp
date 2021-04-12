@@ -162,49 +162,116 @@ void calculate_PVC_col(double*  col_array,
 					   int*     P123_col_array,
 					   int      P123_dim){
 
+	/* OPTIMIZATION THOUGHTS:
+	 * This approach is only viable for column-major P123-storage.
+	 * I can introduce a COO/CSR->CRS converter, shouldn't be demanding */
+	//int idx_row_min =  idx_alpha_j*Nq_WP*Np_WP    + idx_q_c*Np_WP;
+	//int idx_row_max = (idx_alpha_j+1)*Nq_WP*Np_WP + idx_q_c*Np_WP;
+
 	double* VC_subarray     = NULL;
 	double* VC_subarray_col = NULL;
 
-	int dense_dim   = Nalpha*Np_WP*Nq_WP;
+	int dense_dim = Nalpha*Np_WP*Nq_WP;
 
-	for (int idx_alpha_j=0; idx_alpha_j<Nalpha; idx_alpha_j++){
-		
-		int idx_VC_2N_block = idx_alpha_j*Nalpha + idx_alpha_c;
-		VC_subarray = VC_CM_array[idx_VC_2N_block];
+	int idx1 = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
 
-		/* Only do inner-product if VC is not zero due to conservation laws */
-		if (VC_subarray!=NULL){
+	/* Loop over rows of col-array */
+	for (int idx_i=0; idx_i<dense_dim; idx_i++){
 
-			VC_subarray_col = &VC_subarray[idx_p_c*Np_WP];
+		/* CSR-format indexing */
+		int idx_j_lower = P123_row_array[idx_i    ];
+		int idx_j_upper = P123_row_array[idx_i + 1];
 
-			int idx_alpha_q_j = idx_alpha_j*Nq_WP*Np_WP + idx_q_c*Np_WP;
-			
-			/* Loop over rows of col-array */
-			for (int idx_i=0; idx_i<dense_dim; idx_i++){
+		/* Loop over inner-product indices (columns of P123)  */
+		double inner_product_PVC = 0;
+		for (int idx_j=idx_j_lower; idx_j<idx_j_upper; idx_j++){
+			int col_idx = P123_col_array[idx_j];
+
+			int idx_alpha_j = col_idx / (Np_WP*Nq_WP);
+
+			VC_subarray = VC_CM_array[idx_alpha_c*Nalpha + idx_alpha_j];
+
+			/* Only do inner-product if VC is not zero due to conservation laws */
+			if (VC_subarray!=NULL){
+				VC_subarray_col = &VC_subarray[idx_p_c*Np_WP];
+
+				/* Extract idx_q_j from col_idx using quotient and remainder */
+				int idx_alpha_q_j = col_idx / Np_WP;
+				int idx_q_j 	  = idx_alpha_q_j % Nq_WP;
 				
-				/* CSR-format indexing */
-				int idx_j_lower = P123_row_array[idx_i    ];
-				int idx_j_upper = P123_row_array[idx_i + 1];
-				
-				/* Loop over inner-product indices (columns of P123)  */
-				double inner_product_PVC = 0;
-				for (int idx_j=idx_j_lower; idx_j<idx_j_upper; idx_j++){
-					int col_idx = P123_col_array[idx_j];
+				/* Check q-momentum conservation */
+				if (idx_q_j == idx_q_c){
+					/* Extract idx_p_j from col_idx using remainder */
+					int idx_p_j = col_idx % Np_WP;
 
-					div_t div_result = std::div(col_idx, Np_WP);
-					int idx_alpha_q_j_check = div_result.quot;
-					if (idx_alpha_q_j == idx_alpha_q_j_check){
-						int idx_p_j = div_result.rem;
+					/* Access arrays, this whole function is written to minimize these two calls */
+					double P_element  = P123_val_array[idx_j];
+					double VC_element = VC_subarray_col[idx_p_j];
+					inner_product_PVC += P_element * VC_element;
+				}
+			}
+		}
 
-						/* Access arrays, this whole function is written to minimize these two calls */
-						double P_element  = P123_val_array[idx_j];
-						double VC_element = VC_subarray_col[idx_p_j];
-						inner_product_PVC += P_element * VC_element;
+		/* Write inner product to col_array of PVC-product */
+		col_array[idx_i] = inner_product_PVC;
+	}
+}
+
+void PVC_col_brute_force(double*  col_array,
+					     int      idx_alpha_c, int idx_p_c, int idx_q_c,
+					     int      Nalpha,      int Nq_WP,   int Np_WP,
+					     double** VC_CM_array,
+					     double*  P123_val_array,
+					     int*     P123_row_array,
+					     int*     P123_col_array,
+					     int      P123_dim){
+	
+	bool print_content = false;
+	int idx1 = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
+	double* VC_ptr     = NULL;
+
+	for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+		for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
+			for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
+				int idx_P123_row = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
+
+				double sum = 0; 
+				for (int idx_alpha_j=0; idx_alpha_j<Nalpha; idx_alpha_j++){
+					VC_ptr = VC_CM_array[idx_alpha_c*Nalpha + idx_alpha_j];
+					if (VC_ptr!=NULL){
+						for (int idx_q_j=0; idx_q_j<Nq_WP; idx_q_j++){
+							if (idx_q_j == idx_q_c){
+								for (int idx_p_j=0; idx_p_j<Np_WP; idx_p_j++){
+									if (print_content){std::cout << "  - Index j " << idx_alpha_j << " " << idx_q_j << " " << idx_p_j << std::endl;}
+
+									int idx_P123_col = idx_alpha_j*Nq_WP*Np_WP + idx_q_j*Np_WP + idx_p_j;
+
+									int idx_P123_col_lower = P123_row_array[idx_P123_row];
+									int idx_P123_col_upper = P123_row_array[idx_P123_row+1];
+									bool idx_found = false;
+									int idx_P123_val = 0;
+									for (int nnz_idx=idx_P123_col_lower; nnz_idx<idx_P123_col_upper; nnz_idx++){
+										if (P123_col_array[nnz_idx] == idx_P123_col){
+											idx_found = true;
+											idx_P123_val = nnz_idx;
+										}
+									}
+
+									if (idx_found){
+										double P_element  = P123_val_array[idx_P123_val];
+										double VC_element = VC_ptr[idx_p_c*Np_WP + idx_p_j];
+
+										sum += P_element * VC_element;
+									}
+								}
+							}
+						}
 					}
 				}
-				
+
+				int idx_row = idx_alpha_r*Np_WP*Nq_WP + idx_q_r*Np_WP + idx_p_r;
 				/* Write inner product to col_array of PVC-product */
-				col_array[idx_i] = inner_product_PVC;
+				col_array[idx_row] = sum;
 			}
 		}
 	}
@@ -275,7 +342,7 @@ void calculate_CPVC_col(double*  col_array,
 			}
 		}
 	}
-
+	
 	delete [] PVC_col;
 }
 
@@ -292,17 +359,15 @@ void calculate_all_CPVC_rows(double*  row_arrays,
 	
 	int dense_dim = Nalpha*Nq_WP*Np_WP;
 
+	/* Loop over cols of row */
+	//#pragma omp parallel
+	//{
 	/* Generate PVC-column */
 	double* PVC_col = new double [dense_dim];
-
 	/* Generate (C^T x PVC)-column */
 	double* CT_subarray     = NULL;
 	double* CT_subarray_row = NULL;
-
-	/* Loop over cols of row */
-	#pragma omp parallel
-	{
-	#pragma omp for
+	//#pragma omp for
 	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
 			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
@@ -336,8 +401,8 @@ void calculate_all_CPVC_rows(double*  row_arrays,
 						double inner_product_CPVC = 0;
 						/* Beginning of inner-product loops (index "i") */
 						for (int idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
-							int idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
-							CT_subarray = CT_RM_array[idx_CT_2N_block];
+							
+							CT_subarray = CT_RM_array[idx_alpha_r*Nalpha + idx_alpha_i];
 		
 							/* Only do inner-product if CT is not zero due to conservation laws */
 							if (CT_subarray!=NULL){
@@ -363,9 +428,8 @@ void calculate_all_CPVC_rows(double*  row_arrays,
 			}
 		}
 	}
-	}
-
-	delete [] PVC_col;
+	delete [] PVC_col; 
+	//}
 }
 
 void CPVC_col_brute_force(double*  col_array,
@@ -382,11 +446,27 @@ void CPVC_col_brute_force(double*  col_array,
 
 	bool print_content = false;
 
+	/* Generate PVC-column */
+	double* PVC_col = new double [Nalpha*Nq_WP*Np_WP];
+	/* Ensure PVC_col contains only zeroes */
+	for (int idx=0; idx<Nalpha*Nq_WP*Np_WP; idx++){
+		PVC_col[idx] = 0;
+	}
+	
+	PVC_col_brute_force(PVC_col,
+					    idx_alpha_c, idx_p_c, idx_q_c,
+					    Nalpha,      Nq_WP,   Np_WP,
+					    VC_CM_array,
+					    P123_val_array,
+					    P123_row_array,
+					    P123_col_array,
+					    P123_dim);
+
 	/* Index: r */
 	for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
 		for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
 			for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
-				if (print_content){std::cout << "Index i " << idx_alpha_r << " " << idx_q_r << " " << idx_p_r << std::endl;}
+				if (print_content){std::cout << "Index r " << idx_alpha_r << " " << idx_q_r << " " << idx_p_r << std::endl;}
 				double sum = 0;
 				/* Index: i */
 				for (int idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
@@ -396,41 +476,12 @@ void CPVC_col_brute_force(double*  col_array,
 							if (idx_q_r == idx_q_i){
 								for (int idx_p_i=0; idx_p_i<Np_WP; idx_p_i++){
 									if (print_content){std::cout << " - Index i " << idx_alpha_i << " " << idx_q_i << " " << idx_p_i << std::endl;}
-									/* Index: j */
-									for (int idx_alpha_j=0; idx_alpha_j<Nalpha; idx_alpha_j++){
-										VC_ptr = VC_CM_array[idx_alpha_c*Nalpha + idx_alpha_j];
-										if (VC_ptr!=NULL){
-											for (int idx_q_j=0; idx_q_j<Nq_WP; idx_q_j++){
-												if (idx_q_j == idx_q_c){
-													for (int idx_p_j=0; idx_p_j<Np_WP; idx_p_j++){
-														if (print_content){std::cout << "  - Index j " << idx_alpha_j << " " << idx_q_j << " " << idx_p_j << std::endl;}
 
-														int idx_P123_row = idx_alpha_i*Nq_WP*Np_WP + idx_q_i*Np_WP + idx_p_i;
-														int idx_P123_col = idx_alpha_j*Nq_WP*Np_WP + idx_q_j*Np_WP + idx_p_j;
+									int PVC_col_idx = idx_alpha_i*Np_WP*Nq_WP + idx_q_i*Np_WP + idx_p_i;
 
-														int idx_P123_col_lower = P123_row_array[idx_P123_row];
-														int idx_P123_col_upper = P123_row_array[idx_P123_row+1];
-														bool idx_found = false;
-														int idx_P123_val = 0;
-														for (int nnz_idx=idx_P123_col_lower; nnz_idx<idx_P123_col_upper; nnz_idx++){
-															if (P123_col_array[nnz_idx] == idx_P123_col){
-																idx_found = true;
-																idx_P123_val = nnz_idx;
-															}
-														}
-
-														if (idx_found){
-															double CT_element = CT_ptr[idx_p_r*Np_WP + idx_p_i];
-															double P_element  = P123_val_array[idx_P123_val];
-															double VC_element = VC_ptr[idx_p_c*Np_WP + idx_p_j];
-
-															sum += CT_element * P_element * VC_element;
-														}
-													}
-												}
-											}
-										}
-									}
+									double CT_element  = CT_ptr[idx_p_r*Np_WP + idx_p_i];
+									double PVC_element = PVC_col[PVC_col_idx];
+									sum += CT_element * PVC_element;
 								}
 							}
 						}
@@ -442,6 +493,89 @@ void CPVC_col_brute_force(double*  col_array,
 			}
 		}
 	}
+}
+
+void PVC_col_calc_test(int      Nalpha,
+					   int 	 	Nq_WP,
+					   int 	 	Np_WP,
+					   double** VC_CM_array,
+					   double*  P123_sparse_val_array,
+					   int*     P123_sparse_row_array,
+					   int*     P123_sparse_col_array,
+					   int      P123_sparse_dim){
+
+	bool print_content = false;
+
+	int dense_dim = Nalpha * Nq_WP * Np_WP;
+
+	/* Create column of (C^T)(P)(VC) */
+	double* PVC_col_array    = new double [dense_dim];
+	double* PVC_col_array_BF = new double [dense_dim];
+
+	bool all_cols_are_zero = true;
+	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+				
+				if (idx_alpha_c<=2){continue;}
+
+				/* Reset array */
+				for (int idx=0; idx<dense_dim; idx++){
+					PVC_col_array[idx]    = 0;
+					PVC_col_array_BF[idx] = 0;
+				}
+	
+				/* Calculate CPVC-column */
+				calculate_PVC_col(PVC_col_array,
+								  idx_alpha_c, idx_p_c, idx_q_c,
+								  Nalpha, Nq_WP, Np_WP,
+								  VC_CM_array,
+								  P123_sparse_val_array,
+								  P123_sparse_row_array,
+								  P123_sparse_col_array,
+								  P123_sparse_dim);
+				
+				PVC_col_brute_force(PVC_col_array_BF,
+									idx_alpha_c, idx_p_c, idx_q_c,
+									Nalpha, Nq_WP, Np_WP,
+									VC_CM_array,
+									P123_sparse_val_array,
+									P123_sparse_row_array,
+									P123_sparse_col_array,
+									P123_sparse_dim);
+				
+				double col_sum =0;
+				for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+					for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
+						for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
+							
+							int idx_c = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
+							int idx_r = idx_alpha_r*Np_WP*Nq_WP + idx_q_r*Np_WP + idx_p_r;
+							double diff = abs(PVC_col_array[idx_r] - PVC_col_array_BF[idx_r]);
+
+							if ( diff > 1e-15 ){
+								printf("   - Discrepency found: \n");
+								printf("     - Row %d: alpha=%d, q=%d, p=%d \n", idx_r, idx_alpha_r, idx_q_r, idx_p_r);
+								printf("     - Col %d: alpha=%d, q=%d, p=%d \n", idx_c, idx_alpha_c, idx_q_c, idx_p_c);
+								printf("     - Discrepency: %.16f (optimized) vs. %.16f (brute force)\n", PVC_col_array[idx_r], PVC_col_array_BF[idx_r]);
+								raise_error("PVC benchmarking failed");
+							}
+							col_sum += PVC_col_array[idx_r];
+						}
+					}
+				}
+				if (col_sum!=0 ){
+					all_cols_are_zero = false;
+				}
+			}
+		}
+	}
+	if (all_cols_are_zero){
+		printf("   - All PVC-columns are zero! PVC-test likely failed \n");
+	}
+	
+	delete [] PVC_col_array;
+	delete [] PVC_col_array_BF;	
 }
 
 void CPVC_col_calc_test(int      Nalpha,
@@ -462,6 +596,7 @@ void CPVC_col_calc_test(int      Nalpha,
 	double* CPVC_col_array    = new double [dense_dim];
 	double* CPVC_col_array_BF = new double [dense_dim];
 
+	bool all_cols_are_zero = true;
 	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
 			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
@@ -494,21 +629,35 @@ void CPVC_col_calc_test(int      Nalpha,
 									 P123_sparse_dim);
 				
 				double col_sum =0;
-				for (int idx=0; idx<dense_dim; idx++){
-					double diff = abs(CPVC_col_array[idx] - CPVC_col_array_BF[idx]);
-					if ( diff > 1e-14 ){
-						printf("Element %d had a discrepency: %.16f vs. %.16f \n", idx, CPVC_col_array[idx], CPVC_col_array_BF[idx]);
-						raise_error("CPVC benchmarking failed");
+				for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+					for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
+						for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
+							
+							int idx_c = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
+							int idx_r = idx_alpha_r*Np_WP*Nq_WP + idx_q_r*Np_WP + idx_p_r;
+							double diff = abs(CPVC_col_array[idx_r] - CPVC_col_array_BF[idx_r]);
+
+							if ( diff > 1e-15 ){
+								printf("   - Discrepency found: \n");
+								printf("     - Row %d: alpha=%d, q=%d, p=%d \n", idx_r, idx_alpha_r, idx_q_r, idx_p_r);
+								printf("     - Col %d: alpha=%d, q=%d, p=%d \n", idx_c, idx_alpha_c, idx_q_c, idx_p_c);
+								printf("     - Discrepency: %.16f (optimized) vs. %.16f (brute force)\n", CPVC_col_array[idx_r], CPVC_col_array_BF[idx_r]);
+								raise_error("CPVC benchmarking failed");
+							}
+							col_sum += CPVC_col_array[idx_r];
+						}
 					}
-					col_sum += CPVC_col_array[idx];
 				}
-				if (col_sum==0 ){
-					printf("Column &d was zero \n", idx_alpha_c*Np_WP*Nq_WP + idx_p_c + idx_q_c*Np_WP);
+				if (col_sum!=0 ){
+					all_cols_are_zero = false;
 				}
 			}
 		}
 	}
-
+	if (all_cols_are_zero){
+		printf("   - All CPVC-columns are zero! PVC-test likely failed \n");
+	}
+	
 	delete [] CPVC_col_array;
 	delete [] CPVC_col_array_BF;	
 }
@@ -603,9 +752,9 @@ void pade_method_solve(cdouble*  U_array,
 		printf("   - Pade iteration n=%d \n",n);
 		auto timestamp_start = std::chrono::system_clock::now();
 		/* Iterate through columns of A */
-		//#pragma omp parallel
-		//{
-		//#pragma omp for
+		#pragma omp parallel
+		{
+		#pragma omp for
 		for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 			for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
 				for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
@@ -641,7 +790,7 @@ void pade_method_solve(cdouble*  U_array,
 				}
 			}
 		}
-		//}
+		}
 		auto timestamp_end = std::chrono::system_clock::now();
 		std::chrono::duration<double> time = timestamp_end - timestamp_start;
 		printf("     - Done. Time: %.6f \n", time.count());
@@ -971,7 +1120,12 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 int*      L_1N_array, 
 							 int*      two_J_1N_array){
 	
+	/* Test PVC- and CPVC-column multiplication routines with brute-force routines
+	 * WARNING: VERY SLOW TEST, ONLY FOR BENCHMARKING */
+	bool test_PVC_col_routine   = true;
 	bool test_CPVC_col_routine  = true;
+
+	/* Use MKL DSS direct sparse solver for linear systems */
 	bool use_DSS_solver_routine = false;
 
 	/* Create C^T-product pointer-arrays in row-major format */
@@ -1009,9 +1163,23 @@ void solve_faddeev_equations(cdouble*  U_array,
 								P123_sparse_row_array_csr,
 								P123_sparse_dim,
 								dense_dim);
-		
+	
+	/* Test optimized routine for PVC columns */
+	if (test_PVC_col_routine){
+		printf(" - Testing PVC-column routine ... \n");
+		PVC_col_calc_test(Nalpha,
+						  Nq_WP,
+						  Np_WP,
+						  VC_CM_array,
+						  P123_sparse_val_array,
+						  P123_sparse_row_array_csr,
+						  P123_sparse_col_array,
+						  P123_sparse_dim);
+		printf(" - Done \n");
+	}
 	/* Test optimized routine for CPVC columns */
 	if (test_CPVC_col_routine){
+		printf(" - Testing CPVC-column routine ... \n");
 		CPVC_col_calc_test(Nalpha,
 						   Nq_WP,
 						   Np_WP,
@@ -1021,6 +1189,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 						   P123_sparse_row_array_csr,
 						   P123_sparse_col_array,
 						   P123_sparse_dim);
+		printf(" - Done \n");
 	}
 	
 	printf(" - Solving Faddeev equation ... \n");

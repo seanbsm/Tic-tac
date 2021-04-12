@@ -122,11 +122,11 @@ int main(int argc, char* argv[]){
 	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
-	bool calculate_and_store_P123 = true;
+	bool calculate_and_store_P123 = false;
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
 	 * and solve Faddeev in a single run */
-	bool solve_faddeev		      = false;
+	bool solve_faddeev		      = true;
 	bool production_run			  = false;
 
 	/* PWE truncation */
@@ -431,7 +431,7 @@ int main(int argc, char* argv[]){
 		if (chn_3N!=0){
 			continue;
 		}
-		//if (calculate_and_store_P123){
+		if (calculate_and_store_P123){
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];
 			gauss(x_array, wx_array, Nx);
@@ -482,24 +482,24 @@ int main(int argc, char* argv[]){
 			auto timestamp_P123_store_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
-		//}
-		//else if (solve_faddeev){
+		}
+		else if (solve_faddeev){
 			std::string P123_filename_2 =    "P123_sparse_JTP_"
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
 			printf("Reading P123 from h5 ... \n");
 			
-			double* P123_sparse_val_array_t = NULL;
-			int* 	P123_sparse_row_array_t = NULL;
-			int* 	P123_sparse_col_array_t = NULL;
-			int	    P123_sparse_dim_t		  = 0;
+			//double* P123_sparse_val_array_t = NULL;
+			//int* 	P123_sparse_row_array_t = NULL;
+			//int* 	P123_sparse_col_array_t = NULL;
+			//int	    P123_sparse_dim_t		  = 0;
 
 			auto timestamp_P123_read_start = chrono::system_clock::now();
-			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array_t,
-															  &P123_sparse_row_array_t,
-															  &P123_sparse_col_array_t,
-															  P123_sparse_dim_t,
+			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array,
+															  &P123_sparse_row_array,
+															  &P123_sparse_col_array,
+															  P123_sparse_dim,
 															  Np_WP, p_WP_array,
 															  Nq_WP, q_WP_array,
 															  Nalpha_in_3N_chn,
@@ -513,33 +513,36 @@ int main(int argc, char* argv[]){
 															  two_T_3N,
 															  P_3N,
 													   		  P123_filename);
+			auto timestamp_P123_read_end = chrono::system_clock::now();
+			chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
+			printf(" - Done. Time used: %.6f\n", time_P123_read.count());
 			
-			if (P123_sparse_dim_t==P123_sparse_dim){
-				int row_idx = 0;
-				for (int idx=0; idx<P123_sparse_dim; idx++){
-					if (P123_sparse_row_array[idx]==row_idx){
-					bool check1 = (P123_sparse_val_array_t[idx]!=P123_sparse_val_array[idx]);
-					bool check2 = (P123_sparse_row_array_t[idx]!=P123_sparse_row_array[idx]);
-					bool check3 = (P123_sparse_col_array_t[idx]!=P123_sparse_col_array[idx]);
-					if (check1||check2||check3){
-						std::cout << "Value wrong, idx: " << idx << std::endl;
-						std::cout << "BM val:   " << P123_sparse_val_array_t[idx] << std::endl;
-						std::cout << "BM row:   " << P123_sparse_row_array_t[idx] << std::endl;
-						std::cout << "BM col:   " << P123_sparse_col_array_t[idx] << std::endl;
-						std::cout << "Prog val: " << P123_sparse_val_array[idx] << std::endl;
-						std::cout << "Prog row: " << P123_sparse_row_array[idx] << std::endl;
-						std::cout << "Prog col: " << P123_sparse_col_array[idx] << std::endl;
-						raise_error("element mismatch");
-					}
-					}
-				}
-			}
-			else{
-				std::cout << "BM dim:   " << P123_sparse_dim_t << std::endl;
-				std::cout << "Prog dim: " << P123_sparse_dim << std::endl;
-				raise_error("dim not right");
-			}
-		//}
+			//if (P123_sparse_dim_t==P123_sparse_dim){
+			//	int row_idx = 0;
+			//	for (int idx=0; idx<P123_sparse_dim; idx++){
+			//		if (P123_sparse_row_array[idx]==row_idx){
+			//		bool check1 = (P123_sparse_val_array_t[idx]!=P123_sparse_val_array[idx]);
+			//		bool check2 = (P123_sparse_row_array_t[idx]!=P123_sparse_row_array[idx]);
+			//		bool check3 = (P123_sparse_col_array_t[idx]!=P123_sparse_col_array[idx]);
+			//		if (check1||check2||check3){
+			//			std::cout << "Value wrong, idx: " << idx << std::endl;
+			//			std::cout << "BM val:   " << P123_sparse_val_array_t[idx] << std::endl;
+			//			std::cout << "BM row:   " << P123_sparse_row_array_t[idx] << std::endl;
+			//			std::cout << "BM col:   " << P123_sparse_col_array_t[idx] << std::endl;
+			//			std::cout << "Prog val: " << P123_sparse_val_array[idx] << std::endl;
+			//			std::cout << "Prog row: " << P123_sparse_row_array[idx] << std::endl;
+			//			std::cout << "Prog col: " << P123_sparse_col_array[idx] << std::endl;
+			//			raise_error("element mismatch");
+			//		}
+			//		}
+			//	}
+			//}
+			//else{
+			//	std::cout << "BM dim:   " << P123_sparse_dim_t << std::endl;
+			//	std::cout << "Prog dim: " << P123_sparse_dim << std::endl;
+			//	raise_error("dim not right");
+			//}
+		}
 		/* End of code segment for permutation matrix construction */
 
 		if (solve_faddeev){
@@ -567,7 +570,7 @@ int main(int argc, char* argv[]){
 			/* Start of code segment for iterations of elastic Faddeev equations */
 			int 	 num_deuteron_states = deuteron_num_array[chn_3N];
 			int* 	 deuteron_idx_array  = deuteron_idx_arrays[chn_3N];
-
+			
 			cdouble* U_array = new cdouble [num_T_lab * num_deuteron_states];
 
 			/* Index of on-shell element (deuteron channel) */

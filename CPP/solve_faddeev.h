@@ -5,6 +5,7 @@
 #include <stdlib.h>     /* div, div_t */
 #include <math.h>
 #include <complex>
+#include <omp.h>
 
 /* Time-keeping modules */
 #include <chrono>

@@ -55,6 +55,7 @@ void solve_MM(std::complex<double> *A, std::complex<double> *B, int N){
 }
 
 std::complex<double> determinant(std::complex<double>* A, int N){
+	//char trans = 'N';
 	long long int ipiv [N];
 	
 	/* Perform LU decomposition, A is overwritten by L */
@@ -62,8 +63,13 @@ std::complex<double> determinant(std::complex<double>* A, int N){
 
 	/* Diagonal of L equals determinant of A */
 	std::complex<double> product_sum_diagonal = 1;
-	for (int i=0; i<N; i++){
-		product_sum_diagonal *= A[i*N+i];
+	for (int i=0; i<N; i++){        /* Figure out pivoting */
+        if (ipiv[i]!=i+1){
+            product_sum_diagonal *= -A[i*N+i];
+        }
+        else{
+            product_sum_diagonal *= +A[i*N+i];
+        }
 	}
 
 	return product_sum_diagonal;

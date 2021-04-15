@@ -171,7 +171,7 @@ void calculate_PVC_col(double*  col_array,
 	double* VC_subarray     = NULL;
 	double* VC_subarray_col = NULL;
 
-	int dense_dim = Nalpha*Np_WP*Nq_WP;
+	size_t dense_dim = Nalpha*Np_WP*Nq_WP;
 
 	int idx1 = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
 
@@ -214,66 +214,6 @@ void calculate_PVC_col(double*  col_array,
 
 		/* Write inner product to col_array of PVC-product */
 		col_array[idx_i] = inner_product_PVC;
-	}
-}
-
-void PVC_col_brute_force(double*  col_array,
-					     int      idx_alpha_c, int idx_p_c, int idx_q_c,
-					     int      Nalpha,      int Nq_WP,   int Np_WP,
-					     double** VC_CM_array,
-					     double*  P123_val_array,
-					     int*     P123_row_array,
-					     int*     P123_col_array,
-					     int      P123_dim){
-	
-	bool print_content = false;
-	int idx1 = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
-	double* VC_ptr     = NULL;
-
-	for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
-		for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
-			for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
-				int idx_P123_row = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
-
-				double sum = 0; 
-				for (int idx_alpha_j=0; idx_alpha_j<Nalpha; idx_alpha_j++){
-					VC_ptr = VC_CM_array[idx_alpha_c*Nalpha + idx_alpha_j];
-					if (VC_ptr!=NULL){
-						for (int idx_q_j=0; idx_q_j<Nq_WP; idx_q_j++){
-							if (idx_q_j == idx_q_c){
-								for (int idx_p_j=0; idx_p_j<Np_WP; idx_p_j++){
-									if (print_content){std::cout << "  - Index j " << idx_alpha_j << " " << idx_q_j << " " << idx_p_j << std::endl;}
-
-									int idx_P123_col = idx_alpha_j*Nq_WP*Np_WP + idx_q_j*Np_WP + idx_p_j;
-
-									int idx_P123_col_lower = P123_row_array[idx_P123_row];
-									int idx_P123_col_upper = P123_row_array[idx_P123_row+1];
-									bool idx_found = false;
-									int idx_P123_val = 0;
-									for (int nnz_idx=idx_P123_col_lower; nnz_idx<idx_P123_col_upper; nnz_idx++){
-										if (P123_col_array[nnz_idx] == idx_P123_col){
-											idx_found = true;
-											idx_P123_val = nnz_idx;
-										}
-									}
-
-									if (idx_found){
-										double P_element  = P123_val_array[idx_P123_val];
-										double VC_element = VC_ptr[idx_p_c*Np_WP + idx_p_j];
-
-										sum += P_element * VC_element;
-									}
-								}
-							}
-						}
-					}
-				}
-
-				int idx_row = idx_alpha_r*Np_WP*Nq_WP + idx_q_r*Np_WP + idx_p_r;
-				/* Write inner product to col_array of PVC-product */
-				col_array[idx_row] = sum;
-			}
-		}
 	}
 }
 
@@ -346,7 +286,7 @@ void calculate_CPVC_col(double*  col_array,
 	delete [] PVC_col;
 }
 
-void calculate_all_CPVC_rows(double*  row_arrays,
+void calculate_all_CPVC_rows(cdouble* row_arrays,
 							 int*	  q_com_idx_array,	  int num_q_com,
 					   		 int*     deuteron_idx_array, int num_deuteron_states,
 							 int      Nalpha,      int Nq_WP,   int Np_WP,
@@ -357,17 +297,17 @@ void calculate_all_CPVC_rows(double*  row_arrays,
 							 int*     P123_col_array,
 							 int      P123_dim){
 	
-	int dense_dim = Nalpha*Nq_WP*Np_WP;
+	size_t dense_dim = Nalpha*Nq_WP*Np_WP;
 
 	/* Loop over cols of row */
-	//#pragma omp parallel
-	//{
+	#pragma omp parallel
+	{
 	/* Generate PVC-column */
 	double* PVC_col = new double [dense_dim];
 	/* Generate (C^T x PVC)-column */
 	double* CT_subarray     = NULL;
 	double* CT_subarray_row = NULL;
-	//#pragma omp for
+	#pragma omp for
 	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
 			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
@@ -396,7 +336,7 @@ void calculate_all_CPVC_rows(double*  row_arrays,
 						int idx_p_r     = 0;
 						int idx_q_r     = q_com_idx_array[j];
 
-						int idx_NDOS = idx_alpha_r*num_q_com + idx_q_r;
+						int idx_NDOS = i*num_q_com + j;;
 
 						double inner_product_CPVC = 0;
 						/* Beginning of inner-product loops (index "i") */
@@ -429,237 +369,7 @@ void calculate_all_CPVC_rows(double*  row_arrays,
 		}
 	}
 	delete [] PVC_col; 
-	//}
-}
-
-void CPVC_col_brute_force(double*  col_array,
-						  int      idx_alpha_c, int idx_p_c, int idx_q_c,
-						  int      Nalpha,      int Nq_WP,   int Np_WP,
-						  double** CT_RM_array,
-						  double** VC_CM_array,
-						  double*  P123_val_array,
-						  int*     P123_row_array,
-						  int*     P123_col_array,
-						  int      P123_dim){
-	double* CT_ptr = NULL;
-	double* VC_ptr = NULL;
-
-	bool print_content = false;
-
-	/* Generate PVC-column */
-	double* PVC_col = new double [Nalpha*Nq_WP*Np_WP];
-	/* Ensure PVC_col contains only zeroes */
-	for (int idx=0; idx<Nalpha*Nq_WP*Np_WP; idx++){
-		PVC_col[idx] = 0;
 	}
-	
-	PVC_col_brute_force(PVC_col,
-					    idx_alpha_c, idx_p_c, idx_q_c,
-					    Nalpha,      Nq_WP,   Np_WP,
-					    VC_CM_array,
-					    P123_val_array,
-					    P123_row_array,
-					    P123_col_array,
-					    P123_dim);
-
-	/* Index: r */
-	for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
-		for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
-			for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
-				if (print_content){std::cout << "Index r " << idx_alpha_r << " " << idx_q_r << " " << idx_p_r << std::endl;}
-				double sum = 0;
-				/* Index: i */
-				for (int idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
-					CT_ptr = CT_RM_array[idx_alpha_r*Nalpha + idx_alpha_i];
-					if (CT_ptr!=NULL){
-						for (int idx_q_i=0; idx_q_i<Nq_WP; idx_q_i++){
-							if (idx_q_r == idx_q_i){
-								for (int idx_p_i=0; idx_p_i<Np_WP; idx_p_i++){
-									if (print_content){std::cout << " - Index i " << idx_alpha_i << " " << idx_q_i << " " << idx_p_i << std::endl;}
-
-									int PVC_col_idx = idx_alpha_i*Np_WP*Nq_WP + idx_q_i*Np_WP + idx_p_i;
-
-									double CT_element  = CT_ptr[idx_p_r*Np_WP + idx_p_i];
-									double PVC_element = PVC_col[PVC_col_idx];
-									sum += CT_element * PVC_element;
-								}
-							}
-						}
-					}
-				}
-
-				int idx_CPVC = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
-				col_array[idx_CPVC] = sum;
-			}
-		}
-	}
-}
-
-void PVC_col_calc_test(int      Nalpha,
-					   int 	 	Nq_WP,
-					   int 	 	Np_WP,
-					   double** VC_CM_array,
-					   double*  P123_sparse_val_array,
-					   int*     P123_sparse_row_array,
-					   int*     P123_sparse_col_array,
-					   int      P123_sparse_dim){
-
-	bool print_content = false;
-
-	int dense_dim = Nalpha * Nq_WP * Np_WP;
-
-	/* Create column of (C^T)(P)(VC) */
-	double* PVC_col_array    = new double [dense_dim];
-	double* PVC_col_array_BF = new double [dense_dim];
-
-	bool all_cols_are_zero = true;
-	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
-		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
-			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
-				
-				if (idx_alpha_c<=2){continue;}
-
-				/* Reset array */
-				for (int idx=0; idx<dense_dim; idx++){
-					PVC_col_array[idx]    = 0;
-					PVC_col_array_BF[idx] = 0;
-				}
-	
-				/* Calculate CPVC-column */
-				calculate_PVC_col(PVC_col_array,
-								  idx_alpha_c, idx_p_c, idx_q_c,
-								  Nalpha, Nq_WP, Np_WP,
-								  VC_CM_array,
-								  P123_sparse_val_array,
-								  P123_sparse_row_array,
-								  P123_sparse_col_array,
-								  P123_sparse_dim);
-				
-				PVC_col_brute_force(PVC_col_array_BF,
-									idx_alpha_c, idx_p_c, idx_q_c,
-									Nalpha, Nq_WP, Np_WP,
-									VC_CM_array,
-									P123_sparse_val_array,
-									P123_sparse_row_array,
-									P123_sparse_col_array,
-									P123_sparse_dim);
-				
-				double col_sum =0;
-				for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
-					for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
-						for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
-							
-							int idx_c = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
-							int idx_r = idx_alpha_r*Np_WP*Nq_WP + idx_q_r*Np_WP + idx_p_r;
-							double diff = abs(PVC_col_array[idx_r] - PVC_col_array_BF[idx_r]);
-
-							if ( diff > 1e-15 ){
-								printf("   - Discrepency found: \n");
-								printf("     - Row %d: alpha=%d, q=%d, p=%d \n", idx_r, idx_alpha_r, idx_q_r, idx_p_r);
-								printf("     - Col %d: alpha=%d, q=%d, p=%d \n", idx_c, idx_alpha_c, idx_q_c, idx_p_c);
-								printf("     - Discrepency: %.16f (optimized) vs. %.16f (brute force)\n", PVC_col_array[idx_r], PVC_col_array_BF[idx_r]);
-								raise_error("PVC benchmarking failed");
-							}
-							col_sum += PVC_col_array[idx_r];
-						}
-					}
-				}
-				if (col_sum!=0 ){
-					all_cols_are_zero = false;
-				}
-			}
-		}
-	}
-	if (all_cols_are_zero){
-		printf("   - All PVC-columns are zero! PVC-test likely failed \n");
-	}
-	
-	delete [] PVC_col_array;
-	delete [] PVC_col_array_BF;	
-}
-
-void CPVC_col_calc_test(int      Nalpha,
-						int 	 Nq_WP,
-						int 	 Np_WP,
-						double** CT_RM_array,
-						double** VC_CM_array,
-						double*  P123_sparse_val_array,
-						int*     P123_sparse_row_array,
-						int*     P123_sparse_col_array,
-						int      P123_sparse_dim){
-
-	bool print_content = false;
-
-	int dense_dim = Nalpha * Nq_WP * Np_WP;
-
-	/* Create column of (C^T)(P)(VC) */
-	double* CPVC_col_array    = new double [dense_dim];
-	double* CPVC_col_array_BF = new double [dense_dim];
-
-	bool all_cols_are_zero = true;
-	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
-		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
-			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
-	
-				/* Reset array */
-				for (int idx=0; idx<dense_dim; idx++){
-					CPVC_col_array[idx]    = 0;
-					CPVC_col_array_BF[idx] = 0;
-				}
-	
-				/* Calculate CPVC-column */
-				calculate_CPVC_col(CPVC_col_array,
-								   idx_alpha_c, idx_p_c, idx_q_c,
-								   Nalpha, Nq_WP, Np_WP,
-								   CT_RM_array,
-								   VC_CM_array,
-								   P123_sparse_val_array,
-								   P123_sparse_row_array,
-								   P123_sparse_col_array,
-								   P123_sparse_dim);
-				
-				CPVC_col_brute_force(CPVC_col_array_BF,
-									 idx_alpha_c, idx_p_c, idx_q_c,
-									 Nalpha, Nq_WP, Np_WP,
-									 CT_RM_array,
-									 VC_CM_array,
-									 P123_sparse_val_array,
-									 P123_sparse_row_array,
-									 P123_sparse_col_array,
-									 P123_sparse_dim);
-				
-				double col_sum =0;
-				for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
-					for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
-						for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
-							
-							int idx_c = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
-							int idx_r = idx_alpha_r*Np_WP*Nq_WP + idx_q_r*Np_WP + idx_p_r;
-							double diff = abs(CPVC_col_array[idx_r] - CPVC_col_array_BF[idx_r]);
-
-							if ( diff > 1e-15 ){
-								printf("   - Discrepency found: \n");
-								printf("     - Row %d: alpha=%d, q=%d, p=%d \n", idx_r, idx_alpha_r, idx_q_r, idx_p_r);
-								printf("     - Col %d: alpha=%d, q=%d, p=%d \n", idx_c, idx_alpha_c, idx_q_c, idx_p_c);
-								printf("     - Discrepency: %.16f (optimized) vs. %.16f (brute force)\n", CPVC_col_array[idx_r], CPVC_col_array_BF[idx_r]);
-								raise_error("CPVC benchmarking failed");
-							}
-							col_sum += CPVC_col_array[idx_r];
-						}
-					}
-				}
-				if (col_sum!=0 ){
-					all_cols_are_zero = false;
-				}
-			}
-		}
-	}
-	if (all_cols_are_zero){
-		printf("   - All CPVC-columns are zero! PVC-test likely failed \n");
-	}
-	
-	delete [] CPVC_col_array;
-	delete [] CPVC_col_array_BF;	
 }
 
 cdouble pade_approximant(cdouble* a_coeff_array, int N, int M, cdouble z){
@@ -689,6 +399,34 @@ cdouble pade_approximant(cdouble* a_coeff_array, int N, int M, cdouble z){
 	return P_det/Q_det;
 }
 
+#include <fstream>
+#include <iomanip>
+void store_array(cdouble* array, int array_length, std::string filename){
+	/* Open file*/
+	std::ofstream result_file;
+	result_file.open(filename);
+	
+	/* Fixes formatting of stored numbers */
+	result_file << std::fixed
+				<< std::showpos
+				//~ << std::right
+                //~ << std::setw(14)
+				<< std::setprecision(8);
+	
+	/* Append cross-sections */
+	for (int i=0; i<array_length; i++){
+		/* Append vector element */
+		//result_file << array[i] << "\n";
+        result_file << "(" << array[i].real() << array[i].imag() << "j)\n";
+	}
+	
+	/* Close writing session */
+	result_file << std::endl;
+	
+	/* Close files */
+	result_file.close();
+}
+
 void pade_method_solve(cdouble*  U_array,
 					   cdouble*  G_array,
 					   int*		 q_com_idx_array,	 int num_q_com,
@@ -707,21 +445,18 @@ void pade_method_solve(cdouble*  U_array,
 	int num_on_shell_indices = num_deuteron_states * num_q_com;
 	//printf("num deuteron=%d and num q=%d\n",num_deuteron_states, num_q_com);
 	/* Upper limit on polynomial approximation of Faddeev eq. */
-	int N_pade = 7;
-	int M_pade = 7;
+	int N_pade = 14;
+	int M_pade = 14;
 
 	/* Coefficients for calculating Pade approximant */
 	cdouble* a_coeff_array = new cdouble [ (N_pade + M_pade + 1) * num_on_shell_indices];
 
 	/* Dense dimension of 3N-channel */
-	int dense_dim = Nalpha * Nq_WP * Np_WP;
-
-	/* Allocate row- and column-arrays for (C^T)(P)(VC) */
-	double* CPVC_col_array = new double [dense_dim];
+	size_t dense_dim = Nalpha * Nq_WP * Np_WP;
 
 	/* Allocate row-arrays for A*A^n, where A=(C^T)(P)(VC) */
-	double* A_An_row_array 	   = new double [dense_dim * num_on_shell_indices];
-	double* A_An_row_array_prev = new double [dense_dim * num_on_shell_indices];
+	cdouble* A_An_row_array 	 = new cdouble [dense_dim * num_on_shell_indices];
+	cdouble* A_An_row_array_prev = new cdouble [dense_dim * num_on_shell_indices];
 
 	/* Set A_An-arrays to zero */
 	for (int i=0; i<dense_dim*num_on_shell_indices; i++){
@@ -733,7 +468,7 @@ void pade_method_solve(cdouble*  U_array,
 	printf("   - Starting CPVC-row calc. for all relevant rows \n");//row alpha=%d, q=%d, p=%d\n", idx_alpha_NDOS, idx_q_NDOS, idx_p_NDOS);
 	auto timestamp_start = std::chrono::system_clock::now();
 	/* Calculate CPVC-row and write to A_Kn_row_array */
-	calculate_all_CPVC_rows(A_An_row_array,
+	calculate_all_CPVC_rows(A_An_row_array_prev,
 							q_com_idx_array, num_q_com,
 			   				deuteron_idx_array, num_deuteron_states,
 							Nalpha, Nq_WP, Np_WP,
@@ -747,13 +482,39 @@ void pade_method_solve(cdouble*  U_array,
 	std::chrono::duration<double> time = timestamp_end - timestamp_start;
 	printf("   - Time CPVC-rows: %.6f\n", time.count());
 
+	/* First Neumann-term */
+	printf("   - Pade iteration n=%d \n",0);
+	for (int i=0; i<num_deuteron_states; i++){
+		for (int j=0; j<num_q_com; j++){
+			/* Nucleon-deuteron on-shell (NDOS) indices
+			 * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
+			int idx_alpha_NDOS = deuteron_idx_array[i];
+			int idx_p_NDOS 	   = 0;
+			int idx_q_NDOS 	   = q_com_idx_array[j];
+
+			int idx_NDOS   = i*num_q_com + j;
+			int idx_mat_NDOS = idx_alpha_NDOS*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
+
+			/* Calculate coefficient */
+			cdouble a_coeff = A_An_row_array_prev[idx_NDOS*dense_dim + idx_mat_NDOS];
+
+			/* Store coefficient */
+			a_coeff_array[idx_NDOS*(N_pade+M_pade+1)] = a_coeff;
+
+			printf("     - a_n: %.16e + %.16ei \n", a_coeff.real(), a_coeff.imag());
+		}
+	}
+	
 	/* Loop over number of Pade-terms we use */
-	for (int n=1; n<N_pade+M_pade; n++){
+	for (int n=1; n<N_pade+M_pade+1; n++){
 		printf("   - Pade iteration n=%d \n",n);
 		auto timestamp_start = std::chrono::system_clock::now();
+		
 		/* Iterate through columns of A */
 		#pragma omp parallel
 		{
+		/* Allocate row- and column-arrays for (C^T)(P)(VC) */
+		double* CPVC_col_array = new double [dense_dim];
 		#pragma omp for
 		for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 			for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
@@ -775,36 +536,37 @@ void pade_method_solve(cdouble*  U_array,
 									   P123_sparse_row_array,
 									   P123_sparse_col_array,
 									   P123_sparse_dim);
-
+					
 					/* Calculate all a-coefficients for calculated CPVC-column */
-					for (int idx=0; idx<num_on_shell_indices; idx++){
-						
-						/* Dot product An*A */
-						double inner_product = 0;
-						for (int i=0; i<dense_dim; i++){
-							inner_product += A_An_row_array_prev[i] * CPVC_col_array[i];
-							//std::cout << "A_An, CPVC_col: " << A_An_row_array_prev[i] << " " << CPVC_col_array[i] << std::endl;
+					for (int i=0; i<num_deuteron_states; i++){
+						for (int j=0; j<num_q_com; j++){
+							int idx   = i*num_q_com + j;
+							
+							/* Dot product An*A */
+							cdouble inner_product = 0;
+							for (int i=0; i<dense_dim; i++){
+								inner_product += A_An_row_array_prev[idx*dense_dim + i] * CPVC_col_array[i] * G_array[j*dense_dim + i];
+							}
+							A_An_row_array[idx*dense_dim + idx_col] = inner_product;
 						}
-						A_An_row_array[idx*dense_dim + idx_col] = inner_product;
 					}
 				}
 			}
 		}
+		delete [] CPVC_col_array;
 		}
 		auto timestamp_end = std::chrono::system_clock::now();
 		std::chrono::duration<double> time = timestamp_end - timestamp_start;
 		printf("     - Done. Time: %.6f \n", time.count());
 
-		printf("   - Rewrite A_An \n",n);
 		/* Rewrite previous A_An with current A_An */
 		for (int idx=0; idx<num_on_shell_indices; idx++){
 			for (int i=0; i<dense_dim; i++){
 				A_An_row_array_prev[idx*dense_dim + i] = A_An_row_array[idx*dense_dim + i];
 			}
 		}
-		printf("     - Done \n",n);
 
-		printf("   - Extract a_n \n",n);
+		printf("   - Extracting Neumann-series terms a_n \n",n);
 		/* Extract coefficients "a" for Pade approximant */
 		for (int i=0; i<num_deuteron_states; i++){
 			for (int j=0; j<num_q_com; j++){
@@ -814,287 +576,149 @@ void pade_method_solve(cdouble*  U_array,
 				int idx_p_NDOS 	   = 0;
 				int idx_q_NDOS 	   = q_com_idx_array[j];
 
-				int idx_NDOS   = idx_alpha_NDOS*num_q_com + idx_q_NDOS;
+				int idx_NDOS   = i*num_q_com + j;
 				int idx_G_NDOS = idx_alpha_NDOS*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
 
-				/* Resolvent exponent */
-				cdouble G_pow_n = std::pow(G_array[idx_G_NDOS], n);
-
-				std::cout << "G: " << G_pow_n.real() << " " << G_pow_n.imag() << std::endl;
-				std::cout << "A: " << A_An_row_array[idx_NDOS*dense_dim + idx_G_NDOS] << std::endl;
-
 				/* Calculate coefficient */
-				cdouble a_coeff = A_An_row_array[idx_NDOS*dense_dim + idx_G_NDOS] * G_pow_n;
+				cdouble a_coeff = A_An_row_array[idx_NDOS*dense_dim + idx_G_NDOS];
 
 				/* Store coefficient */
 				a_coeff_array[idx_NDOS*(N_pade+M_pade+1) + n] = a_coeff;
+
+				printf("     - a_n: %.16e + %.16ei \n", a_coeff.real(), a_coeff.imag());
 			}
 		}
 		printf("     - Done \n",n);
 	}
 
 	/* Calculate Pade approximants (PA) */
-	for (int idx=0; idx<num_on_shell_indices; idx++){
+	for (int i=0; i<num_deuteron_states; i++){
+		for (int j=0; j<num_q_com; j++){
+			/* Nucleon-deuteron on-shell (NDOS) indices
+			 * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
+			int idx_alpha_NDOS = deuteron_idx_array[i];
+			int idx_p_NDOS 	   = 0;
+			int idx_q_NDOS 	   = q_com_idx_array[j];
 
-		cdouble pade_approximants_array [N_pade+M_pade+1];
+			int idx_NDOS   = i*num_q_com + j;
 
-		double min_PA_diff = 0;
-		int idx_best_PA = 0;
+			cdouble pade_approximants_array [N_pade+M_pade+1];
 
-		/* Calculate PAs and find index for most converged PA */
-		for (int NM=0; NM<N_pade+M_pade+1; NM+=2){
-			cdouble PA = pade_approximant(&a_coeff_array[idx*(N_pade+M_pade+1)], NM/2, NM/2, 1);
-			pade_approximants_array[NM/2] = PA;
+			double min_PA_diff = 1;
+			int    idx_best_PA = 0;
 
-			double PA_diff = std::abs(PA - pade_approximants_array[NM/2 - 1]);
-			if (PA_diff < min_PA_diff){
-				idx_best_PA = NM;
-				min_PA_diff = PA_diff;
+			/* Calculate PAs and find index for most converged PA */
+			for (int NM=0; NM<N_pade+M_pade+1; NM+=2){
+				cdouble PA = pade_approximant(&a_coeff_array[idx_NDOS*(N_pade+M_pade+1)], NM/2, NM/2, 1);
+
+				pade_approximants_array[NM/2] = PA;
+
+				double PA_diff = std::abs(PA - pade_approximants_array[NM/2 - 1]);
+				printf("PA = %.16e + %.16ei, PA_diff = %.16e \n", PA.real(), PA.imag(), PA_diff);
+				/* Ignore PA_diff if numerically equal to the previous PA_diff, overwrite if smaller than min_PA_diff */
+				if (PA_diff<min_PA_diff && PA_diff>1e-15){
+					idx_best_PA = NM/2;
+					min_PA_diff = PA_diff;
+				}
 			}
+
+			/* Set U-matrix element equal "best" PA */
+			U_array[idx_NDOS] = pade_approximants_array[idx_best_PA];
+			printf(" - U-matrix element for alpha=%d, q=%d, p=%d: %.10e + %.10ei \n", idx_alpha_NDOS, idx_q_NDOS, idx_p_NDOS, U_array[idx_NDOS].real(), U_array[idx_NDOS].imag());
+		}
+	}
+
+	printf(" - Solving as dense system: \n");
+	std::complex<double>* L_array = new cdouble [dense_dim*dense_dim];
+	std::complex<double>* R_array = new cdouble [dense_dim*dense_dim];
+	double* CPVC_col_array = new double [dense_dim];
+	
+	for (int j=0; j<num_q_com; j++){
+
+		/* Reset L- and R-arrays */
+		for (int idx=0; idx<dense_dim*dense_dim; idx++){
+			L_array[idx] = 0;
+			R_array[idx] = 0;
 		}
 
-		/* Set U-matrix element equal "best" PA */
-		U_array[idx] = pade_approximants_array[idx_best_PA];
-		printf(" - U-matrix element: %.10e + %.10ei \n", U_array[idx].real(), U_array[idx].imag());
+		/* Construct L- and R-arrays */
+		for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+			for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+				for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+					int col_idx = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
+
+					/* Reset CPVC-column array */
+					for (int row_idx=0; row_idx<dense_dim; row_idx++){
+						CPVC_col_array[row_idx] = 0;
+					}
+
+					/* Calculate CPVC-column */
+					calculate_CPVC_col(CPVC_col_array,
+									   idx_alpha_c, idx_p_c, idx_q_c,
+									   Nalpha, Nq_WP, Np_WP,
+									   CT_RM_array,
+									   VC_CM_array,
+									   P123_sparse_val_array,
+									   P123_sparse_row_array,
+									   P123_sparse_col_array,
+									   P123_sparse_dim);
+
+    	    		for (int row_idx=0; row_idx<dense_dim; row_idx++){
+    	    		    //L_array[row_idx*dense_dim + col_idx] = -K_array[row*n + col];
+						L_array[row_idx*dense_dim + col_idx] = -CPVC_col_array[row_idx]*G_array[j*dense_dim + col_idx];
+
+    	    		    //R_array[row_idx*dense_dim + col_idx] =  A_array[row*n + col];
+						R_array[row_idx*dense_dim + col_idx] =  CPVC_col_array[row_idx];
+    	    		}
+
+    	    		L_array[col_idx*dense_dim + col_idx] += 1;
+				}
+			}
+    	}
+
+		//if (j==0){
+		//	store_array(R_array, dense_dim*dense_dim, "A_array_true.txt");
+		//	store_array(L_array, dense_dim*dense_dim, "K_array_true.txt");
+		//}
+
+		/* Solve */
+		solve_MM(L_array, R_array, dense_dim);
+
+		for (int i=0; i<num_deuteron_states; i++){
+			int idx_alpha_NDOS = deuteron_idx_array[i];
+			int idx_p_NDOS 	   = 0;
+			int idx_q_NDOS 	   = q_com_idx_array[j];
+
+			int idx_NDOS = idx_alpha_NDOS*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
+
+			cdouble U_val = R_array[idx_NDOS*dense_dim + idx_NDOS];
+
+			printf("   - U-matrix element for alpha=%d, q=%d, p=%d: %.10e + %.10ei \n", idx_alpha_NDOS, idx_q_NDOS, idx_p_NDOS, U_val.real(), U_val.imag());
+		}
+
 	}
+	delete [] L_array;
+	delete [] R_array;
 
 	delete [] A_An_row_array;
 	delete [] A_An_row_array_prev;
 	delete [] a_coeff_array;
 	delete [] CPVC_col_array;
-}
 
-/* Solves Faddeev on the form
- * (1-AG)U = A
- * where A = C^T PVC */
-void direct_sparse_solve(cdouble*  U_array,
-						 cdouble*  G_array,
-						 int       idx_on_shell,
-						 int       Nalpha,
-						 int 	   Nq_WP,
-						 int 	   Np_WP,
-						 double**  CT_RM_array,
-						 double**  VC_CM_array,
-						 double*   P123_sparse_val_array,
-						 int*      P123_sparse_row_array,
-						 int*      P123_sparse_col_array,
-						 int       P123_sparse_dim){
-	
-	/* Dense dimension of 3N-channel */
-	int dense_dim = Nalpha * Nq_WP * Np_WP;
-
-	/* Sparse dimension and step-length for incrementing sparse array size */
-	int		A_sparse_dim	   = 0;
-	int 	sparse_step_length = 0;
-	if (dense_dim>1000){
-		sparse_step_length = dense_dim/1000;
-	}
-	else{
-		sparse_step_length = dense_dim;
-	}
-	int current_array_dim  = sparse_step_length;
-
-	/* Dynamically sized sparse-storage COO (CM) array format for A-matrix */
-	double* A_sparse_val_array = new double [sparse_step_length];
-	int* 	A_sparse_row_array = new int    [sparse_step_length];
-	int* 	A_sparse_col_array = new int    [sparse_step_length];
-
-	/* Allocate column-array for (C^T)(P)(VC) */
-	double 				 CPVC_col_array 	  [dense_dim];
-
-	std::complex<double> A_on_shell_col_array [dense_dim];
-	std::complex<double>* A_dense_array = new std::complex<double> [dense_dim*dense_dim];
-	//double A_on_shell_col_array [dense_dim];
-	//double* A_dense_array	   = new double [dense_dim*dense_dim];
-	
-	for (int idx=0; idx<dense_dim*dense_dim; idx++){
-		A_dense_array[idx] = 0;
-	}
-
-	/* Calculation of columns of A */
-	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
-		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
-			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
-
-				/* Reset CPVC-column array */
-				for (int row_idx=0; row_idx<dense_dim; row_idx++){
-					CPVC_col_array[row_idx]    = 0;
-				}
-
-				/* Calculate CPVC-column */
-				calculate_CPVC_col(CPVC_col_array,
-								   idx_alpha_c, idx_p_c, idx_q_c,
-								   Nalpha, Nq_WP, Np_WP,
-								   CT_RM_array,
-								   VC_CM_array,
-								   P123_sparse_val_array,
-								   P123_sparse_row_array,
-								   P123_sparse_col_array,
-								   P123_sparse_dim);
-				
-				/* Append on-shell column to right-hand side vector of Faddeev eq. (and convert type to complex) */
-				int col_idx = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
-				if (col_idx == idx_on_shell){
-					for (int row_idx=0; row_idx<dense_dim; row_idx++){
-						A_on_shell_col_array[row_idx] = CPVC_col_array[row_idx];
-					}
-				}
-				
-				/* Loop through rows of CPVC-column and append to A if non-zero */
-				for (int row_idx=0; row_idx<dense_dim; row_idx++){
-
-					double element = CPVC_col_array[row_idx];
-					/* Add element if non-zero or if this a diagonal element (needed for "1-AG" in Faddeev eq.) */
-					if (element!=0 || col_idx==row_idx){
-
-						/* Append to sparse value and index arrays */
-						A_sparse_val_array[A_sparse_dim] = element;
-						A_sparse_row_array[A_sparse_dim] = row_idx;
-						A_sparse_col_array[A_sparse_dim] = col_idx;
-
-						A_dense_array[row_idx*dense_dim + col_idx] = element;
-
-						/* Increment sparse dimension (num of non-zero elements) */
-						A_sparse_dim += 1;
-
-						/* If the dimension goes over the array dimension we increase the array size
-						 * via a copy-paste-type routine, and increment the current array dimension */
-						if ( A_sparse_dim>=current_array_dim ){  // This should occur a small amount of the time
-							increase_sparse_array_size(&A_sparse_val_array, current_array_dim, sparse_step_length);
-							increase_sparse_array_size(&A_sparse_row_array, current_array_dim, sparse_step_length);
-							increase_sparse_array_size(&A_sparse_col_array, current_array_dim, sparse_step_length);
-
-							/* Increment sparse-array dimension */
-							current_array_dim += sparse_step_length;
-						}
-					}
-				}
-			}
-		}
-	}
-	/* Contract arrays to minimal size (number of non-zero elements) */
-	reduce_sparse_array_size(&A_sparse_val_array, current_array_dim, A_sparse_dim);
-	reduce_sparse_array_size(&A_sparse_row_array, current_array_dim, A_sparse_dim);
-	reduce_sparse_array_size(&A_sparse_col_array, current_array_dim, A_sparse_dim);
-
-	/* Conversion from column-major COO to row-major COO array format for A-matrix 
-	 * !!! WARNING: THIS ROUTINE REWRITES INPUT ARRAYS TO NEW FORMAT, OLD FORMAT IS DELETED !!! */
-	coo_col_major_to_coo_row_major_converter(&A_sparse_val_array,
-											 &A_sparse_row_array,
-											 &A_sparse_col_array,
-											 A_sparse_dim,
-											 dense_dim);
-	/* Conversion from COO to CSR array format for A-matrix */
-	int* A_idx_row_array_csr = new int [dense_dim+1];
-	coo_to_csr_format_converter(A_sparse_row_array,
-                                A_idx_row_array_csr,
-                                A_sparse_dim,
-                                dense_dim);
-
-	/* Test sparse format */
-	if (false){
-		for (int row_idx=0; row_idx<dense_dim; row_idx++){
-			int nnz_idx_lower = A_idx_row_array_csr[row_idx];
-			int nnz_idx_upper = A_idx_row_array_csr[row_idx+1];
-			for (int nnz_idx=nnz_idx_lower; nnz_idx<nnz_idx_upper; nnz_idx++){
-				int col_idx = A_sparse_col_array[nnz_idx];
-
-				//double val_sparse = A_sparse_val_array[nnz_idx];
-				//double val_dense  = A_dense_array[row_idx*dense_dim + col_idx];
-				std::complex<double> val_sparse = A_sparse_val_array[nnz_idx];
-				std::complex<double> val_dense  = A_dense_array[row_idx*dense_dim + col_idx];
-				if (val_sparse!=val_dense){
-					std::cout << "Mismatch. Sparse val: " << val_sparse.real() << " " << val_sparse.imag() << std::endl;
-					std::cout << "Mismatch. Dense val:  " << val_dense.real() << " " << val_dense.imag() << std::endl;
-					raise_error("Sparse format conversion failed");
-				}
-			}
-		}
-	}
-
-	/* Identity "I" minus "AG"-product and conversion to complex type */
-	std::complex<double>* IAG_sparse_val_array_cmplx = new std::complex<double> [A_sparse_dim];
-	std::complex<double>* IAG_dense_array_cmplx = new std::complex<double> [dense_dim*dense_dim];
-	//double* IAG_sparse_val_array_cmplx = new double [A_sparse_dim];
-	//double* IAG_dense_array_cmplx	   = new double [dense_dim*dense_dim];
-	for (int idx=0; idx<dense_dim*dense_dim; idx++){
-		IAG_dense_array_cmplx[idx] = 0;
-	}
-	for (int row_idx=0; row_idx<dense_dim; row_idx++){
-
-		int nnz_idx_lower = A_idx_row_array_csr[row_idx];
-		int nnz_idx_upper = A_idx_row_array_csr[row_idx+1];
-
-		for (int nnz_idx=nnz_idx_lower; nnz_idx<nnz_idx_upper; nnz_idx++){
-
-			int col_idx = A_sparse_col_array[nnz_idx];
-
-			std::complex<double> G_val = G_array[col_idx];
-
-			/* AG-multiplication and minus-sign */
-			IAG_sparse_val_array_cmplx[nnz_idx] = -A_sparse_val_array[nnz_idx] * G_val;
-			//IAG_sparse_val_array_cmplx[nnz_idx] = -A_sparse_val_array[nnz_idx] * G_val.real();
-
-			/* Add identity matrix */
-			if (row_idx==col_idx){
-				IAG_sparse_val_array_cmplx[nnz_idx] += 1;
-			}
-
-			/* Dense test case */
-			IAG_dense_array_cmplx[row_idx*dense_dim + col_idx] = IAG_sparse_val_array_cmplx[nnz_idx];
-		}
-	}
-
-	MKL_INT rows [dense_dim+1];
-	for (int row_idx=0; row_idx<dense_dim+1; row_idx++){
-		rows[row_idx] = A_idx_row_array_csr[row_idx];
-	}
-	MKL_INT cols [A_sparse_dim];
-	for (int col_idx=0; col_idx<A_sparse_dim; col_idx++){
-		cols[col_idx] = A_sparse_col_array[col_idx];
-	}
-
-	MKL_INT sparse_dim_MKL = A_sparse_dim;
-	MKL_INT dense_dim_MKL = dense_dim;
-
-	//double sols_U_col [dense_dim];
-	std::complex<double> sols_U_col [dense_dim];
-
-	/* Solve Faddeev using MKL DSS-routines */
-	auto timestamp_1 = std::chrono::system_clock::now();
-	solve_MM_sparse(IAG_sparse_val_array_cmplx,
-                 	rows,//(MKL_INT*) A_idx_row_array_csr,
-                 	cols,//(MKL_INT*) A_sparse_col_array,
-                 	sparse_dim_MKL,//(MKL_INT) A_sparse_dim,
-                 	A_on_shell_col_array,
-                 	dense_dim_MKL,//(MKL_INT) dense_dim,
-					sols_U_col);
-	auto timestamp_2 = std::chrono::system_clock::now();
-	solve_MM(IAG_dense_array_cmplx, A_dense_array, dense_dim);
-	auto timestamp_3 = std::chrono::system_clock::now();
-	std::chrono::duration<double> time_sparse = timestamp_2 - timestamp_1;
-	std::chrono::duration<double> time_dense  = timestamp_3 - timestamp_2;
-	printf("   - Time used sparse: %.6f\n", time_sparse.count());
-	printf("   - Time used dense:  %.6f\n", time_dense.count());
-
-	for (int row=0; row<dense_dim; row++){
-		//double val_sparse = sols_U_col[row];
-		//double val_dense  = IAG_dense_array_cmplx[row*dense_dim + idx_on_shell];
-		std::complex<double> val_sparse = sols_U_col[row];
-		std::complex<double> val_dense  = IAG_dense_array_cmplx[row*dense_dim + idx_on_shell];
-		//if (val_sparse!=val_dense and std::isnan(val_dense.real())!=true and std::isnan(val_sparse.real())!=true
-		//and std::isnan(val_dense.imag())!=true and std::isnan(val_sparse.imag())!=true){
-			std::cout << "Mismatch. Sparse val: " << val_sparse.real() << " " << val_sparse.imag() << std::endl;
-			std::cout << "Mismatch. Dense val:  " << val_dense.real() << " " << val_dense.imag() << std::endl;
-		//	raise_error("Exit");
-		//}
-	}
-
-	/* Delete temporary arrays */
-	delete [] A_sparse_val_array;
-	delete [] A_sparse_row_array;
-	delete [] A_sparse_col_array;
-	delete [] IAG_sparse_val_array_cmplx;
+	//printf("   - Starting direct-solve using DSS ...")
+	//direct_sparse_solve(U_array,
+	//					G_array,
+	//					idx_on_shell,
+	//					Nalpha,
+	//					Nq_WP,
+	//					Np_WP,
+	//					CT_RM_array,
+	//					VC_CM_array,
+	//					P123_sparse_val_array,
+	//					P123_sparse_row_array_csr,
+	//					P123_sparse_col_array,
+	//					P123_sparse_dim);
+	//printf("   - Exact solution:")
 }
 
 void solve_faddeev_equations(cdouble*  U_array,
@@ -1122,8 +746,8 @@ void solve_faddeev_equations(cdouble*  U_array,
 	
 	/* Test PVC- and CPVC-column multiplication routines with brute-force routines
 	 * WARNING: VERY SLOW TEST, ONLY FOR BENCHMARKING */
-	bool test_PVC_col_routine   = true;
-	bool test_CPVC_col_routine  = true;
+	bool test_PVC_col_routine   = false;
+	bool test_CPVC_col_routine  = false;
 
 	/* Use MKL DSS direct sparse solver for linear systems */
 	bool use_DSS_solver_routine = false;
@@ -1157,7 +781,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 									   T_2N_array);
 	
 	/* Convert P123_row_array from COO to CSR format */
-	int dense_dim = Nalpha * Nq_WP * Np_WP;
+	size_t dense_dim = Nalpha * Nq_WP * Np_WP;
 	int* P123_sparse_row_array_csr = new int [dense_dim];
 	coo_to_csr_format_converter(P123_sparse_row_array,
 								P123_sparse_row_array_csr,
@@ -1479,4 +1103,527 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 			VC_CM_array[idx_VC_CM] = VC_product;
 		}
 	}
+}
+
+void PVC_col_brute_force(double*  col_array,
+					     int      idx_alpha_c, int idx_p_c, int idx_q_c,
+					     int      Nalpha,      int Nq_WP,   int Np_WP,
+					     double** VC_CM_array,
+					     double*  P123_val_array,
+					     int*     P123_row_array,
+					     int*     P123_col_array,
+					     int      P123_dim){
+	
+	bool print_content = false;
+	int idx1 = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
+	double* VC_ptr     = NULL;
+
+	for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+		for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
+			for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
+				int idx_P123_row = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
+
+				double sum = 0; 
+				for (int idx_alpha_j=0; idx_alpha_j<Nalpha; idx_alpha_j++){
+					VC_ptr = VC_CM_array[idx_alpha_c*Nalpha + idx_alpha_j];
+					if (VC_ptr!=NULL){
+						for (int idx_q_j=0; idx_q_j<Nq_WP; idx_q_j++){
+							if (idx_q_j == idx_q_c){
+								for (int idx_p_j=0; idx_p_j<Np_WP; idx_p_j++){
+									if (print_content){std::cout << "  - Index j " << idx_alpha_j << " " << idx_q_j << " " << idx_p_j << std::endl;}
+
+									int idx_P123_col = idx_alpha_j*Nq_WP*Np_WP + idx_q_j*Np_WP + idx_p_j;
+
+									int idx_P123_col_lower = P123_row_array[idx_P123_row];
+									int idx_P123_col_upper = P123_row_array[idx_P123_row+1];
+									bool idx_found = false;
+									int idx_P123_val = 0;
+									for (int nnz_idx=idx_P123_col_lower; nnz_idx<idx_P123_col_upper; nnz_idx++){
+										if (P123_col_array[nnz_idx] == idx_P123_col){
+											idx_found = true;
+											idx_P123_val = nnz_idx;
+										}
+									}
+
+									if (idx_found){
+										double P_element  = P123_val_array[idx_P123_val];
+										double VC_element = VC_ptr[idx_p_c*Np_WP + idx_p_j];
+
+										sum += P_element * VC_element;
+									}
+								}
+							}
+						}
+					}
+				}
+
+				int idx_row = idx_alpha_r*Np_WP*Nq_WP + idx_q_r*Np_WP + idx_p_r;
+				/* Write inner product to col_array of PVC-product */
+				col_array[idx_row] = sum;
+			}
+		}
+	}
+}
+
+void CPVC_col_brute_force(double*  col_array,
+						  int      idx_alpha_c, int idx_p_c, int idx_q_c,
+						  int      Nalpha,      int Nq_WP,   int Np_WP,
+						  double** CT_RM_array,
+						  double** VC_CM_array,
+						  double*  P123_val_array,
+						  int*     P123_row_array,
+						  int*     P123_col_array,
+						  int      P123_dim){
+	double* CT_ptr = NULL;
+	double* VC_ptr = NULL;
+
+	bool print_content = false;
+
+	/* Generate PVC-column */
+	double* PVC_col = new double [Nalpha*Nq_WP*Np_WP];
+	/* Ensure PVC_col contains only zeroes */
+	for (int idx=0; idx<Nalpha*Nq_WP*Np_WP; idx++){
+		PVC_col[idx] = 0;
+	}
+	
+	PVC_col_brute_force(PVC_col,
+					    idx_alpha_c, idx_p_c, idx_q_c,
+					    Nalpha,      Nq_WP,   Np_WP,
+					    VC_CM_array,
+					    P123_val_array,
+					    P123_row_array,
+					    P123_col_array,
+					    P123_dim);
+
+	/* Index: r */
+	for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+		for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
+			for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
+				if (print_content){std::cout << "Index r " << idx_alpha_r << " " << idx_q_r << " " << idx_p_r << std::endl;}
+				double sum = 0;
+				/* Index: i */
+				for (int idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
+					CT_ptr = CT_RM_array[idx_alpha_r*Nalpha + idx_alpha_i];
+					if (CT_ptr!=NULL){
+						for (int idx_q_i=0; idx_q_i<Nq_WP; idx_q_i++){
+							if (idx_q_r == idx_q_i){
+								for (int idx_p_i=0; idx_p_i<Np_WP; idx_p_i++){
+									if (print_content){std::cout << " - Index i " << idx_alpha_i << " " << idx_q_i << " " << idx_p_i << std::endl;}
+
+									int PVC_col_idx = idx_alpha_i*Np_WP*Nq_WP + idx_q_i*Np_WP + idx_p_i;
+
+									double CT_element  = CT_ptr[idx_p_r*Np_WP + idx_p_i];
+									double PVC_element = PVC_col[PVC_col_idx];
+									sum += CT_element * PVC_element;
+								}
+							}
+						}
+					}
+				}
+
+				int idx_CPVC = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
+				col_array[idx_CPVC] = sum;
+			}
+		}
+	}
+}
+
+void PVC_col_calc_test(int      Nalpha,
+					   int 	 	Nq_WP,
+					   int 	 	Np_WP,
+					   double** VC_CM_array,
+					   double*  P123_sparse_val_array,
+					   int*     P123_sparse_row_array,
+					   int*     P123_sparse_col_array,
+					   int      P123_sparse_dim){
+
+	bool print_content = false;
+
+	size_t dense_dim = Nalpha * Nq_WP * Np_WP;
+
+	/* Create column of (C^T)(P)(VC) */
+	double* PVC_col_array    = new double [dense_dim];
+	double* PVC_col_array_BF = new double [dense_dim];
+
+	bool all_cols_are_zero = true;
+	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+				
+				if (idx_alpha_c<=2){continue;}
+
+				/* Reset array */
+				for (int idx=0; idx<dense_dim; idx++){
+					PVC_col_array[idx]    = 0;
+					PVC_col_array_BF[idx] = 0;
+				}
+	
+				/* Calculate CPVC-column */
+				calculate_PVC_col(PVC_col_array,
+								  idx_alpha_c, idx_p_c, idx_q_c,
+								  Nalpha, Nq_WP, Np_WP,
+								  VC_CM_array,
+								  P123_sparse_val_array,
+								  P123_sparse_row_array,
+								  P123_sparse_col_array,
+								  P123_sparse_dim);
+				
+				PVC_col_brute_force(PVC_col_array_BF,
+									idx_alpha_c, idx_p_c, idx_q_c,
+									Nalpha, Nq_WP, Np_WP,
+									VC_CM_array,
+									P123_sparse_val_array,
+									P123_sparse_row_array,
+									P123_sparse_col_array,
+									P123_sparse_dim);
+				
+				double col_sum =0;
+				for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+					for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
+						for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
+							
+							int idx_c = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
+							int idx_r = idx_alpha_r*Np_WP*Nq_WP + idx_q_r*Np_WP + idx_p_r;
+							double diff = abs(PVC_col_array[idx_r] - PVC_col_array_BF[idx_r]);
+
+							if ( diff > 1e-15 ){
+								printf("   - Discrepency found: \n");
+								printf("     - Row %d: alpha=%d, q=%d, p=%d \n", idx_r, idx_alpha_r, idx_q_r, idx_p_r);
+								printf("     - Col %d: alpha=%d, q=%d, p=%d \n", idx_c, idx_alpha_c, idx_q_c, idx_p_c);
+								printf("     - Discrepency: %.16f (optimized) vs. %.16f (brute force)\n", PVC_col_array[idx_r], PVC_col_array_BF[idx_r]);
+								raise_error("PVC benchmarking failed");
+							}
+							col_sum += PVC_col_array[idx_r];
+						}
+					}
+				}
+				if (col_sum!=0 ){
+					all_cols_are_zero = false;
+				}
+			}
+		}
+	}
+	if (all_cols_are_zero){
+		printf("   - All PVC-columns are zero! PVC-test likely failed \n");
+	}
+	
+	delete [] PVC_col_array;
+	delete [] PVC_col_array_BF;	
+}
+
+void CPVC_col_calc_test(int      Nalpha,
+						int 	 Nq_WP,
+						int 	 Np_WP,
+						double** CT_RM_array,
+						double** VC_CM_array,
+						double*  P123_sparse_val_array,
+						int*     P123_sparse_row_array,
+						int*     P123_sparse_col_array,
+						int      P123_sparse_dim){
+
+	bool print_content = false;
+
+	size_t dense_dim = Nalpha * Nq_WP * Np_WP;
+
+	/* Create column of (C^T)(P)(VC) */
+	double* CPVC_col_array    = new double [dense_dim];
+	double* CPVC_col_array_BF = new double [dense_dim];
+
+	bool all_cols_are_zero = true;
+	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+	
+				/* Reset array */
+				for (int idx=0; idx<dense_dim; idx++){
+					CPVC_col_array[idx]    = 0;
+					CPVC_col_array_BF[idx] = 0;
+				}
+	
+				/* Calculate CPVC-column */
+				calculate_CPVC_col(CPVC_col_array,
+								   idx_alpha_c, idx_p_c, idx_q_c,
+								   Nalpha, Nq_WP, Np_WP,
+								   CT_RM_array,
+								   VC_CM_array,
+								   P123_sparse_val_array,
+								   P123_sparse_row_array,
+								   P123_sparse_col_array,
+								   P123_sparse_dim);
+				
+				CPVC_col_brute_force(CPVC_col_array_BF,
+									 idx_alpha_c, idx_p_c, idx_q_c,
+									 Nalpha, Nq_WP, Np_WP,
+									 CT_RM_array,
+									 VC_CM_array,
+									 P123_sparse_val_array,
+									 P123_sparse_row_array,
+									 P123_sparse_col_array,
+									 P123_sparse_dim);
+				
+				double col_sum =0;
+				for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+					for (int idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
+						for (int idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
+							
+							int idx_c = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
+							int idx_r = idx_alpha_r*Np_WP*Nq_WP + idx_q_r*Np_WP + idx_p_r;
+							double diff = abs(CPVC_col_array[idx_r] - CPVC_col_array_BF[idx_r]);
+
+							if ( diff > 1e-15 ){
+								printf("   - Discrepency found: \n");
+								printf("     - Row %d: alpha=%d, q=%d, p=%d \n", idx_r, idx_alpha_r, idx_q_r, idx_p_r);
+								printf("     - Col %d: alpha=%d, q=%d, p=%d \n", idx_c, idx_alpha_c, idx_q_c, idx_p_c);
+								printf("     - Discrepency: %.16f (optimized) vs. %.16f (brute force)\n", CPVC_col_array[idx_r], CPVC_col_array_BF[idx_r]);
+								raise_error("CPVC benchmarking failed");
+							}
+							col_sum += CPVC_col_array[idx_r];
+						}
+					}
+				}
+				if (col_sum!=0 ){
+					all_cols_are_zero = false;
+				}
+			}
+		}
+	}
+	if (all_cols_are_zero){
+		printf("   - All CPVC-columns are zero! PVC-test likely failed \n");
+	}
+	
+	delete [] CPVC_col_array;
+	delete [] CPVC_col_array_BF;	
+}
+
+/* Solves Faddeev on the form
+ * (1-AG)U = A
+ * where A = C^T PVC */
+void direct_sparse_solve(cdouble*  U_array,
+						 cdouble*  G_array,
+						 int       idx_on_shell,
+						 int       Nalpha,
+						 int 	   Nq_WP,
+						 int 	   Np_WP,
+						 double**  CT_RM_array,
+						 double**  VC_CM_array,
+						 double*   P123_sparse_val_array,
+						 int*      P123_sparse_row_array,
+						 int*      P123_sparse_col_array,
+						 int       P123_sparse_dim){
+	
+	/* Dense dimension of 3N-channel */
+	size_t dense_dim = Nalpha * Nq_WP * Np_WP;
+
+	/* Sparse dimension and step-length for incrementing sparse array size */
+	int		A_sparse_dim	   = 0;
+	int 	sparse_step_length = 0;
+	if (dense_dim>1000){
+		sparse_step_length = dense_dim/1000;
+	}
+	else{
+		sparse_step_length = dense_dim;
+	}
+	int current_array_dim  = sparse_step_length;
+
+	/* Dynamically sized sparse-storage COO (CM) array format for A-matrix */
+	double* A_sparse_val_array = new double [sparse_step_length];
+	int* 	A_sparse_row_array = new int    [sparse_step_length];
+	int* 	A_sparse_col_array = new int    [sparse_step_length];
+
+	/* Allocate column-array for (C^T)(P)(VC) */
+	double 				 CPVC_col_array 	  [dense_dim];
+
+	std::complex<double> A_on_shell_col_array [dense_dim];
+	std::complex<double>* A_dense_array = new std::complex<double> [dense_dim*dense_dim];
+	//double A_on_shell_col_array [dense_dim];
+	//double* A_dense_array	   = new double [dense_dim*dense_dim];
+	
+	for (int idx=0; idx<dense_dim*dense_dim; idx++){
+		A_dense_array[idx] = 0;
+	}
+
+	/* Calculation of columns of A */
+	for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+		for (int idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+			for (int idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+
+				/* Reset CPVC-column array */
+				for (int row_idx=0; row_idx<dense_dim; row_idx++){
+					CPVC_col_array[row_idx]    = 0;
+				}
+
+				/* Calculate CPVC-column */
+				calculate_CPVC_col(CPVC_col_array,
+								   idx_alpha_c, idx_p_c, idx_q_c,
+								   Nalpha, Nq_WP, Np_WP,
+								   CT_RM_array,
+								   VC_CM_array,
+								   P123_sparse_val_array,
+								   P123_sparse_row_array,
+								   P123_sparse_col_array,
+								   P123_sparse_dim);
+				
+				/* Append on-shell column to right-hand side vector of Faddeev eq. (and convert type to complex) */
+				int col_idx = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
+				if (col_idx == idx_on_shell){
+					for (int row_idx=0; row_idx<dense_dim; row_idx++){
+						A_on_shell_col_array[row_idx] = CPVC_col_array[row_idx];
+					}
+				}
+				
+				/* Loop through rows of CPVC-column and append to A if non-zero */
+				for (int row_idx=0; row_idx<dense_dim; row_idx++){
+
+					double element = CPVC_col_array[row_idx];
+					/* Add element if non-zero or if this a diagonal element (needed for "1-AG" in Faddeev eq.) */
+					if (element!=0 || col_idx==row_idx){
+
+						/* Append to sparse value and index arrays */
+						A_sparse_val_array[A_sparse_dim] = element;
+						A_sparse_row_array[A_sparse_dim] = row_idx;
+						A_sparse_col_array[A_sparse_dim] = col_idx;
+
+						A_dense_array[row_idx*dense_dim + col_idx] = element;
+
+						/* Increment sparse dimension (num of non-zero elements) */
+						A_sparse_dim += 1;
+
+						/* If the dimension goes over the array dimension we increase the array size
+						 * via a copy-paste-type routine, and increment the current array dimension */
+						if ( A_sparse_dim>=current_array_dim ){  // This should occur a small amount of the time
+							increase_sparse_array_size(&A_sparse_val_array, current_array_dim, sparse_step_length);
+							increase_sparse_array_size(&A_sparse_row_array, current_array_dim, sparse_step_length);
+							increase_sparse_array_size(&A_sparse_col_array, current_array_dim, sparse_step_length);
+
+							/* Increment sparse-array dimension */
+							current_array_dim += sparse_step_length;
+						}
+					}
+				}
+			}
+		}
+	}
+	/* Contract arrays to minimal size (number of non-zero elements) */
+	reduce_sparse_array_size(&A_sparse_val_array, current_array_dim, A_sparse_dim);
+	reduce_sparse_array_size(&A_sparse_row_array, current_array_dim, A_sparse_dim);
+	reduce_sparse_array_size(&A_sparse_col_array, current_array_dim, A_sparse_dim);
+
+	/* Conversion from column-major COO to row-major COO array format for A-matrix 
+	 * !!! WARNING: THIS ROUTINE REWRITES INPUT ARRAYS TO NEW FORMAT, OLD FORMAT IS DELETED !!! */
+	coo_col_major_to_coo_row_major_converter(&A_sparse_val_array,
+											 &A_sparse_row_array,
+											 &A_sparse_col_array,
+											 A_sparse_dim,
+											 dense_dim);
+	/* Conversion from COO to CSR array format for A-matrix */
+	int* A_idx_row_array_csr = new int [dense_dim+1];
+	coo_to_csr_format_converter(A_sparse_row_array,
+                                A_idx_row_array_csr,
+                                A_sparse_dim,
+                                dense_dim);
+
+	/* Test sparse format */
+	if (false){
+		for (int row_idx=0; row_idx<dense_dim; row_idx++){
+			int nnz_idx_lower = A_idx_row_array_csr[row_idx];
+			int nnz_idx_upper = A_idx_row_array_csr[row_idx+1];
+			for (int nnz_idx=nnz_idx_lower; nnz_idx<nnz_idx_upper; nnz_idx++){
+				int col_idx = A_sparse_col_array[nnz_idx];
+
+				//double val_sparse = A_sparse_val_array[nnz_idx];
+				//double val_dense  = A_dense_array[row_idx*dense_dim + col_idx];
+				std::complex<double> val_sparse = A_sparse_val_array[nnz_idx];
+				std::complex<double> val_dense  = A_dense_array[row_idx*dense_dim + col_idx];
+				if (val_sparse!=val_dense){
+					std::cout << "Mismatch. Sparse val: " << val_sparse.real() << " " << val_sparse.imag() << std::endl;
+					std::cout << "Mismatch. Dense val:  " << val_dense.real() << " " << val_dense.imag() << std::endl;
+					raise_error("Sparse format conversion failed");
+				}
+			}
+		}
+	}
+
+	/* Identity "I" minus "AG"-product and conversion to complex type */
+	std::complex<double>* IAG_sparse_val_array_cmplx = new std::complex<double> [A_sparse_dim];
+	std::complex<double>* IAG_dense_array_cmplx = new std::complex<double> [dense_dim*dense_dim];
+	//double* IAG_sparse_val_array_cmplx = new double [A_sparse_dim];
+	//double* IAG_dense_array_cmplx	   = new double [dense_dim*dense_dim];
+	for (int idx=0; idx<dense_dim*dense_dim; idx++){
+		IAG_dense_array_cmplx[idx] = 0;
+	}
+	for (int row_idx=0; row_idx<dense_dim; row_idx++){
+
+		int nnz_idx_lower = A_idx_row_array_csr[row_idx];
+		int nnz_idx_upper = A_idx_row_array_csr[row_idx+1];
+
+		for (int nnz_idx=nnz_idx_lower; nnz_idx<nnz_idx_upper; nnz_idx++){
+
+			int col_idx = A_sparse_col_array[nnz_idx];
+
+			std::complex<double> G_val = G_array[col_idx];
+
+			/* AG-multiplication and minus-sign */
+			IAG_sparse_val_array_cmplx[nnz_idx] = -A_sparse_val_array[nnz_idx] * G_val;
+			//IAG_sparse_val_array_cmplx[nnz_idx] = -A_sparse_val_array[nnz_idx] * G_val.real();
+
+			/* Add identity matrix */
+			if (row_idx==col_idx){
+				IAG_sparse_val_array_cmplx[nnz_idx] += 1;
+			}
+
+			/* Dense test case */
+			IAG_dense_array_cmplx[row_idx*dense_dim + col_idx] = IAG_sparse_val_array_cmplx[nnz_idx];
+		}
+	}
+
+	MKL_INT rows [dense_dim+1];
+	for (int row_idx=0; row_idx<dense_dim+1; row_idx++){
+		rows[row_idx] = A_idx_row_array_csr[row_idx];
+	}
+	MKL_INT cols [A_sparse_dim];
+	for (int col_idx=0; col_idx<A_sparse_dim; col_idx++){
+		cols[col_idx] = A_sparse_col_array[col_idx];
+	}
+
+	MKL_INT sparse_dim_MKL = A_sparse_dim;
+	MKL_INT dense_dim_MKL = dense_dim;
+
+	//double sols_U_col [dense_dim];
+	std::complex<double> sols_U_col [dense_dim];
+
+	/* Solve Faddeev using MKL DSS-routines */
+	auto timestamp_1 = std::chrono::system_clock::now();
+	solve_MM_sparse(IAG_sparse_val_array_cmplx,
+                 	rows,//(MKL_INT*) A_idx_row_array_csr,
+                 	cols,//(MKL_INT*) A_sparse_col_array,
+                 	sparse_dim_MKL,//(MKL_INT) A_sparse_dim,
+                 	A_on_shell_col_array,
+                 	dense_dim_MKL,//(MKL_INT) dense_dim,
+					sols_U_col);
+	auto timestamp_2 = std::chrono::system_clock::now();
+	solve_MM(IAG_dense_array_cmplx, A_dense_array, dense_dim);
+	auto timestamp_3 = std::chrono::system_clock::now();
+	std::chrono::duration<double> time_sparse = timestamp_2 - timestamp_1;
+	std::chrono::duration<double> time_dense  = timestamp_3 - timestamp_2;
+	printf("   - Time used sparse: %.6f\n", time_sparse.count());
+	printf("   - Time used dense:  %.6f\n", time_dense.count());
+
+	for (int row=0; row<dense_dim; row++){
+		//double val_sparse = sols_U_col[row];
+		//double val_dense  = IAG_dense_array_cmplx[row*dense_dim + idx_on_shell];
+		std::complex<double> val_sparse = sols_U_col[row];
+		std::complex<double> val_dense  = IAG_dense_array_cmplx[row*dense_dim + idx_on_shell];
+		//if (val_sparse!=val_dense and std::isnan(val_dense.real())!=true and std::isnan(val_sparse.real())!=true
+		//and std::isnan(val_dense.imag())!=true and std::isnan(val_sparse.imag())!=true){
+			std::cout << "Mismatch. Sparse val: " << val_sparse.real() << " " << val_sparse.imag() << std::endl;
+			std::cout << "Mismatch. Dense val:  " << val_dense.real() << " " << val_dense.imag() << std::endl;
+		//	raise_error("Exit");
+		//}
+	}
+
+	/* Delete temporary arrays */
+	delete [] A_sparse_val_array;
+	delete [] A_sparse_row_array;
+	delete [] A_sparse_col_array;
+	delete [] IAG_sparse_val_array_cmplx;
 }

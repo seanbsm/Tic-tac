@@ -98,4 +98,42 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 										int*     J_2N_array,
 										int*     T_2N_array);
 
+void PVC_col_brute_force(double*  col_array,
+					     int      idx_alpha_c, int idx_p_c, int idx_q_c,
+					     int      Nalpha,      int Nq_WP,   int Np_WP,
+					     double** VC_CM_array,
+					     double*  P123_val_array,
+					     int*     P123_row_array,
+					     int*     P123_col_array,
+					     int      P123_dim);
+
+void CPVC_col_brute_force(double*  col_array,
+						  int      idx_alpha_c, int idx_p_c, int idx_q_c,
+						  int      Nalpha,      int Nq_WP,   int Np_WP,
+						  double** CT_RM_array,
+						  double** VC_CM_array,
+						  double*  P123_val_array,
+						  int*     P123_row_array,
+						  int*     P123_col_array,
+						  int      P123_dim);
+
+void PVC_col_calc_test(int      Nalpha,
+					   int 	 	Nq_WP,
+					   int 	 	Np_WP,
+					   double** VC_CM_array,
+					   double*  P123_sparse_val_array,
+					   int*     P123_sparse_row_array,
+					   int*     P123_sparse_col_array,
+					   int      P123_sparse_dim);
+
+void CPVC_col_calc_test(int      Nalpha,
+						int 	 Nq_WP,
+						int 	 Np_WP,
+						double** CT_RM_array,
+						double** VC_CM_array,
+						double*  P123_sparse_val_array,
+						int*     P123_sparse_row_array,
+						int*     P123_sparse_col_array,
+						int      P123_sparse_dim);
+
 #endif // SOLVE_FADDEEV_H

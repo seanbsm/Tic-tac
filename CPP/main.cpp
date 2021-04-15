@@ -139,7 +139,7 @@ int main(int argc, char* argv[]){
 
 	/* Wave-packet 3N momenta */
 	int Np_WP	   	 = 40; //30;
-	int Nq_WP	   	 = 40; //30;
+	int Nq_WP	   	 = 10; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -521,7 +521,7 @@ int main(int argc, char* argv[]){
 			//	int row_idx = 0;
 			//	for (int idx=0; idx<P123_sparse_dim; idx++){
 			//		if (P123_sparse_row_array[idx]==row_idx){
-			//		bool check1 = (P123_sparse_val_array_t[idx]!=P123_sparse_val_array[idx]);
+			//		bool check1 = (abs(P123_sparse_val_array_t[idx]-P123_sparse_val_array[col_count])>1e-15);
 			//		bool check2 = (P123_sparse_row_array_t[idx]!=P123_sparse_row_array[idx]);
 			//		bool check3 = (P123_sparse_col_array_t[idx]!=P123_sparse_col_array[idx]);
 			//		if (check1||check2||check3){
@@ -549,21 +549,23 @@ int main(int argc, char* argv[]){
 			/* Start of code segment for resolvent matrix (diagonal array) construction */
 
 			/* Resolvent array */
-			cdouble* G_array = new cdouble [Nalpha_in_3N_chn * Np_WP * Nq_WP];
+			cdouble* G_array = new cdouble [Nalpha_in_3N_chn * Np_WP * Nq_WP * num_T_lab];
 			
 			printf("Constructing 3N resolvents ... \n");
-			double E_on_shell = 1;
-			calculate_resolvent_array_in_SWP_basis(G_array,
-												   E_on_shell,
-												   Np_WP,
-												   e_SWP_unco_array,
-												   e_SWP_coup_array,
-												   Nq_WP, q_WP_array,
-												   Nalpha_in_3N_chn,
-												   L_2N_subarray,
-												   S_2N_subarray,
-												   J_2N_subarray,
-												   T_2N_subarray);
+			for (int j=0; j<num_T_lab; j++){
+				double E_on_shell = E_com_array[j];
+				calculate_resolvent_array_in_SWP_basis(&G_array[j*Nalpha_in_3N_chn*Np_WP*Nq_WP],
+													   E_on_shell,
+													   Np_WP,
+													   e_SWP_unco_array,
+													   e_SWP_coup_array,
+													   Nq_WP, q_WP_array,
+													   Nalpha_in_3N_chn,
+													   L_2N_subarray,
+													   S_2N_subarray,
+													   J_2N_subarray,
+													   T_2N_subarray);
+			}
 			printf(" - Done \n");
 
 			/* End of code segment for resolvent matrix (diagonal array) construction */
@@ -572,9 +574,6 @@ int main(int argc, char* argv[]){
 			int* 	 deuteron_idx_array  = deuteron_idx_arrays[chn_3N];
 			
 			cdouble* U_array = new cdouble [num_T_lab * num_deuteron_states];
-
-			/* Index of on-shell element (deuteron channel) */
-			int idx_on_shell = 0;
 
 			printf("Solving Faddeev equations ... \n");
 			solve_faddeev_equations(U_array,

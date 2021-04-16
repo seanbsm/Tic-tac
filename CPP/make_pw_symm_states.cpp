@@ -20,6 +20,11 @@ void construct_symmetric_pw_states(int   J_2N_max,
 	char print_table_format_words[] = "%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s\n";
 	char print_table_format_ints[]  = "%-10d%-10d%-10d%-10d%-10d%d/%-8d%-10d%d/%-8d%d/%-8d%-10d\n";
 
+	//char* print_table_format_words = new char [80000];
+	//char* print_table_format_ints  = new char [80000];
+	//sprintf(print_table_format_words, "%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s\n");
+	//sprintf(print_table_format_ints,  "%-10d%-10d%-10d%-10d%-10d%d/%-8d%-10d%d/%-8d%d/%-8d%-10d\n");
+
 	if (print_content){
 		/* Print partial-wave expansion (PWE) truncations */
 		std::cout << "Truncating partial-wave (pw) state space with: \n"
@@ -98,7 +103,7 @@ void construct_symmetric_pw_states(int   J_2N_max,
 										/* L_1N loop */
 										for (int L_1N=L_1N_min; L_1N<L_1N_max+1; L_1N++){
 											/* Check 3N-system total parity given by P_3N */
-											if ( ((L_2N+L_1N)%2)==P_3N_remainder ){
+											if ( ((L_2N+L_1N)%2)==P_3N_remainder){
 
 												//if (two_T_3N==3){
 												//    if ( (S_2N==0 && L_2N==0 && J_2N==0)==false ){
@@ -158,7 +163,7 @@ void construct_symmetric_pw_states(int   J_2N_max,
 
 	/* Write number of 3N channels found to input integer */
 	N_chn_3N = N_chn_3N_temp;
-
+	
 	/* Allocate arrays to input array pointers */
 	*L_2N_array_ptr     = new int [Nalpha];
 	*S_2N_array_ptr     = new int [Nalpha];
@@ -170,7 +175,7 @@ void construct_symmetric_pw_states(int   J_2N_max,
 	*two_T_3N_array_ptr = new int [Nalpha];
 	*P_3N_array_ptr     = new int [Nalpha];
 
-	*chn_3N_idx_array_ptr = new int [N_chn_3N];
+	*chn_3N_idx_array_ptr = new int [N_chn_3N+1];
 
 	/* Write temporary vector contents to newly allocated arrays */
 	std::copy( L_2N_temp.begin(), L_2N_temp.end(), *L_2N_array_ptr );

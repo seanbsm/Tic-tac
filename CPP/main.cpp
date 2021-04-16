@@ -222,7 +222,7 @@ int main(int argc, char* argv[]){
 		printf(" - Channel number %d is the largest channel (%d partial-wave states) \n", largest_Nalpha_idx, largest_Nalpha);
 	}
 	printf(" - Done \n");
-
+	
 	printf("Constructing wave-packet (WP) p-momentum bin boundaries ... \n");
 	p_WP_array = new double [Np_WP+1];
 	make_p_bin_grid(Np_WP, p_WP_array);

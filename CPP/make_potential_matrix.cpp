@@ -45,9 +45,11 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 													int Np_WP, double* p_WP_array,
 													int Np_per_WP, double* p_array, double* wp_array,
 													int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array,
+													int J_2N_max,
 													potential_model* pot_ptr_nn,
 													potential_model* pot_ptr_np){
 	
+	/* Potential-model input arrays */
 	double V_WP_elements [6];	// Isoscalar wave-packet potential elements (WP)
 	double V_IS_elements [6];	// Isoscalar (IS)
 	double V_nn_elements [6];	// neutron-neutron (nn)
@@ -59,6 +61,20 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 	int idx_V_WP_upper_right = 0;
 	int idx_V_WP_lower_left  = 0;
 	int idx_V_WP_lower_right = 0;
+
+	/* Temporary track-keeping arrays for avoiding repeat matrix-calculations (initialize to false) */
+	int unco_array_size = 2*(J_2N_max+1);
+	int coup_array_size =    J_2N_max;
+	bool* matrix_calculated_unco_array = new bool [unco_array_size];
+	bool* matrix_calculated_coup_array = new bool [coup_array_size];
+	for (int i=0; i<unco_array_size; i++){
+		matrix_calculated_unco_array[i] = false;
+	}
+	for (int i=0; i<coup_array_size; i++){
+		matrix_calculated_coup_array[i] = false;
+	}
+
+	printf(" - There are %d uncoupled 2N-channels and %d coupled 2N-channels \n", unco_array_size, coup_array_size);
 
 	/* Row state */
 	for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
@@ -87,12 +103,40 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 					coupled_model   = true;
 				}
 
-				/* Skip redundant calculations by only doing the coupled calculation when L_r<L_c */
+				/* Unique 2N-channel indices */
+				int chn_idx_V_coup = J_r-1;
+				int chn_idx_V_unco = 2*J_r + S_r;
+
+				/* Check if calculation has already been performed in some other alpha'-alpha interaction */
 				if (coupled_matrix){
-					if ( (L_r<L_c)==false ){
+					if (matrix_calculated_coup_array[chn_idx_V_coup]==true){
 						continue;
 					}
+					else{
+						matrix_calculated_coup_array[chn_idx_V_coup] = true;
+					}
 				}
+				else{
+					if (matrix_calculated_unco_array[chn_idx_V_unco]==true){
+						continue;
+					}
+					else{
+						matrix_calculated_unco_array[chn_idx_V_unco] = true;
+					}
+				}
+
+				printf("   - Working on matrix <L'=%d|V(S=%d, J=%d, T=%d)|L=%d> ", L_r, S_r, J_r, T_r, L_c);
+				if (coupled_matrix){
+					printf("(coupled matrix -> calculation includes all couplings of L' and L.)");
+				}
+				printf("\n");
+
+				/* Skip redundant calculations by only doing the coupled calculation when L_r<L_c */
+				//if (coupled_matrix){
+				//	if ( (L_r<L_c)==false ){
+				//		continue;
+				//	}
+				//}
 
 				/* Row p-momentum index loop */
 				for (int idx_bin_r=0; idx_bin_r<Np_WP; idx_bin_r++){
@@ -115,7 +159,6 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 						/* Potential matrix indexing
 						 * Indexing format: (channel index)*(num rows)*(num columns) + (row index)*(row length) + (column index) */
 						if (coupled_matrix){
-							int chn_idx_V_coup   = J_r-1;
 							idx_V_WP_upper_left  = chn_idx_V_coup*4*Np_WP*Np_WP +  idx_bin_r         *2*Np_WP + idx_bin_c;
 							idx_V_WP_upper_right = chn_idx_V_coup*4*Np_WP*Np_WP +  idx_bin_r         *2*Np_WP + idx_bin_c + Np_WP;
 							idx_V_WP_lower_left  = chn_idx_V_coup*4*Np_WP*Np_WP + (idx_bin_r + Np_WP)*2*Np_WP + idx_bin_c;
@@ -123,7 +166,6 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 						
 						}
 						else{
-							int chn_idx_V_unco   = 2*J_r + S_r;
 							idx_V_WP_uncoupled   = chn_idx_V_unco*Np_WP*Np_WP + idx_bin_r*Np_WP + idx_bin_c;
 						}
 						

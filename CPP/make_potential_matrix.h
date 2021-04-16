@@ -17,6 +17,7 @@ void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
 													int Np_WP, double* p_WP_array,
 													int Np, double* p_array, double* wp_array,
 													int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array,
+													int J_2N_max,
 													potential_model* pot_ptr_nn,
 													potential_model* pot_ptr_np);
 

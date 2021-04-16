@@ -131,8 +131,8 @@ int main(int argc, char* argv[]){
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 1;//1; //5;
-	int two_J_3N_max = 1;//25;//1; //25;
+	int J_2N_max 	 = 3;//1; //5;
+	int two_J_3N_max = 11;//25;//1; //25;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
@@ -339,6 +339,7 @@ int main(int argc, char* argv[]){
 													   Np_WP, p_WP_array,
 													   Np_per_WP, p_array, wp_array,
 													   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
+													   J_2N_max,
 													   pot_ptr_nn,
 													   pot_ptr_np);
 		printf(" - Done \n");
@@ -428,9 +429,9 @@ int main(int argc, char* argv[]){
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		if (chn_3N!=0){
-			continue;
-		}
+		//if (chn_3N!=-1){
+		//	continue;
+		//}
 		if (calculate_and_store_P123){
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];

@@ -44,7 +44,7 @@ void square_dense_to_sparse_COO_format_converter(int      mat_dim,
 												 double** mat_sparse_val_array,
 												 int**    mat_sparse_row_array,
 												 int**    mat_sparse_col_array,
-												 int&     mat_sparse_dim);
+												 size_t&  mat_sparse_dim);
 
 /* Converts a sparse COO-format matrix to a dense-format matrix */
 void square_sparse_COO_to_dense_format_converter(int      mat_dim,

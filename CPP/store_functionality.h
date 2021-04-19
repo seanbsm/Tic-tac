@@ -36,7 +36,7 @@
 void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_array,
 													   int*    P123_sparse_row_array,
 													   int*    P123_sparse_col_array,
-													   int     P123_sparse_dim,
+													   size_t  P123_sparse_dim,
 													   int     Np_WP, double* p_WP_array,
 													   int     Nq_WP, double* q_WP_array,
 													   int     Nalpha,
@@ -55,7 +55,7 @@ void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_a
 void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_array,
 													   int**   P123_sparse_row_array,
 													   int**   P123_sparse_col_array,
-													   int&    P123_sparse_dim,
+													   size_t& P123_sparse_dim,
 													   int     Np_WP, double* p_WP_array,
 													   int     Nq_WP, double* q_WP_array,
 													   int     Nalpha,
@@ -73,6 +73,9 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 
 void write_integer_to_h5(int integer, char* int_name, hid_t file_id);
 void read_integer_from_h5(int& integer, char* int_name, char* filename);
+
+void write_ULL_integer_to_h5(unsigned long long int integer, char* int_name, hid_t file_id);
+void read_ULL_integer_from_h5(unsigned long long& integer, char* int_name, char* filename);
 
 void write_WP_boundaries_to_h5(double* WP_boundaries, int N_WP, char* mesh_name, hid_t file_id);
 void read_WP_boundaries_from_h5(double* WP_boundaries, int N_WP, char* mesh_name, char* filename);

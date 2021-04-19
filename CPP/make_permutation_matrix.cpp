@@ -158,26 +158,26 @@ std::string generate_subarray_file_name(int two_J_3N, int two_T_3N, int P_3N,
 
 void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 												 double** P123_val_sparse_array,
-												 int** P123_row_array,
-												 int** P123_col_array,
-												 int& P123_dim,
-												 bool use_dense_format,
-												 bool production_run,
-												 int  Np_WP, double *p_array_WP_bounds,
-												 int  Nq_WP, double *q_array_WP_bounds,
-												 int  Nx, double* x_array, double* wx_array,
-												 int  Nphi,
-												 int  J_2N_max,
-												 int  Nalpha,
-												 int* L_2N_array,
-												 int* S_2N_array,
-												 int* J_2N_array,
-												 int* T_2N_array,
-												 int* L_1N_array,
-												 int* two_J_1N_array,
-												 int  two_J_3N,
-												 int  two_T_3N,
-												 int  P_3N){
+												 int**    P123_row_array,
+												 int**    P123_col_array,
+												 size_t&  P123_dim,
+												 bool     use_dense_format,
+												 bool     production_run,
+												 int      Np_WP, double *p_array_WP_bounds,
+												 int      Nq_WP, double *q_array_WP_bounds,
+												 int      Nx, double* x_array, double* wx_array,
+												 int      Nphi,
+												 int      J_2N_max,
+												 int      Nalpha,
+												 int*     L_2N_array,
+												 int*     S_2N_array,
+												 int*     J_2N_array,
+												 int*     T_2N_array,
+												 int*     L_1N_array,
+												 int*     two_J_1N_array,
+												 int      two_J_3N,
+												 int      two_T_3N,
+												 int      P_3N){
 	
 	bool print_content = true;
 
@@ -293,6 +293,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	double*  wphi_array      = new double [Nq_WP*Np_WP*Nphi];
 	
 	printf("   - Precalculating momentum conservations \n");
+	fflush(stdout);
 	#pragma omp parallel
 	{
 		#pragma omp for
@@ -412,8 +413,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	long long int P123_dense_dim_sq = P123_dense_dim * P123_dense_dim;
 
 	/* Number of elements each thread can hold before writing to disk.
-	 * Default is 1 GB memory per thread, as a safe minimum one typically
-	 * finds on most computers today */
+	 * Default is 1 GB memory per thread, as this is a (somewhat) safe minimum one typically
+	 * finds on most computers today (the number of cores usually is equal to, or smaller than, the memory in GB) */
 	size_t tread_buffer_size = std::pow(2,30)/(sizeof(double) + 2* sizeof(int));
 	
 	int P123_omp_num_threads = omp_get_max_threads();
@@ -425,7 +426,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	double** P123_val_array_omp = NULL;
 	int**    P123_row_array_omp = NULL;
 	int**    P123_col_array_omp = NULL;
-	int* 	 P123_dim_array_omp = NULL;
+	size_t*  P123_dim_array_omp = NULL;
 	/* Thread File Count (TFC) array. Used to keep track of which file the current
 	 * thread will store to so as to empty contents (needed to prevent running out of memory) */
 	int* 	 P123_TFC_array_omp	= NULL;
@@ -441,7 +442,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 		P123_val_array_omp = new double* [P123_omp_num_threads];
 		P123_row_array_omp = new int*    [P123_omp_num_threads];
 		P123_col_array_omp = new int*    [P123_omp_num_threads];
-		P123_dim_array_omp = new int     [P123_omp_num_threads];
+		P123_dim_array_omp = new size_t  [P123_omp_num_threads];
 		P123_TFC_array_omp = new int     [P123_omp_num_threads];
 
 		for (int thread_idx=0; thread_idx<P123_omp_num_threads; thread_idx++){
@@ -618,7 +619,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 										(*P123_val_dense_array)[P123_mat_idx] = P123_element;
 									}
 									else{
-										int P123_dim_omp = P123_dim_array_omp[thread_idx];
+										size_t P123_dim_omp = P123_dim_array_omp[thread_idx];
 
 										(P123_val_array_omp[thread_idx])[P123_dim_omp] = P123_element;
 										(P123_row_array_omp[thread_idx])[P123_dim_omp] = P123_row_idx;
@@ -691,7 +692,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 																	  thread_idx,
 																	  current_TFC);
 
-			int num_elements_remaining = P123_dim_array_omp[thread_idx];
+			size_t num_elements_remaining = P123_dim_array_omp[thread_idx];
 
 			/* Store array */
 			store_sparse_permutation_matrix_for_3N_channel_h5(P123_val_array_omp[thread_idx],
@@ -750,22 +751,29 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 				std::strcpy(filename_char, thread_filename.c_str());
 				
 				/* Retrieve number of P123-elements in current file */
-				int current_P123_sparse_dim = 0;
-				read_integer_from_h5(current_P123_sparse_dim, "P123_sparse_dim", filename_char);
+				unsigned long long current_P123_sparse_dim = 0;
+				read_ULL_integer_from_h5(current_P123_sparse_dim, "P123_sparse_dim", filename_char);
 
 				P123_dim += current_P123_sparse_dim;
 			}
 		}
+		printf("   - Total number of non-zero elements: %d \n", P123_dim); fflush(stdout);
 		
 		/* Allocate required memory to fite whole P123-matrix */
-		printf("   - Allocating necessary arrays \n"); fflush(stdout);
-		*P123_val_sparse_array = new double [P123_dim];
-		*P123_row_array        = new int    [P123_dim];
-		*P123_col_array        = new int    [P123_dim];
+		double required_mem = P123_dim * (sizeof(double) + 2*sizeof(int))/std::pow(2.0,30);
+		printf("   - Allocating necessary arrays (requires %.2f GB) \n", required_mem); fflush(stdout);
+		try{
+			*P123_val_sparse_array = new double [P123_dim];
+			*P123_row_array        = new int    [P123_dim];
+			*P123_col_array        = new int    [P123_dim];
+		}
+		catch (...) {
+			raise_error("Failed. Memory exceeded in sparse memory allocation");
+		}
 
 		/* Read elements from sparse subarray files */
 		printf("   - Reading elements (in random ordering) from parallel thread files \n"); fflush(stdout);
-		int nnz_counter = 0;
+		size_t nnz_counter = 0;
 		for (int thread_idx=0; thread_idx<P123_omp_num_threads; thread_idx++){
 			int TFC_max = P123_TFC_array_omp[thread_idx];
 			for (int current_TFC=0; current_TFC<TFC_max; current_TFC++){
@@ -780,7 +788,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 				double* P123_sparse_val_subarray = NULL;
 				int* 	P123_sparse_row_subarray = NULL;
 				int* 	P123_sparse_col_subarray = NULL;
-				int	    current_P123_sparse_dim  = 0;
+				size_t  current_P123_sparse_dim  = 0;
 				read_sparse_permutation_matrix_for_3N_channel_h5(&P123_sparse_val_subarray,
 															     &P123_sparse_row_subarray,
 															     &P123_sparse_col_subarray,
@@ -878,23 +886,23 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val_array,
 														int**    P123_sparse_row_array,
 														int**    P123_sparse_col_array,
-														int&     P123_sparse_dim_array,
-														bool production_run,
-														int  Np_WP, double *p_array_WP_bounds,
-														int  Nq_WP, double *q_array_WP_bounds,
-														int  Nx, double* x_array, double* wx_array,
-														int  Nphi,
-														int  J_2N_max,
-														int  Nalpha,
-														int* L_2N_array,
-														int* S_2N_array,
-														int* J_2N_array,
-														int* T_2N_array,
-														int* L_1N_array,
-														int* two_J_1N_array,
-														int  two_J_3N,
-														int  two_T_3N,
-														int  P_3N){
+														size_t&  P123_sparse_dim,
+														bool     production_run,
+														int      Np_WP, double *p_array_WP_bounds,
+														int      Nq_WP, double *q_array_WP_bounds,
+														int      Nx, double* x_array, double* wx_array,
+														int      Nphi,
+														int      J_2N_max,
+														int      Nalpha,
+														int*     L_2N_array,
+														int*     S_2N_array,
+														int*     J_2N_array,
+														int*     T_2N_array,
+														int*     L_1N_array,
+														int*     two_J_1N_array,
+														int      two_J_3N,
+														int      two_T_3N,
+														int      P_3N){
 	
 	bool print_content = true;
 
@@ -904,8 +912,8 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 	bool use_dense_format = false;
 	
 	/* Dense and sparse array dimensions */
-	size_t     P123_array_dense_dim  = Nalpha * Np_WP * Nq_WP;
-	int     P123_array_dim        = 0;
+	size_t P123_array_dense_dim  = Nalpha * Np_WP * Nq_WP;
+	size_t P123_array_dim        = 0;
 
 	/* Temporary dense matrix to be filled in subroutine if use_dense_format=true */
 	double* P123_val_dense_array = NULL;
@@ -961,18 +969,18 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 													P123_sparse_val_array,
 													P123_sparse_row_array,
 													P123_sparse_col_array,
-													P123_sparse_dim_array);
+													P123_sparse_dim);
 	}
 	else{
-		P123_sparse_dim_array = P123_array_dim;
+		P123_sparse_dim = P123_array_dim;
 	}
 		
 	if (print_content){
 		size_t P123_array_dense_dim_sq = P123_array_dense_dim*P123_array_dense_dim;
-		double P_123_subarray_density = (double) P123_sparse_dim_array / P123_array_dense_dim_sq;
+		double P_123_subarray_density = (double) P123_sparse_dim / P123_array_dense_dim_sq;
 
 		printf(" - Dense dimension:   %dx%d \n", P123_array_dense_dim, P123_array_dense_dim);
-		printf(" - Non-zero elements: %d \n",    P123_sparse_dim_array);
+		printf(" - Non-zero elements: %d \n",    P123_sparse_dim);
 		printf(" - Density:           %.4f %% \n",  100*P_123_subarray_density);
 	}
 		

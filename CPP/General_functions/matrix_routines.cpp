@@ -281,14 +281,14 @@ void square_dense_to_sparse_COO_format_converter(int      mat_dim,
 												 double** mat_sparse_val_array,
 												 int**    mat_sparse_row_array,
 												 int**    mat_sparse_col_array,
-												 int&     mat_sparse_dim){
+												 size_t&  mat_sparse_dim){
 
 	/* Temporary arrays to hold indices of non-zero elements */
 	int* temp_dense_idx_row_array = new int [mat_dim*mat_dim];
 	int* temp_dense_idx_col_array = new int [mat_dim*mat_dim];
 	
 	/* Number of non-zero elements ("NNZ" - standard abbreviation) */
-	int nnz = 0;
+	size_t nnz = 0;
 	
 	/* Determine non-zero elements in dense-matrix and store indices to temporay array */
 	for (int i=0; i<mat_dim; i++){

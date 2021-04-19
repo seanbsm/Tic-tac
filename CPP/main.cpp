@@ -138,8 +138,8 @@ int main(int argc, char* argv[]){
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 30; //30;
-	int Nq_WP	   	 = 30; //30;
+	int Np_WP	   	 = 40; //30;
+	int Nq_WP	   	 = 40; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -422,7 +422,7 @@ int main(int argc, char* argv[]){
 		double* P123_sparse_val_array = NULL;
 		int* 	P123_sparse_row_array = NULL;
 		int* 	P123_sparse_col_array = NULL;
-		int	    P123_sparse_dim		  = 0;
+		size_t	P123_sparse_dim		  = 0;
 
 		/* Default filename for current chn_3N - used for storage and reading P123 */
 		std::string P123_filename =    "P123_sparse_JTP_"
@@ -497,7 +497,7 @@ int main(int argc, char* argv[]){
 			double* P123_sparse_val_array_t = NULL;
 			int* 	P123_sparse_row_array_t = NULL;
 			int* 	P123_sparse_col_array_t = NULL;
-			int	    P123_sparse_dim_t		  = 0;
+			size_t  P123_sparse_dim_t		= 0;
 
 			auto timestamp_P123_read_start = chrono::system_clock::now();
 			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array_t,

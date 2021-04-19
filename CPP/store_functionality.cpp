@@ -61,9 +61,8 @@ void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_a
 													   int     two_J_3N,
 													   int     two_T_3N,
 													   int     P_3N,
-													   std::string filename_in){
-	
-	bool print_content = true;
+													   std::string filename_in,
+													   bool print_content){
 
 	if (print_content){
 		printf("   - Setting up h5-file \n");
@@ -145,8 +144,8 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 													   int     two_J_3N,
 													   int     two_T_3N,
 													   int     P_3N,
-													   std::string filename_in){
-	bool print_content = true;
+													   std::string filename_in,
+													   bool    print_content){
 
 	/* Convert filename_in to char-array */
 	char filename[300];

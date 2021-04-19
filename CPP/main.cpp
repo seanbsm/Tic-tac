@@ -122,24 +122,24 @@ int main(int argc, char* argv[]){
 	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
-	bool calculate_and_store_P123 = false;
+	bool calculate_and_store_P123 = true;
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
 	 * and solve Faddeev in a single run */
-	bool solve_faddeev		      = true;
-	bool production_run			  = false;
+	bool solve_faddeev		      = false;
+	bool production_run			  = true;
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 3;//1; //5;
-	int two_J_3N_max = 11;//25;//1; //25;
+	int J_2N_max 	 = 1;//1; //5;
+	int two_J_3N_max = 1;//25;//1; //25;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 40; //30;
-	int Nq_WP	   	 = 10; //30;
+	int Np_WP	   	 = 30; //30;
+	int Nq_WP	   	 = 30; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -429,7 +429,7 @@ int main(int argc, char* argv[]){
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		//if (chn_3N!=-1){
+		//if (chn_3N!=6){
 		//	continue;
 		//}
 		if (calculate_and_store_P123){
@@ -448,6 +448,7 @@ int main(int argc, char* argv[]){
 														   	   Nq_WP, q_WP_array,
 														   	   Nx, x_array, wx_array,
 															   Nphi,
+															   J_2N_max,
 														   	   Nalpha_in_3N_chn,
 														   	   L_2N_subarray,
 							  								   S_2N_subarray,
@@ -456,7 +457,8 @@ int main(int argc, char* argv[]){
 							  								   L_1N_subarray,
 							  								   two_J_1N_subarray,
 														 	   two_J_3N,
-														 	   two_T_3N);
+														 	   two_T_3N,
+															   P_3N);
 			auto timestamp_P123_calc_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_calc = timestamp_P123_calc_end - timestamp_P123_calc_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_calc.count());
@@ -479,7 +481,8 @@ int main(int argc, char* argv[]){
 															  two_J_3N,
 															  two_T_3N,
 															  P_3N,
-													   		  P123_filename);
+													   		  P123_filename,
+															  true);
 			auto timestamp_P123_store_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
@@ -491,16 +494,16 @@ int main(int argc, char* argv[]){
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
 			printf("Reading P123 from h5 ... \n");
 			
-			//double* P123_sparse_val_array_t = NULL;
-			//int* 	P123_sparse_row_array_t = NULL;
-			//int* 	P123_sparse_col_array_t = NULL;
-			//int	    P123_sparse_dim_t		  = 0;
+			double* P123_sparse_val_array_t = NULL;
+			int* 	P123_sparse_row_array_t = NULL;
+			int* 	P123_sparse_col_array_t = NULL;
+			int	    P123_sparse_dim_t		  = 0;
 
 			auto timestamp_P123_read_start = chrono::system_clock::now();
-			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array,
-															  &P123_sparse_row_array,
-															  &P123_sparse_col_array,
-															  P123_sparse_dim,
+			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array_t,
+															  &P123_sparse_row_array_t,
+															  &P123_sparse_col_array_t,
+															  P123_sparse_dim_t,
 															  Np_WP, p_WP_array,
 															  Nq_WP, q_WP_array,
 															  Nalpha_in_3N_chn,
@@ -513,16 +516,17 @@ int main(int argc, char* argv[]){
 															  two_J_3N,
 															  two_T_3N,
 															  P_3N,
-													   		  P123_filename);
+													   		  P123_filename,
+															  true);
 			auto timestamp_P123_read_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_read.count());
 			
 			//if (P123_sparse_dim_t==P123_sparse_dim){
-			//	int row_idx = 0;
+			//	//int row_idx = 0;
 			//	for (int idx=0; idx<P123_sparse_dim; idx++){
-			//		if (P123_sparse_row_array[idx]==row_idx){
-			//		bool check1 = (abs(P123_sparse_val_array_t[idx]-P123_sparse_val_array[col_count])>1e-15);
+			//		//if (P123_sparse_row_array[idx]==row_idx){
+			//		bool check1 = (abs(P123_sparse_val_array_t[idx]-P123_sparse_val_array[idx])>1e-15);
 			//		bool check2 = (P123_sparse_row_array_t[idx]!=P123_sparse_row_array[idx]);
 			//		bool check3 = (P123_sparse_col_array_t[idx]!=P123_sparse_col_array[idx]);
 			//		if (check1||check2||check3){
@@ -535,7 +539,7 @@ int main(int argc, char* argv[]){
 			//			std::cout << "Prog col: " << P123_sparse_col_array[idx] << std::endl;
 			//			raise_error("element mismatch");
 			//		}
-			//		}
+			//		//}
 			//	}
 			//}
 			//else{

@@ -49,7 +49,8 @@ void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_a
 													   int     two_J_3N,
 													   int     two_T_3N,
 													   int     P_3N,
-													   std::string filename_in);
+													   std::string filename_in,
+													   bool print_content);
 													   
 void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_array,
 													   int**   P123_sparse_row_array,
@@ -67,7 +68,8 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 													   int     two_J_3N,
 													   int     two_T_3N,
 													   int     P_3N,
-													   std::string filename_in);
+													   std::string filename_in,
+													   bool print_content);
 
 void write_integer_to_h5(int integer, char* int_name, hid_t file_id);
 void read_integer_from_h5(int& integer, char* int_name, char* filename);

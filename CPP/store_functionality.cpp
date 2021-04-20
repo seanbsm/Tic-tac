@@ -166,16 +166,16 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 	read_integer_from_h5(Np_WP_file,      "Np_WP",           filename);
 	read_integer_from_h5(Nq_WP_file,      "Nq_WP",           filename);
 
-	if (print_content){
-		int P123_sparse_dim_temp = 0;
-		read_integer_from_h5(P123_sparse_dim_temp,      "P123_sparse_dim",           filename);
-		P123_sparse_dim = P123_sparse_dim_temp;
-	}
-	else{
+	//if (print_content){
+	//	int P123_sparse_dim_temp = 0;
+	//	read_integer_from_h5(P123_sparse_dim_temp,      "P123_sparse_dim",           filename);
+	//	P123_sparse_dim = P123_sparse_dim_temp;
+	//}
+	//else{
 		unsigned long long int P123_sparse_dim_temp = 0;
 		read_ULL_integer_from_h5(P123_sparse_dim_temp, "P123_sparse_dim", filename);
 		P123_sparse_dim = P123_sparse_dim_temp;
-	}
+	//}
 
 	/* Verify mesh points are equal to current program run, exit if not */
 	if (Nalpha_file!=Nalpha || Np_WP_file!=Np_WP || Nq_WP_file!=Nq_WP){
@@ -600,7 +600,7 @@ void write_sparse_permutation_matrix_chunk_h5(double* P123_sparse_val_array,
 void write_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 										int*    P123_sparse_row_array,
 										int*    P123_sparse_col_array,
-										int     P123_sparse_dim,
+										size_t  P123_sparse_dim,
 										hid_t   file_id){
 
 	hid_t       dataset_row;     /* dataset handle */
@@ -698,7 +698,7 @@ void write_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 void read_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 									   int*    P123_sparse_row_array,
 									   int*    P123_sparse_col_array,
-									   int     P123_sparse_dim,
+									   size_t  P123_sparse_dim,
 									   char*   filename){
 	
 	hid_t  file_id;

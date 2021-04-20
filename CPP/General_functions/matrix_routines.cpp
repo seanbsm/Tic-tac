@@ -330,7 +330,7 @@ void square_sparse_COO_to_dense_format_converter(int      mat_dim,
 												 double*  mat_sparse_val_array,
 												 int*     mat_sparse_row_array,
 												 int*     mat_sparse_col_array,
-												 int      mat_sparse_dim){
+												 size_t   mat_sparse_dim){
 	
 	*mat_dense_array = new double [mat_dim*mat_dim];
 
@@ -342,7 +342,7 @@ void square_sparse_COO_to_dense_format_converter(int      mat_dim,
 	int row_idx = 0;
 	int col_idx = 0;
 	/* Write sparse non-zero elements into dense matrix */
-	for (int i=0; i<mat_sparse_dim; i++){
+	for (size_t i=0; i<mat_sparse_dim; i++){
 		row_idx = mat_sparse_row_array[i];
 		col_idx = mat_sparse_col_array[i];
 
@@ -350,18 +350,18 @@ void square_sparse_COO_to_dense_format_converter(int      mat_dim,
 	}
 }
 
-void coo_to_csr_format_converter(int* idx_row_array_coo,
-								 int* idx_row_array_csr,
-								 int  mat_sparse_dim,
-								 int  mat_dense_dim){
+void coo_to_csr_format_converter(int*   idx_row_array_coo,
+								 int*   idx_row_array_csr,
+								 size_t mat_sparse_dim,
+								 int    mat_dense_dim){
 	for (int i=0; i<mat_dense_dim+1; i++){
 		idx_row_array_csr[i] = 0;
 	}
 
 	for (int i=1; i<mat_dense_dim+1; i++){
 
-		int num_nnz_cols_in_row = 0;
-		for (int j=idx_row_array_csr[i-1]; j<mat_sparse_dim; j++){
+		size_t num_nnz_cols_in_row = 0;
+		for (size_t j=idx_row_array_csr[i-1]; j<mat_sparse_dim; j++){
 			if (idx_row_array_coo[j]>i-1){
 				break;
 			}
@@ -377,7 +377,7 @@ void coo_to_csr_format_converter(int* idx_row_array_coo,
 void coo_col_major_to_coo_row_major_converter(double** mat_val_array_coo,
 											  int**    mat_row_array_coo,
 											  int**    mat_col_array_coo,
-											  int      mat_sparse_dim,
+											  size_t   mat_sparse_dim,
 											  int      mat_dense_dim){
 	
 	/* Allocate row-major (RM) arrays (these will replace input arrays) */
@@ -386,12 +386,12 @@ void coo_col_major_to_coo_row_major_converter(double** mat_val_array_coo,
 	int* 	mat_col_array_coo_RM_temp = new int    [mat_sparse_dim];
 
 	/* Loop through RM row-array */
-	int nnz_counter = 0;
+	size_t nnz_counter = 0;
 	for (int row_RM=0; row_RM<mat_dense_dim; row_RM++){
 		for (int col_RM=0; col_RM<mat_dense_dim; col_RM++){
 			
 			/* Random order loop */
-			for (int nnz_idx=0; nnz_idx<mat_sparse_dim; nnz_idx++){
+			for (size_t nnz_idx=0; nnz_idx<mat_sparse_dim; nnz_idx++){
 				int row_CM = (*mat_row_array_coo)[nnz_idx];
 				int col_CM = (*mat_col_array_coo)[nnz_idx];
 
@@ -450,7 +450,7 @@ void increase_sparse_array_size(int** sparse_array, int array_length, int sparse
 	*sparse_array = sparse_array_temp;
 }
 
-void reduce_sparse_array_size(double** sparse_array, int array_length, int sparse_dim){
+void reduce_sparse_array_size(double** sparse_array, int array_length, size_t sparse_dim){
 	/*Allocate an array to hold sparse_array values with minimal size */
 	double* sparse_array_temp = new double [sparse_dim];
 
@@ -463,7 +463,7 @@ void reduce_sparse_array_size(double** sparse_array, int array_length, int spars
 	/* Let sparse_array point to newly created, minimal-size array sparse_array_temp */
 	*sparse_array = sparse_array_temp;
 }
-void reduce_sparse_array_size(int** sparse_array, int array_length, int sparse_dim){
+void reduce_sparse_array_size(int** sparse_array, int array_length, size_t sparse_dim){
 	/*Allocate an array to hold sparse_array values with minimal size */
 	int* sparse_array_temp = new int [sparse_dim];
 

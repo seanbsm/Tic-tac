@@ -160,7 +160,7 @@ void calculate_PVC_col(double*  col_array,
 					   double*  P123_val_array,
 					   int*     P123_row_array,
 					   int*     P123_col_array,
-					   int      P123_dim){
+					   size_t   P123_dim){
 
 	/* OPTIMIZATION THOUGHTS:
 	 * This approach is only viable for column-major P123-storage.
@@ -225,7 +225,7 @@ void calculate_CPVC_col(double*  col_array,
 						double*  P123_val_array,
 						int*     P123_row_array,
 						int*     P123_col_array,
-						int      P123_dim){
+						size_t   P123_dim){
 	
 	/* Generate PVC-column */
 	double* PVC_col = new double [Nalpha*Nq_WP*Np_WP];
@@ -295,7 +295,7 @@ void calculate_all_CPVC_rows(cdouble* row_arrays,
 							 double*  P123_val_array,
 							 int*     P123_row_array,
 							 int*     P123_col_array,
-							 int      P123_dim){
+							 size_t   P123_dim){
 	
 	size_t dense_dim = Nalpha*Nq_WP*Np_WP;
 
@@ -439,7 +439,7 @@ void pade_method_solve(cdouble*  U_array,
 					   double*   P123_sparse_val_array,
 					   int*      P123_sparse_row_array,
 					   int*      P123_sparse_col_array,
-					   int       P123_sparse_dim){
+					   size_t    P123_sparse_dim){
 	
 	/* Number of on-shell nucleon-deuteron channels */
 	int num_on_shell_indices = num_deuteron_states * num_q_com;
@@ -726,7 +726,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 double*   P123_sparse_val_array,
 							 int*      P123_sparse_row_array,
 							 int*      P123_sparse_col_array,
-							 int       P123_sparse_dim,
+							 size_t    P123_sparse_dim,
 							 double*   C_WP_unco_array,
 							 double*   C_WP_coup_array,
 							 double*   V_WP_unco_array,
@@ -1112,7 +1112,7 @@ void PVC_col_brute_force(double*  col_array,
 					     double*  P123_val_array,
 					     int*     P123_row_array,
 					     int*     P123_col_array,
-					     int      P123_dim){
+					     size_t   P123_dim){
 	
 	bool print_content = false;
 	int idx1 = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
@@ -1173,7 +1173,7 @@ void CPVC_col_brute_force(double*  col_array,
 						  double*  P123_val_array,
 						  int*     P123_row_array,
 						  int*     P123_col_array,
-						  int      P123_dim){
+						  size_t   P123_dim){
 	double* CT_ptr = NULL;
 	double* VC_ptr = NULL;
 
@@ -1235,7 +1235,7 @@ void PVC_col_calc_test(int      Nalpha,
 					   double*  P123_sparse_val_array,
 					   int*     P123_sparse_row_array,
 					   int*     P123_sparse_col_array,
-					   int      P123_sparse_dim){
+					   size_t   P123_sparse_dim){
 
 	bool print_content = false;
 
@@ -1319,7 +1319,7 @@ void CPVC_col_calc_test(int      Nalpha,
 						double*  P123_sparse_val_array,
 						int*     P123_sparse_row_array,
 						int*     P123_sparse_col_array,
-						int      P123_sparse_dim){
+						size_t   P123_sparse_dim){
 
 	bool print_content = false;
 

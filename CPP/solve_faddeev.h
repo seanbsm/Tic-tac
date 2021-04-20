@@ -50,7 +50,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 double*   P123_sparse_val_array,
 							 int*      P123_sparse_row_array,
 							 int*      P123_sparse_col_array,
-							 int       P123_sparse_dim,
+							 size_t    P123_sparse_dim,
 							 double*   C_WP_unco_array,
 							 double*   C_WP_coup_array,
 							 double*   V_WP_unco_array,
@@ -105,7 +105,7 @@ void PVC_col_brute_force(double*  col_array,
 					     double*  P123_val_array,
 					     int*     P123_row_array,
 					     int*     P123_col_array,
-					     int      P123_dim);
+					     size_t   P123_dim);
 
 void CPVC_col_brute_force(double*  col_array,
 						  int      idx_alpha_c, int idx_p_c, int idx_q_c,
@@ -115,7 +115,7 @@ void CPVC_col_brute_force(double*  col_array,
 						  double*  P123_val_array,
 						  int*     P123_row_array,
 						  int*     P123_col_array,
-						  int      P123_dim);
+						  size_t   P123_dim);
 
 void PVC_col_calc_test(int      Nalpha,
 					   int 	 	Nq_WP,
@@ -124,7 +124,7 @@ void PVC_col_calc_test(int      Nalpha,
 					   double*  P123_sparse_val_array,
 					   int*     P123_sparse_row_array,
 					   int*     P123_sparse_col_array,
-					   int      P123_sparse_dim);
+					   size_t   P123_sparse_dim);
 
 void CPVC_col_calc_test(int      Nalpha,
 						int 	 Nq_WP,
@@ -134,6 +134,6 @@ void CPVC_col_calc_test(int      Nalpha,
 						double*  P123_sparse_val_array,
 						int*     P123_sparse_row_array,
 						int*     P123_sparse_col_array,
-						int      P123_sparse_dim);
+						size_t   P123_sparse_dim);
 
 #endif // SOLVE_FADDEEV_H

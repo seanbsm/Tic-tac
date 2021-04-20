@@ -52,18 +52,18 @@ void square_sparse_COO_to_dense_format_converter(int      mat_dim,
 												 double*  mat_sparse_val_array,
 												 int*     mat_sparse_row_array,
 												 int*     mat_sparse_col_array,
-												 int      mat_sparse_dim);
+												 size_t   mat_sparse_dim);
 
 /* Converts sparse COO-format index arrays to CSR-format index arrays */
-void coo_to_csr_format_converter(int* idx_row_array_coo,
-								 int* idx_row_array_csr,
-								 int  mat_sparse_dim,
-								 int  mat_dense_dim);
+void coo_to_csr_format_converter(int*   idx_row_array_coo,
+								 int*   idx_row_array_csr,
+								 size_t mat_sparse_dim,
+								 int    mat_dense_dim);
 /* Converts sparse column-major COO-format index arrays to row-major COO-format index arrays */
 void coo_col_major_to_coo_row_major_converter(double** mat_val_array_coo,
 											  int**    mat_row_array_coo,
 											  int**    mat_col_array_coo,
-											  int      mat_sparse_dim,
+											  size_t   mat_sparse_dim,
 											  int      mat_dense_dim);
 
 /* Increase a full sparse array size of length array_length by sparse_step_length elements */
@@ -71,7 +71,7 @@ void increase_sparse_array_size(double** sparse_array, int array_length, int spa
 void increase_sparse_array_size(int** sparse_array, int array_length, int sparse_step_length);
 
 /* Decrease a non-full sparse array size of length array_length to sparse_dim elements */
-void reduce_sparse_array_size(double** sparse_array, int array_length, int sparse_dim);
-void reduce_sparse_array_size(int** sparse_array, int array_length, int sparse_dim);
+void reduce_sparse_array_size(double** sparse_array, int array_length, size_t sparse_dim);
+void reduce_sparse_array_size(int** sparse_array, int array_length, size_t sparse_dim);
 
 #endif // MATRIX_ROUTINES_H

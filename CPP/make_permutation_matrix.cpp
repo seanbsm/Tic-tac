@@ -289,8 +289,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 	/* Precalculate overlapping bins and where p_bar and q_bar are non-zero */
 	bool*    pq_WP_overlap_array = new bool   [Nq_WP*Nq_WP*Np_WP*Np_WP];
-	double*   phi_array      = new double [Nq_WP*Np_WP*Nphi];
-	double*  wphi_array      = new double [Nq_WP*Np_WP*Nphi];
+	double*   phi_array      	 = new double [Nq_WP*Np_WP*Nphi];
+	double*  wphi_array      	 = new double [Nq_WP*Np_WP*Nphi];
 	
 	printf("   - Precalculating momentum conservations \n");
 	fflush(stdout);
@@ -369,10 +369,10 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 					}
 	
 					/* Unique index for current combination of WPs */
-					int pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
-							  	  + pp_idx_WP*Nq_WP*Np_WP
-							  	  +  q_idx_WP*Np_WP
-							  	  +  p_idx_WP;
+					size_t pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
+							  	  	 + pp_idx_WP*Nq_WP*Np_WP
+							  	  	 +  q_idx_WP*Np_WP
+							  	  	 +  p_idx_WP;
 	
 					pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
 				}
@@ -391,26 +391,26 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	//	}
 	//}
 
-	int counter = 0;
-	for (int idx=0; idx<Nq_WP*Np_WP*Nq_WP*Np_WP;idx++){
+	size_t counter = 0;
+	for (size_t idx=0; idx<Nq_WP*Np_WP*Nq_WP*Np_WP;idx++){
 		if (pq_WP_overlap_array[idx]==false){
 			counter += 1;
 		}
 	}
-	double P123_sparsity = (double)counter/(Nq_WP*Nq_WP*Np_WP*Np_WP);
+	double P123_sparsity = (double) counter/(Nq_WP*Nq_WP*Np_WP*Np_WP);
 	printf("   - %.3f%% of P123-matrix violates momentum-conservation \n", 100*P123_sparsity );
 
 	double*  sin_phi_array = new double [Nq_WP*Np_WP*Nphi];
 	double*  cos_phi_array = new double [Nq_WP*Np_WP*Nphi];
-	for (int idx=0; idx<Nq_WP*Np_WP*Nphi; idx++){
+	for (size_t idx=0; idx<Nq_WP*Np_WP*Nphi; idx++){
 		sin_phi_array[idx] = sin(phi_array[idx]);
 		cos_phi_array[idx] = cos(phi_array[idx]);
 	}
 
 	/* Preallocate array if we use dense format. Otherwise (i.e. sparse) start with
 	 * some reasonable guess (usually less than a percent), and expand if required. */
-	long long int P123_dense_dim    = Np_WP * Nq_WP * Nalpha;
-	long long int P123_dense_dim_sq = P123_dense_dim * P123_dense_dim;
+	size_t P123_dense_dim    = Np_WP * Nq_WP * Nalpha;
+	size_t P123_dense_dim_sq = P123_dense_dim * P123_dense_dim;
 
 	/* Number of elements each thread can hold before writing to disk.
 	 * Default is 1 GB memory per thread, as this is a (somewhat) safe minimum one typically
@@ -523,17 +523,19 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	//}
 	//}
 
-	int  P123_row_idx = 0;
-	int  P123_col_idx = 0;
-	int  pq_WP_idx	  = 0;
-	bool WP_overlap	  = 0;
-	double P123_element = 0;
-	double Gtilde_subarray [Gtilde_subarray_size];
+	int  	P123_row_idx = 0;
+	int  	P123_col_idx = 0;
+	size_t  pq_WP_idx	 = 0;
+	bool    WP_overlap	 = false;
+	double  P123_element = 0;
+
 	int L_2N	   = 0;
 	int L_1N	   = 0;
 	int L_2N_prime = 0;
 	int L_1N_prime = 0;
 	
+	double Gtilde_subarray [Gtilde_subarray_size];
+
 	#pragma omp for
 	/* <X_i'j'^alpha'| - loops (rows of P123) */
 	for (int qp_idx_WP = 0; qp_idx_WP < Nq_WP; qp_idx_WP++){
@@ -556,7 +558,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 				fflush(stdout);
 			}
 
-			for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
+			for (int alphap_idx = 0; alphap_idx < 1; alphap_idx++){
 	
 				/* |X_ij^alpha> - loops (columns of P123) */
 				for (int alpha_idx = 0; alpha_idx < Nalpha; alpha_idx++){
@@ -615,7 +617,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 									P123_col_idx = alpha_idx*Nq_WP*Np_WP + q_idx_WP*Np_WP + p_idx_WP;
 
 									if (use_dense_format){
-										int P123_mat_idx = (int) P123_row_idx*P123_dense_dim + P123_col_idx;
+										size_t P123_mat_idx = P123_row_idx*P123_dense_dim + P123_col_idx;
 										(*P123_val_dense_array)[P123_mat_idx] = P123_element;
 									}
 									else{
@@ -729,7 +731,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	auto timestamp_P123_tot_end = chrono::system_clock::now();
 	chrono::duration<double> time_P123_tot = timestamp_P123_tot_end - timestamp_P123_tot_start;
 	double P123_tot_time = time_P123_tot.count();
-	printf("     - Done. Tot. time used: %.1f h \n", P123_tot_time/3600.); fflush(stdout);
+	printf("\n     - Done. Tot. time used: %.1f h \n", P123_tot_time/3600.); fflush(stdout);
 
 	/* Contract arrays to minimal size (number of non-zero elements) */
 	printf("   - Merging P123 parallel-distributed arrays into a single COO-format structure ... \n"); fflush(stdout);
@@ -757,7 +759,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 				P123_dim += current_P123_sparse_dim;
 			}
 		}
-		printf("   - Total number of non-zero elements: %d \n", P123_dim); fflush(stdout);
+		printf("   - Total number of non-zero elements: %zu \n", P123_dim); fflush(stdout);
 		
 		/* Allocate required memory to fite whole P123-matrix */
 		double required_mem = P123_dim * (sizeof(double) + 2*sizeof(int))/std::pow(2.0,30);
@@ -809,26 +811,29 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 																 false);
 
 				/* Append RANDOM ORDER elements to input arrays */
-				for (int idx=0; idx<current_P123_sparse_dim; idx++){
+				for (size_t idx=0; idx<current_P123_sparse_dim; idx++){
 					(*P123_val_sparse_array)[idx+nnz_counter] = P123_sparse_val_subarray[idx];
 					(*P123_row_array)       [idx+nnz_counter] = P123_sparse_row_subarray[idx];
 					(*P123_col_array)       [idx+nnz_counter] = P123_sparse_col_subarray[idx];
 				}
 
 				nnz_counter += current_P123_sparse_dim;
+
+				delete [] P123_sparse_val_subarray;
+				delete [] P123_sparse_row_subarray;
+				delete [] P123_sparse_col_subarray;
 			}
 		}
 
 		/* Index array to sort */
 		printf("   - Creating sorting vector for row-major COO-format \n"); fflush(stdout);
-		std::vector<size_t> P123_idx_vector (P123_dim, 0);;
-		for (int idx=0; idx<P123_dim; idx++){
+		std::vector<size_t> P123_idx_vector (P123_dim, 0);
+		for (size_t idx=0; idx<P123_dim; idx++){
 			P123_idx_vector[idx] = (size_t)(*P123_row_array)[idx]*P123_dense_dim + (size_t)(*P123_col_array)[idx];
 		}
 
 		/* Sort indices using template (Warning - lambda expression - requires C++11 or newer compiler) */
 		auto sorted_indices = sort_indexes(P123_idx_vector);
-		int* sparse_idx_array_temp = new int [P123_dim];
 
 		///* Sorting test */
 		//std::vector<int> test_vec (10, 0);;
@@ -843,7 +848,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 		/* Sort row indices */
 		printf("     - Sorting random-order row indices \n"); fflush(stdout);
-		for (int i=0; i<P123_dim; i++){
+		int* sparse_idx_array_temp = new int [P123_dim];
+		for (size_t i=0; i<P123_dim; i++){
 			sparse_idx_array_temp[i] = (*P123_row_array)[sorted_indices[i]];
 		}
 		std::copy(sparse_idx_array_temp, sparse_idx_array_temp + P123_dim, *P123_row_array);
@@ -859,7 +865,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 		/* Sort column indices */
 		printf("     - Sorting random-order column indices \n"); fflush(stdout);
-		for (int i=0; i<P123_dim; i++){
+		for (size_t i=0; i<P123_dim; i++){
 			sparse_idx_array_temp[i] = (*P123_col_array)[sorted_indices[i]];
 		}
 		std::copy(sparse_idx_array_temp, sparse_idx_array_temp + P123_dim, *P123_col_array);
@@ -869,7 +875,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 
 		/* Sort values */
 		printf("     - Sorting random-order P123-values \n"); fflush(stdout);
-		for (int i=0; i<P123_dim; i++){
+		for (size_t i=0; i<P123_dim; i++){
 			sparse_val_array_temp[i] = (*P123_val_sparse_array)[sorted_indices[i]];
 		}
 		std::copy(sparse_val_array_temp, sparse_val_array_temp + P123_dim, *P123_val_sparse_array);
@@ -946,6 +952,7 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 
 	if (print_content){
 		printf("   - Calculation finished. \n");
+		fflush(stdout);
 	}
 
 	/* Convert dense-storage to sparse COO-format */
@@ -980,8 +987,9 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 		double P_123_subarray_density = (double) P123_sparse_dim / P123_array_dense_dim_sq;
 
 		printf(" - Dense dimension:   %dx%d \n", P123_array_dense_dim, P123_array_dense_dim);
-		printf(" - Non-zero elements: %d \n",    P123_sparse_dim);
-		printf(" - Density:           %.4f %% \n",  100*P_123_subarray_density);
+		printf(" - Non-zero elements: %zu \n",   P123_sparse_dim);
+		printf(" - Density:           %.3f %% \n",  100*P_123_subarray_density);
+		fflush(stdout);
 	}
 		
 	delete [] P123_val_dense_array;

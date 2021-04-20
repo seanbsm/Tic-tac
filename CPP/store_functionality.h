@@ -106,12 +106,12 @@ void read_PW_statespace_to_h5(int  Nalpha,
 void write_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 										int*    P123_sparse_row_array,
 										int*    P123_sparse_col_array,
-										int     P123_sparse_dim,
+										size_t  P123_sparse_dim,
 										hid_t   file_id);
 void read_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 									   int*    P123_sparse_row_array,
 									   int*    P123_sparse_col_array,
-									   int     P123_sparse_dim,
+									   size_t  P123_sparse_dim,
 									   char*   filename);
 
 #endif // STORE_FUNCTIONALITY_H

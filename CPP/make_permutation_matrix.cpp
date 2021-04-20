@@ -558,7 +558,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 				fflush(stdout);
 			}
 
-			for (int alphap_idx = 0; alphap_idx < 1; alphap_idx++){
+			for (int alphap_idx = 0; alphap_idx < Nalpha; alphap_idx++){
 	
 				/* |X_ij^alpha> - loops (columns of P123) */
 				for (int alpha_idx = 0; alpha_idx < Nalpha; alpha_idx++){

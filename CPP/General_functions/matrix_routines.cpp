@@ -350,15 +350,15 @@ void square_sparse_COO_to_dense_format_converter(int      mat_dim,
 	}
 }
 
-void coo_to_csr_format_converter(int*   idx_row_array_coo,
-								 int*   idx_row_array_csr,
-								 size_t mat_sparse_dim,
-								 int    mat_dense_dim){
-	for (int i=0; i<mat_dense_dim+1; i++){
+void coo_to_csr_format_converter(int*    idx_row_array_coo,
+								 size_t* idx_row_array_csr,
+								 size_t  mat_sparse_dim,
+								 size_t  mat_dense_dim){
+	for (size_t i=0; i<mat_dense_dim+1; i++){
 		idx_row_array_csr[i] = 0;
 	}
 
-	for (int i=1; i<mat_dense_dim+1; i++){
+	for (size_t i=1; i<mat_dense_dim+1; i++){
 
 		size_t num_nnz_cols_in_row = 0;
 		for (size_t j=idx_row_array_csr[i-1]; j<mat_sparse_dim; j++){

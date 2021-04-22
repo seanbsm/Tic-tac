@@ -55,10 +55,10 @@ void square_sparse_COO_to_dense_format_converter(int      mat_dim,
 												 size_t   mat_sparse_dim);
 
 /* Converts sparse COO-format index arrays to CSR-format index arrays */
-void coo_to_csr_format_converter(int*   idx_row_array_coo,
-								 int*   idx_row_array_csr,
-								 size_t mat_sparse_dim,
-								 int    mat_dense_dim);
+void coo_to_csr_format_converter(int*    idx_row_array_coo,
+								 size_t* idx_row_array_csr,
+								 size_t  mat_sparse_dim,
+								 size_t  mat_dense_dim);
 /* Converts sparse column-major COO-format index arrays to row-major COO-format index arrays */
 void coo_col_major_to_coo_row_major_converter(double** mat_val_array_coo,
 											  int**    mat_row_array_coo,

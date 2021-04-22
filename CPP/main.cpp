@@ -122,24 +122,24 @@ int main(int argc, char* argv[]){
 	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
-	bool calculate_and_store_P123 = true;
+	bool calculate_and_store_P123 = false;
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
 	 * and solve Faddeev in a single run */
-	bool solve_faddeev		      = false;
+	bool solve_faddeev		      = true;
 	bool production_run			  = true;
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 3;//1; //5;
-	int two_J_3N_max = 11;//25;//1; //25;
+	int J_2N_max 	 = 1;//1; //5;
+	int two_J_3N_max = 1;//25;//1; //25;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 150; //30;
-	int Nq_WP	   	 = 150; //30;
+	int Np_WP	   	 = 40; //30;
+	int Nq_WP	   	 = 10; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -243,6 +243,11 @@ int main(int argc, char* argv[]){
 	wq_array = new double [Nq_per_WP*Nq_WP];
 	make_q_bin_quadrature_grids(Nq_WP, q_WP_array,
 								Nq_per_WP, q_array, wq_array);
+	printf(" - Done \n");
+
+	printf("Storing q boundaries to CSV-file ... \n");
+	store_q_WP_boundaries_csv(Nq_WP, q_WP_array,
+						      "q_boundaries.csv");
 	printf(" - Done \n");
 
 	/* End of code segment for state space construction */
@@ -494,16 +499,16 @@ int main(int argc, char* argv[]){
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
 			printf("Reading P123 from h5 ... \n");
 			
-			double* P123_sparse_val_array_t = NULL;
-			int* 	P123_sparse_row_array_t = NULL;
-			int* 	P123_sparse_col_array_t = NULL;
-			size_t  P123_sparse_dim_t		= 0;
+			//double* P123_sparse_val_array_t = NULL;
+			//int* 	P123_sparse_row_array_t = NULL;
+			//int* 	P123_sparse_col_array_t = NULL;
+			//size_t  P123_sparse_dim_t		= 0;
 
 			auto timestamp_P123_read_start = chrono::system_clock::now();
-			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array_t,
-															  &P123_sparse_row_array_t,
-															  &P123_sparse_col_array_t,
-															  P123_sparse_dim_t,
+			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array,
+															  &P123_sparse_row_array,
+															  &P123_sparse_col_array,
+															  P123_sparse_dim,
 															  Np_WP, p_WP_array,
 															  Nq_WP, q_WP_array,
 															  Nalpha_in_3N_chn,
@@ -578,7 +583,7 @@ int main(int argc, char* argv[]){
 			int 	 num_deuteron_states = deuteron_num_array[chn_3N];
 			int* 	 deuteron_idx_array  = deuteron_idx_arrays[chn_3N];
 			
-			cdouble* U_array = new cdouble [num_T_lab * num_deuteron_states];
+			cdouble* U_array = new cdouble [num_T_lab * num_deuteron_states * num_deuteron_states];
 
 			printf("Solving Faddeev equations ... \n");
 			solve_faddeev_equations(U_array,
@@ -606,6 +611,11 @@ int main(int argc, char* argv[]){
 			printf(" - Done \n");
 
 			/* End of code segment for iterations of elastic Faddeev equations */
+			/* Start of code segment for storing on-shell U-matrix solutions */
+
+
+
+			/* End of code segment for storing on-shell U-matrix solutions */
 		}
 	}
 	/* End of looping over 3N-channels */

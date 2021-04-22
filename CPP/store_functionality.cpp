@@ -45,6 +45,96 @@ typedef struct Psparse_table{
 
 using namespace std;
 
+void store_q_WP_boundaries_csv(size_t Nq_WP, double* q_WP_array,
+						   	   std::string filename){
+	/* Open file*/
+	std::ofstream result_file;
+	result_file.open(filename);
+	
+	/* Fixes formatting of stored numbers */
+	result_file << std::fixed
+				<< std::showpos
+				//~ << std::right
+                //~ << std::setw(14)
+				<< std::setprecision(8);
+	
+	/* Append array-values */
+	for (size_t i=0; i<Nq_WP; i++){
+		/* Append vector element */
+        result_file << q_WP_array[i] << "\n";
+	}
+	
+	/* Close writing session */
+	result_file << std::endl;
+	
+	/* Close files */
+	result_file.close();
+}
+
+void store_U_matrix_elements_csv(std::complex<double>* U_array,
+							     int* q_com_idx_array,	  size_t num_q_com,
+					  		     int* deuteron_idx_array, size_t num_deuteron_states,
+							     int* L_1N_array, 
+							     int* two_J_1N_array,
+							     std::string filename){
+	/* Open file*/
+	std::ofstream result_file;
+	result_file.open(filename);
+	
+	/* Fixes formatting of stored numbers */
+	result_file << std::fixed
+				<< std::showpos
+				//~ << std::right
+                //~ << std::setw(14)
+				<< std::setprecision(8);
+	
+	bool first_row = true;
+	/* Loop over deuteron row-indices ("dp"=deuteron prime) */
+	for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+		int l_row 	  = L_1N_array[idx_d_row];
+		int two_j_row = two_J_1N_array[idx_d_row];
+
+		/* Loop over deuteron column-indices ("d"=deuteron) */
+		for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
+			int l_col 	  = L_1N_array[idx_d_col];
+			int two_j_col = two_J_1N_array[idx_d_col];
+
+			if (first_row){
+				result_file << "lp, two_jp, l, two_j";
+			}
+			else{
+				result_file << l_row <<", "<< two_j_row <<", "<< l_col <<", "<< two_j_col;
+			}
+
+			/* Loop over on-shell q-bins */
+			for (size_t q_idx=0; q_idx<num_q_com; q_idx++){
+				size_t q_WP_idx = q_com_idx_array[q_idx];
+				printf("Storing alpha'=%d, alpha=%d \n", idx_d_row, idx_d_col, q_idx);
+				if (first_row){
+					result_file << ", " << q_WP_idx;
+				}
+				else{
+					size_t U_idx = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + q_idx;
+
+					/* Append U-array element in Python numpy-style complex format */
+        			result_file << ", (" << U_array[U_idx].real() << U_array[U_idx].imag() << "j)";
+				}
+			}
+			result_file << "\n";
+
+			if (first_row){
+				first_row = false;
+			}
+		}
+	}
+	
+	/* Close writing session */
+	result_file << std::endl;
+	
+	/* Close files */
+	result_file.close();
+}
+
 void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_array,
 													   int*    P123_sparse_row_array,
 													   int*    P123_sparse_col_array,

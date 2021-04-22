@@ -94,8 +94,8 @@ void PVC_col_calc_test(size_t   Nalpha,
 					   size_t 	Np_WP,
 					   double** VC_CM_array,
 					   double*  P123_sparse_val_array,
-					   size_t*  P123_sparse_row_array,
-					   int*     P123_sparse_col_array,
+					   int*     P123_sparse_row_array,
+					   size_t*  P123_sparse_col_array,
 					   size_t   P123_sparse_dim);
 
 void CPVC_col_calc_test(size_t   Nalpha,
@@ -104,8 +104,8 @@ void CPVC_col_calc_test(size_t   Nalpha,
 						double** CT_RM_array,
 						double** VC_CM_array,
 						double*  P123_sparse_val_array,
-						size_t*  P123_sparse_row_array,
-						int*     P123_sparse_col_array,
+						int*     P123_sparse_row_array,
+						size_t*  P123_sparse_col_array,
 						size_t   P123_sparse_dim);
 
 #endif // SOLVE_FADDEEV_H

@@ -1,6 +1,24 @@
 
 #include "matrix_routines.h"
 
+/* Copied from: https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes */
+template <typename T>
+std::vector<size_t> sort_indexes(const std::vector<T> &v) {
+
+  // initialize original index locations
+  std::vector<size_t> idx(v.size());
+  std::iota(idx.begin(), idx.end(), 0);
+
+  // sort indexes based on comparing values in v
+  // using std::stable_sort instead of std::sort
+  // to avoid unnecessary index re-orderings
+  // when v contains elements of equal values 
+  std::stable_sort(idx.begin(), idx.end(),
+       [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
+
+  return idx;
+}
+
 void raise_error_DSS_MKL(_INTEGER_t error, const char* function_name){
     printf("Function %s returned error code %d\n", function_name, error);
 	exit(1);
@@ -374,53 +392,110 @@ void coo_to_csr_format_converter(int*    idx_row_array_coo,
 	}
 }
 
-void coo_col_major_to_coo_row_major_converter(double** mat_val_array_coo,
-											  int**    mat_row_array_coo,
-											  int**    mat_col_array_coo,
-											  size_t   mat_sparse_dim,
-											  int      mat_dense_dim){
-	
-	/* Allocate row-major (RM) arrays (these will replace input arrays) */
-	double* mat_val_array_coo_RM_temp = new double [mat_sparse_dim];
-	int* 	mat_row_array_coo_RM_temp = new int    [mat_sparse_dim];
-	int* 	mat_col_array_coo_RM_temp = new int    [mat_sparse_dim];
-
-	/* Loop through RM row-array */
-	size_t nnz_counter = 0;
-	for (int row_RM=0; row_RM<mat_dense_dim; row_RM++){
-		for (int col_RM=0; col_RM<mat_dense_dim; col_RM++){
-			
-			/* Random order loop */
-			for (size_t nnz_idx=0; nnz_idx<mat_sparse_dim; nnz_idx++){
-				int row_CM = (*mat_row_array_coo)[nnz_idx];
-				int col_CM = (*mat_col_array_coo)[nnz_idx];
-
-				/* If nnz element corresponds to order of two outer loops, append element */
-				if (row_RM==row_CM and col_RM==col_CM){
-					/* Append element */
-					mat_row_array_coo_RM_temp[nnz_counter] = row_RM;
-					mat_col_array_coo_RM_temp[nnz_counter] = col_RM;
-					mat_val_array_coo_RM_temp[nnz_counter] = (*mat_val_array_coo)[nnz_idx];
-
-					/* Increment non-zero counter */
-					nnz_counter += 1;
-
-					/* Break innermost loop */
-					break;
-				}
-			}
-		}
+void coo_to_csc_format_converter(int*    idx_col_array_coo,
+								 size_t* idx_col_array_csc,
+								 size_t  mat_sparse_dim,
+								 size_t  mat_dense_dim){
+	for (size_t i=0; i<mat_dense_dim+1; i++){
+		idx_col_array_csc[i] = 0;
 	}
 
-	/* Delete old column-major format arrays */
-	delete [] *mat_val_array_coo;
-	delete [] *mat_row_array_coo;
-	delete [] *mat_col_array_coo;
+	for (size_t i=1; i<mat_dense_dim+1; i++){
 
-	/* Let input array pointers point to temp-arrays */
-	*mat_val_array_coo = mat_val_array_coo_RM_temp;
-	*mat_row_array_coo = mat_row_array_coo_RM_temp;
-	*mat_col_array_coo = mat_col_array_coo_RM_temp;
+		size_t num_nnz_rows_in_col = 0;
+		for (size_t j=idx_col_array_csc[i-1]; j<mat_sparse_dim; j++){
+			if (idx_col_array_coo[j]>i-1){
+				break;
+			}
+			else{
+				num_nnz_rows_in_col += 1;
+			}
+		}
+
+		idx_col_array_csc[i] = num_nnz_rows_in_col + idx_col_array_csc[i-1];
+	}
+}
+
+void unsorted_sparse_to_coo_row_major_sorter(double** mat_val_array,
+											 int**    mat_row_array,
+											 int**    mat_col_array,
+											 size_t   mat_sparse_dim,
+											 int      mat_dense_dim){
+	
+	printf("   - Creating ordering vector for row-major COO-format \n");
+	std::vector<size_t> unsorted_idx_vector (mat_sparse_dim, 0);
+	for (size_t idx=0; idx<mat_sparse_dim; idx++){
+		unsorted_idx_vector[idx] = (size_t)(*mat_row_array)[idx]*mat_dense_dim + (size_t)(*mat_col_array)[idx];
+	}
+
+	/* Sort indices using template (Warning - lambda expression - requires C++11 or newer compiler) */
+	auto sorted_indices = sort_indexes(unsorted_idx_vector);
+
+	/* Sort row indices */
+	printf("   - Reshuffling row-indices \n");
+	int* mat_row_array_coo_CM = new int [mat_sparse_dim];
+	for (size_t i=0; i<mat_sparse_dim; i++){
+		mat_row_array_coo_CM[i] = (*mat_row_array)[sorted_indices[i]];
+	}
+	delete [] *mat_row_array;
+	*mat_row_array = mat_row_array_coo_CM;
+
+	printf("   - Reshuffling column-indices \n");
+	int* mat_col_array_coo_CM = new int [mat_sparse_dim];
+	for (size_t i=0; i<mat_sparse_dim; i++){
+		mat_col_array_coo_CM[i] = (*mat_col_array)[sorted_indices[i]];
+	}
+	delete [] *mat_col_array;
+	*mat_col_array = mat_col_array_coo_CM;
+
+	printf("   - Reshuffling values \n");
+	double* mat_val_array_coo_CM = new double [mat_sparse_dim];
+	for (size_t i=0; i<mat_sparse_dim; i++){
+		mat_val_array_coo_CM[i] = (*mat_val_array)[sorted_indices[i]];
+	}
+	delete [] *mat_val_array;
+	*mat_val_array = mat_val_array_coo_CM;
+}
+
+void unsorted_sparse_to_coo_col_major_sorter(double** mat_val_array,
+											 int**    mat_row_array,
+											 int**    mat_col_array,
+											 size_t   mat_sparse_dim,
+											 int      mat_dense_dim){
+
+	printf("   - Creating reshuffling vector for column-major COO-format \n");
+	std::vector<size_t> unsorted_idx_vector (mat_sparse_dim, 0);
+	for (size_t idx=0; idx<mat_sparse_dim; idx++){
+		unsorted_idx_vector[idx] = (size_t)(*mat_col_array)[idx]*mat_dense_dim + (size_t)(*mat_row_array)[idx];
+	}
+
+	/* Sort indices using template (Warning - lambda expression - requires C++11 or newer compiler) */
+	auto sorted_indices = sort_indexes(unsorted_idx_vector);
+
+	/* Sort row indices */
+	printf("   - Reshuffling row-indices \n");
+	int* mat_row_array_coo_CM = new int [mat_sparse_dim];
+	for (size_t i=0; i<mat_sparse_dim; i++){
+		mat_row_array_coo_CM[i] = (*mat_row_array)[sorted_indices[i]];
+	}
+	delete [] *mat_row_array;
+	*mat_row_array = mat_row_array_coo_CM;
+
+	printf("   - Reshuffling column-indices \n");
+	int* mat_col_array_coo_CM = new int [mat_sparse_dim];
+	for (size_t i=0; i<mat_sparse_dim; i++){
+		mat_col_array_coo_CM[i] = (*mat_col_array)[sorted_indices[i]];
+	}
+	delete [] *mat_col_array;
+	*mat_col_array = mat_col_array_coo_CM;
+
+	printf("   - Reshuffling values \n");
+	double* mat_val_array_coo_CM = new double [mat_sparse_dim];
+	for (size_t i=0; i<mat_sparse_dim; i++){
+		mat_val_array_coo_CM[i] = (*mat_val_array)[sorted_indices[i]];
+	}
+	delete [] *mat_val_array;
+	*mat_val_array = mat_val_array_coo_CM;
 }
 
 void increase_sparse_array_size(double** sparse_array, int array_length, int sparse_step_length){

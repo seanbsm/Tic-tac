@@ -1,70 +1,48 @@
 
 #include "solve_faddeev.h"
 
-void calculate_CPVC_product_row(){
-}
-
 void calculate_PVC_col(double*  col_array,
 					   size_t   idx_alpha_c, size_t idx_p_c, size_t idx_q_c,
 					   size_t   Nalpha,      size_t Nq_WP,   size_t Np_WP,
 					   double** VC_CM_array,
 					   double*  P123_val_array,
-					   size_t*  P123_row_array,
-					   int*     P123_col_array,
+					   int*  	P123_row_array,
+					   size_t*  P123_col_array,
 					   size_t   P123_dim){
 
-	/* OPTIMIZATION THOUGHTS:
-	 * This approach is only viable for column-major P123-storage.
-	 * I can introduce a COO/CSR->CRS converter, shouldn't be demanding */
-	//int idx_row_min =  idx_alpha_j*Nq_WP*Np_WP    + idx_q_c*Np_WP;
-	//int idx_row_max = (idx_alpha_j+1)*Nq_WP*Np_WP + idx_q_c*Np_WP;
-
 	double* VC_subarray     = NULL;
-	double* VC_subarray_col = NULL;
 
 	size_t dense_dim = Nalpha*Np_WP*Nq_WP;
 
-	size_t idx1 = idx_alpha_c*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_c;
+	for (size_t idx_alpha_j=0; idx_alpha_j<Nalpha; idx_alpha_j++){
+		VC_subarray = VC_CM_array[idx_alpha_c*Nalpha + idx_alpha_j];
 
-	/* Loop over rows of col-array */
-	for (size_t idx_i=0; idx_i<dense_dim; idx_i++){
+		/* Only do inner-product if VC is not zero due to conservation laws */
+		if (VC_subarray!=NULL){
+			for (size_t idx_p_j=0; idx_p_j<Np_WP; idx_p_j++){
 
-		/* CSR-format indexing */
-		size_t idx_j_lower = P123_row_array[idx_i    ];
-		size_t idx_j_upper = P123_row_array[idx_i + 1];
+				/* Access VC element */
+				double VC_element = VC_subarray[idx_p_c*Np_WP + idx_p_j];
 
-		/* Loop over inner-product indices (columns of P123)  */
-		double inner_product_PVC = 0;
-		for (size_t idx_j=idx_j_lower; idx_j<idx_j_upper; idx_j++){
-			size_t col_idx = P123_col_array[idx_j];
+				/* Inner-product index */
+				size_t idx_j =  idx_alpha_j*Np_WP*Nq_WP + idx_q_c*Np_WP + idx_p_j;
 
-			size_t idx_alpha_j = col_idx / (Np_WP*Nq_WP);
+				/* CSC-format indexing */
+				size_t idx_i_lower = P123_col_array[idx_j    ];
+				size_t idx_i_upper = P123_col_array[idx_j + 1];
 
-			VC_subarray = VC_CM_array[idx_alpha_c*Nalpha + idx_alpha_j];
-
-			/* Only do inner-product if VC is not zero due to conservation laws */
-			if (VC_subarray!=NULL){
-				VC_subarray_col = &VC_subarray[idx_p_c*Np_WP];
-
-				/* Extract idx_q_j from col_idx using quotient and remainder */
-				size_t idx_alpha_q_j = col_idx / Np_WP;
-				size_t idx_q_j 	  = idx_alpha_q_j % Nq_WP;
-				
-				/* Check q-momentum conservation */
-				if (idx_q_j == idx_q_c){
-					/* Extract idx_p_j from col_idx using remainder */
-					size_t idx_p_j = col_idx % Np_WP;
+				/* Loop through rows of column we're calculating, and append */
+				for (size_t idx_i=idx_i_lower; idx_i<idx_i_upper; idx_i++){
 
 					/* Access arrays, this whole function is written to minimize these two calls */
-					double P_element  = P123_val_array[idx_j];
-					double VC_element = VC_subarray_col[idx_p_j];
-					inner_product_PVC += P_element * VC_element;
+					double P_element  = P123_val_array[idx_i];
+					
+					size_t idx_row = P123_row_array[idx_i];
+					/* Write inner product to col_array of PVC-product */
+					col_array[idx_row] += P_element * VC_element;
 				}
 			}
 		}
-
-		/* Write inner product to col_array of PVC-product */
-		col_array[idx_i] = inner_product_PVC;
 	}
 }
 
@@ -74,8 +52,8 @@ void calculate_CPVC_col(double*  col_array,
 						double** CT_RM_array,
 						double** VC_CM_array,
 						double*  P123_val_array,
-						size_t*  P123_row_array,
-						int*     P123_col_array,
+						int*     P123_row_array,
+						size_t*  P123_col_array,
 						size_t   P123_dim){
 	
 	/* Generate PVC-column */
@@ -146,21 +124,21 @@ void calculate_all_CPVC_rows(cdouble* row_arrays,
 							 double** CT_RM_array,
 							 double** VC_CM_array,
 							 double*  P123_val_array,
-							 size_t*  P123_row_array,
-							 int*     P123_col_array,
+							 int*     P123_row_array,
+							 size_t*  P123_col_array,
 							 size_t   P123_dim){
 	
 	size_t dense_dim = Nalpha*Nq_WP*Np_WP;
 
 	/* Loop over cols of row */
-	//#pragma omp parallel
-	//{
+	#pragma omp parallel
+	{
 	/* Generate PVC-column */
 	double* PVC_col = new double [dense_dim];
 	/* Generate (C^T x PVC)-column */
 	double* CT_subarray     = NULL;
 	double* CT_subarray_row = NULL;
-	//#pragma omp for
+	#pragma omp for
 	for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 		for (size_t idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
 			for (size_t idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
@@ -169,7 +147,7 @@ void calculate_all_CPVC_rows(cdouble* row_arrays,
 				for (size_t idx=0; idx<dense_dim; idx++){
 					PVC_col[idx] = 0;
 				}
-				std::cout << "col num " << idx_alpha_c*Np_WP*Nq_WP+idx_q_c*Np_WP+idx_p_c << std::endl;
+				
 				/* Calculate PVC-column for alpha_i, p_i, q_r */
 				calculate_PVC_col(PVC_col,
 								  idx_alpha_c, idx_p_c, idx_q_c,
@@ -179,7 +157,6 @@ void calculate_all_CPVC_rows(cdouble* row_arrays,
 								  P123_row_array,
 								  P123_col_array,
 								  P123_dim);
-				std::cout << "done" << std::endl;
 
 				/* Re-use PVC-column in all relevant calculations */
 				for (size_t i=0; i<num_deuteron_states; i++){
@@ -222,8 +199,8 @@ void calculate_all_CPVC_rows(cdouble* row_arrays,
 			}
 		}
 	}
-	//delete [] PVC_col; 
-	//}
+	delete [] PVC_col; 
+	}
 }
 
 cdouble pade_approximant(cdouble* a_coeff_array, size_t N, size_t M, cdouble z){
@@ -298,8 +275,8 @@ void faddeev_dense_solver(cdouble*  U_array,
 					      double**  CT_RM_array,
 					      double**  VC_CM_array,
 					      double*   P123_sparse_val_array,
-					      size_t*   P123_sparse_row_array,
-					      int*      P123_sparse_col_array,
+					      int*      P123_sparse_row_array,
+					      size_t*   P123_sparse_col_array,
 					      size_t    P123_sparse_dim){
 	
 	/* Stores A and K arrays for the first indices in q_com_idx_array
@@ -399,8 +376,8 @@ void pade_method_solve(cdouble*  U_array,
 					   double**  CT_RM_array,
 					   double**  VC_CM_array,
 					   double*   P123_sparse_val_array,
-					   size_t*   P123_sparse_row_array,
-					   int*      P123_sparse_col_array,
+					   int*      P123_sparse_row_array,
+					   size_t*   P123_sparse_col_array,
 					   size_t    P123_sparse_dim){
 
 	/* Print Pade-approximant convergences */
@@ -673,13 +650,25 @@ void solve_faddeev_equations(cdouble*  U_array,
 									   J_2N_array,
 									   T_2N_array);
 	
-	/* Convert P123_row_array from COO to CSR format */
 	size_t  dense_dim = Nalpha * Nq_WP * Np_WP;
-	size_t* P123_sparse_row_array_csr = new size_t [dense_dim];
-	coo_to_csr_format_converter(P123_sparse_row_array,
-								P123_sparse_row_array_csr,
+	
+	/* Convert row-major sparse format to column-major */
+	printf(" - Converting P123 from row- to column-major ... \n");
+	unsorted_sparse_to_coo_col_major_sorter(&P123_sparse_val_array,
+											&P123_sparse_row_array,
+											&P123_sparse_col_array,
+											P123_sparse_dim,
+											dense_dim);
+	printf("   - Done \n");
+
+	/* Convert from COO format to CSC format */
+	printf(" - Converting P123 from COO to CSC format ... \n");
+	size_t* P123_sparse_col_array_csc = new size_t [dense_dim];
+	coo_to_csr_format_converter(P123_sparse_col_array,
+								P123_sparse_col_array_csc,
 								P123_sparse_dim,
 								dense_dim);
+	printf("   - Done \n");
 	
 	/* Test optimized routine for PVC columns */
 	if (test_PVC_col_routine){
@@ -689,8 +678,8 @@ void solve_faddeev_equations(cdouble*  U_array,
 						  Np_WP,
 						  VC_CM_array,
 						  P123_sparse_val_array,
-						  P123_sparse_row_array_csr,
-						  P123_sparse_col_array,
+						  P123_sparse_row_array,
+						  P123_sparse_col_array_csc,
 						  P123_sparse_dim);
 		printf(" - Done \n");
 	}
@@ -703,8 +692,8 @@ void solve_faddeev_equations(cdouble*  U_array,
 						   CT_RM_array,
 						   VC_CM_array,
 						   P123_sparse_val_array,
-						   P123_sparse_row_array_csr,
-						   P123_sparse_col_array,
+						   P123_sparse_row_array,
+						   P123_sparse_col_array_csc,
 						   P123_sparse_dim);
 		printf(" - Done \n");
 	}
@@ -722,8 +711,8 @@ void solve_faddeev_equations(cdouble*  U_array,
 					  CT_RM_array,
 					  VC_CM_array,
 					  P123_sparse_val_array,
-					  P123_sparse_row_array_csr,
-					  P123_sparse_col_array,
+					  P123_sparse_row_array,
+					  P123_sparse_col_array_csc,
 					  P123_sparse_dim);
 
 	auto timestamp_solve_end = std::chrono::system_clock::now();
@@ -751,8 +740,8 @@ void solve_faddeev_equations(cdouble*  U_array,
 						     CT_RM_array,
 						     VC_CM_array,
 						     P123_sparse_val_array,
-						     P123_sparse_row_array_csr,
-						     P123_sparse_col_array,
+						     P123_sparse_row_array,
+						     P123_sparse_col_array_csc,
 						     P123_sparse_dim);
 
 		auto timestamp_solve_end = std::chrono::system_clock::now();
@@ -1020,8 +1009,8 @@ void PVC_col_brute_force(double*  col_array,
 					     size_t   Nalpha,      size_t Nq_WP,   size_t Np_WP,
 					     double** VC_CM_array,
 					     double*  P123_val_array,
-					     size_t*  P123_row_array,
-					     int*     P123_col_array,
+					     int*  	  P123_row_array,
+					     size_t*  P123_col_array,
 					     size_t   P123_dim){
 	
 	bool   print_content = false;
@@ -1044,12 +1033,12 @@ void PVC_col_brute_force(double*  col_array,
 
 									size_t idx_P123_col = idx_alpha_j*Nq_WP*Np_WP + idx_q_j*Np_WP + idx_p_j;
 
-									size_t idx_P123_col_lower = P123_row_array[idx_P123_row];
-									size_t idx_P123_col_upper = P123_row_array[idx_P123_row+1];
+									size_t idx_P123_row_lower = P123_col_array[idx_P123_col];
+									size_t idx_P123_row_upper = P123_col_array[idx_P123_col+1];
 									bool idx_found = false;
 									size_t idx_P123_val = 0;
-									for (size_t nnz_idx=idx_P123_col_lower; nnz_idx<idx_P123_col_upper; nnz_idx++){
-										if (P123_col_array[nnz_idx] == idx_P123_col){
+									for (size_t nnz_idx=idx_P123_row_lower; nnz_idx<idx_P123_row_upper; nnz_idx++){
+										if (P123_row_array[nnz_idx] == idx_P123_row){
 											idx_found = true;
 											idx_P123_val = nnz_idx;
 										}
@@ -1081,8 +1070,8 @@ void CPVC_col_brute_force(double*  col_array,
 						  double** CT_RM_array,
 						  double** VC_CM_array,
 						  double*  P123_val_array,
-						  size_t*  P123_row_array,
-						  int*     P123_col_array,
+						  int*     P123_row_array,
+						  size_t*  P123_col_array,
 						  size_t   P123_dim){
 	double* CT_ptr = NULL;
 	double* VC_ptr = NULL;
@@ -1143,8 +1132,8 @@ void PVC_col_calc_test(size_t   Nalpha,
 					   size_t 	Np_WP,
 					   double** VC_CM_array,
 					   double*  P123_sparse_val_array,
-					   size_t*  P123_sparse_row_array,
-					   int*     P123_sparse_col_array,
+					   int*  	P123_sparse_row_array,
+					   size_t*  P123_sparse_col_array,
 					   size_t   P123_sparse_dim){
 
 	bool print_content = false;
@@ -1227,8 +1216,8 @@ void CPVC_col_calc_test(size_t   Nalpha,
 						double** CT_RM_array,
 						double** VC_CM_array,
 						double*  P123_sparse_val_array,
-						size_t*  P123_sparse_row_array,
-						int*     P123_sparse_col_array,
+						int*     P123_sparse_row_array,
+						size_t*  P123_sparse_col_array,
 						size_t   P123_sparse_dim){
 
 	bool print_content = false;

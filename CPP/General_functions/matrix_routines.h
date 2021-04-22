@@ -4,6 +4,9 @@
 #include <iostream>
 #include <math.h>
 #include <complex>
+#include <vector>
+#include <numeric>
+#include <algorithm>
 #include "mkl.h"
 #include "mkl_dss.h"
 
@@ -54,17 +57,29 @@ void square_sparse_COO_to_dense_format_converter(int      mat_dim,
 												 int*     mat_sparse_col_array,
 												 size_t   mat_sparse_dim);
 
-/* Converts sparse COO-format index arrays to CSR-format index arrays */
+/* Converts row-major sparse COO-format index arrays to CSR-format index arrays */
 void coo_to_csr_format_converter(int*    idx_row_array_coo,
 								 size_t* idx_row_array_csr,
 								 size_t  mat_sparse_dim,
 								 size_t  mat_dense_dim);
-/* Converts sparse column-major COO-format index arrays to row-major COO-format index arrays */
-void coo_col_major_to_coo_row_major_converter(double** mat_val_array_coo,
-											  int**    mat_row_array_coo,
-											  int**    mat_col_array_coo,
-											  size_t   mat_sparse_dim,
-											  int      mat_dense_dim);
+/* Converts column-major sparse COO-format index arrays to CSC-format index arrays */
+void coo_to_csc_format_converter(int*    idx_col_array_coo,
+								 size_t* idx_col_array_csc,
+								 size_t  mat_sparse_dim,
+								 size_t  mat_dense_dim);
+
+/* Converts sparse random-order COO-format arrays to row-major COO-format */
+void unsorted_sparse_to_coo_row_major_sorter(double** mat_val_array,
+											 int**    mat_row_array,
+											 int**    mat_col_array,
+											 size_t   mat_sparse_dim,
+											 int      mat_dense_dim);
+/* Converts sparse random-order COO-format arrays to column-major COO-format */
+void unsorted_sparse_to_coo_col_major_sorter(double** mat_val_array,
+											 int**    mat_row_array,
+											 int**    mat_col_array,
+											 size_t   mat_sparse_dim,
+											 int      mat_dense_dim);
 
 /* Increase a full sparse array size of length array_length by sparse_step_length elements */
 void increase_sparse_array_size(double** sparse_array, int array_length, int sparse_step_length);

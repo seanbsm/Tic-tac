@@ -64,7 +64,6 @@ For-loop over 3N channels chn"="(J3,T3,P3) ({alpha}_chn stored congruently in me
 			          = A + AGA + AGAGA + AGAGAGA + ...
 			          = sum_n=0^N A(GA)^n
 			          = sum_n=0^N (AG)^n A
-			          = sum_n=0^N (A^n)(G^n)A
 	- method (DSS): Rewrite Faddeev: (1-AG)U = A_c, where A_c is a column of interest (on-shell)
 	- bottleneck: A=C^T PVC column-calculation
 	- output: Elastic U-matrix elements (several {n}=deutron channels within one "chn")

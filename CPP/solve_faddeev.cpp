@@ -153,14 +153,14 @@ void calculate_all_CPVC_rows(cdouble* row_arrays,
 	size_t dense_dim = Nalpha*Nq_WP*Np_WP;
 
 	/* Loop over cols of row */
-	#pragma omp parallel
-	{
+	//#pragma omp parallel
+	//{
 	/* Generate PVC-column */
 	double* PVC_col = new double [dense_dim];
 	/* Generate (C^T x PVC)-column */
 	double* CT_subarray     = NULL;
 	double* CT_subarray_row = NULL;
-	#pragma omp for
+	//#pragma omp for
 	for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 		for (size_t idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
 			for (size_t idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
@@ -169,7 +169,7 @@ void calculate_all_CPVC_rows(cdouble* row_arrays,
 				for (size_t idx=0; idx<dense_dim; idx++){
 					PVC_col[idx] = 0;
 				}
-				
+				std::cout << "col num " << idx_alpha_c*Np_WP*Nq_WP+idx_q_c*Np_WP+idx_p_c << std::endl;
 				/* Calculate PVC-column for alpha_i, p_i, q_r */
 				calculate_PVC_col(PVC_col,
 								  idx_alpha_c, idx_p_c, idx_q_c,
@@ -179,6 +179,7 @@ void calculate_all_CPVC_rows(cdouble* row_arrays,
 								  P123_row_array,
 								  P123_col_array,
 								  P123_dim);
+				std::cout << "done" << std::endl;
 
 				/* Re-use PVC-column in all relevant calculations */
 				for (size_t i=0; i<num_deuteron_states; i++){
@@ -221,8 +222,8 @@ void calculate_all_CPVC_rows(cdouble* row_arrays,
 			}
 		}
 	}
-	delete [] PVC_col; 
-	}
+	//delete [] PVC_col; 
+	//}
 }
 
 cdouble pade_approximant(cdouble* a_coeff_array, size_t N, size_t M, cdouble z){
@@ -309,7 +310,6 @@ void faddeev_dense_solver(cdouble*  U_array,
 	/* Dense dimension of 3N-channel */
 	size_t dense_dim = Nalpha * Nq_WP * Np_WP;
 	
-	printf(" - Solving as dense system: \n");
 	std::complex<double>* L_array = new cdouble [dense_dim*dense_dim];
 	std::complex<double>* R_array = new cdouble [dense_dim*dense_dim];
 	double* CPVC_col_array = new double [dense_dim];
@@ -367,16 +367,20 @@ void faddeev_dense_solver(cdouble*  U_array,
 		/* Solve */
 		solve_MM(L_array, R_array, dense_dim);
 
-		for (size_t i=0; i<num_deuteron_states; i++){
-			size_t idx_alpha_NDOS = deuteron_idx_array[i];
-			size_t idx_p_NDOS 	  = 0;
-			size_t idx_q_NDOS 	  = q_com_idx_array[j];
+		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+			for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
+				size_t idx_alpha_row = deuteron_idx_array[idx_d_row];
+				size_t idx_alpha_col = deuteron_idx_array[idx_d_col];
+				size_t idx_p_NDOS 	  = 0;
+				size_t idx_q_NDOS 	  = q_com_idx_array[j];
 
-			size_t idx_NDOS = idx_alpha_NDOS*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
+				size_t idx_row_NDOS = idx_alpha_row*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
+				size_t idx_col_NDOS = idx_alpha_col*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
 
-			cdouble U_val = R_array[idx_NDOS*dense_dim + idx_NDOS];
+				cdouble U_val = R_array[idx_row_NDOS*dense_dim + idx_col_NDOS];
 
-			printf("   - U-matrix element for alpha=%d, q=%d, p=%d: %.10e + %.10ei \n", idx_alpha_NDOS, idx_q_NDOS, idx_p_NDOS, U_val.real(), U_val.imag());
+				printf("   - U-matrix element for alpha'=%d, alpha=%d, q=%d: %.10e + %.10ei \n", idx_alpha_row, idx_alpha_col, idx_q_NDOS, idx_p_NDOS, U_val.real(), U_val.imag());
+			}
 		}
 
 	}
@@ -399,10 +403,15 @@ void pade_method_solve(cdouble*  U_array,
 					   int*      P123_sparse_col_array,
 					   size_t    P123_sparse_dim){
 
+	/* Print Pade-approximant convergences */
+	bool print_PA_convergences = false;
+	/* Print Neumann terms */
+	bool print_neumann_terms = false;
+	
 	/* Number of on-shell nucleon-deuteron channels (deuteron states can mix, hence ^2) */
 	size_t num_on_shell_A_rows = num_deuteron_states * num_q_com;
 	size_t num_on_shell_A_vals = num_deuteron_states * num_deuteron_states * num_q_com;
-	//printf("num deuteron=%d and num q=%d\n",num_deuteron_states, num_q_com);
+	
 	/* Upper limit on polynomial approximation of Faddeev eq. */
 	size_t N_pade = 14;
 	size_t M_pade = 14;
@@ -462,7 +471,9 @@ void pade_method_solve(cdouble*  U_array,
 				size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
 				a_coeff_array[idx_NDOS*(N_pade+M_pade+1)] = a_coeff;
 
-				printf("     - a_n: %.16e + %.16ei \n", a_coeff.real(), a_coeff.imag());
+				if (print_neumann_terms){
+					printf("     - a_n: %.16e + %.16ei \n", a_coeff.real(), a_coeff.imag());
+				}
 			}
 		}
 	}
@@ -547,7 +558,9 @@ void pade_method_solve(cdouble*  U_array,
 					size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
 					a_coeff_array[idx_NDOS*(N_pade+M_pade+1) + n] = a_coeff;
 
-					printf("     - a_n: %.16e + %.16ei \n", a_coeff.real(), a_coeff.imag());
+					if (print_neumann_terms){
+						printf("     - a_n: %.16e + %.16ei \n", a_coeff.real(), a_coeff.imag());
+					}
 				}
 			}
 		}
@@ -578,7 +591,9 @@ void pade_method_solve(cdouble*  U_array,
 					pade_approximants_array[NM/2] = PA;
 
 					double PA_diff = std::abs(PA - pade_approximants_array[NM/2 - 1]);
-					printf("PA = %.16e + %.16ei, PA_diff = %.16e \n", PA.real(), PA.imag(), PA_diff);
+					if (print_PA_convergences){
+						printf("PA = %.16e + %.16ei, PA_diff = %.16e \n", PA.real(), PA.imag(), PA_diff);
+					}
 					/* Ignore PA_diff if numerically equal to the previous PA_diff, overwrite if smaller than min_PA_diff */
 					if (PA_diff<min_PA_diff && PA_diff>1e-15){
 						idx_best_PA = NM/2;

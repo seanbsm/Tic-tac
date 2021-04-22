@@ -131,15 +131,15 @@ int main(int argc, char* argv[]){
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 1;//1; //5;
-	int two_J_3N_max = 1;//25;//1; //25;
+	int J_2N_max 	 = 3;//1; //5;
+	int two_J_3N_max = 11;//25;//1; //25;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 40; //30;
-	int Nq_WP	   	 = 10; //30;
+	int Np_WP	   	 = 150; //30;
+	int Nq_WP	   	 = 150; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -430,13 +430,15 @@ int main(int argc, char* argv[]){
 		size_t	P123_sparse_dim		  = 0;
 
 		/* Default filename for current chn_3N - used for storage and reading P123 */
-		std::string P123_filename =    "P123_sparse_JTP_"
+		
+		std::string permutation_matrices_folder = "../../Data/permutation_matrices/";
+		std::string P123_filename =    permutation_matrices_folder + "P123_sparse_JTP_"
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		//f (chn_3N!=0){
-		//	continue;
-		//
+		if (chn_3N!=0){
+			continue;
+		}
 		if (calculate_and_store_P123){
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];
@@ -493,10 +495,10 @@ int main(int argc, char* argv[]){
 			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
 		}
 		else if (solve_faddeev){
-			std::string P123_filename_2 =    "P123_sparse_JTP_"
-									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
-									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
-									 + "_J2max_" + to_string(J_2N_max) + ".h5";
+			//std::string P123_filename_2 =    "../../Data/permutation_matrices/P123_sparse_JTP_"
+			//						 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
+			//						 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
+			//						 + "_J2max_" + to_string(J_2N_max) + ".h5";
 			printf("Reading P123 from h5 ... \n");
 			
 			//double* P123_sparse_val_array_t = NULL;

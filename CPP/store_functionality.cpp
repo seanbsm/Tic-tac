@@ -88,43 +88,38 @@ void store_U_matrix_elements_csv(std::complex<double>* U_array,
                 //~ << std::setw(14)
 				<< std::setprecision(8);
 	
-	bool first_row = true;
+	result_file << "lp, two_jp, l, two_j";
+	for (size_t q_idx=0; q_idx<num_q_com; q_idx++){
+		size_t q_WP_idx = q_com_idx_array[q_idx];
+		
+		result_file << ", " << q_WP_idx;
+	}
+	result_file << "\n";
+
 	/* Loop over deuteron row-indices ("dp"=deuteron prime) */
 	for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
-		int l_row 	  = L_1N_array[idx_d_row];
-		int two_j_row = two_J_1N_array[idx_d_row];
+		size_t idx_alpha_row = deuteron_idx_array[idx_d_row];
+		int l_row 	  = L_1N_array[idx_alpha_row];
+		int two_j_row = two_J_1N_array[idx_alpha_row];
 
 		/* Loop over deuteron column-indices ("d"=deuteron) */
 		for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
-			int l_col 	  = L_1N_array[idx_d_col];
-			int two_j_col = two_J_1N_array[idx_d_col];
+			size_t idx_alpha_col = deuteron_idx_array[idx_d_col];
+			int l_col 	  = L_1N_array[idx_alpha_col];
+			int two_j_col = two_J_1N_array[idx_alpha_col];
 
-			if (first_row){
-				result_file << "lp, two_jp, l, two_j";
-			}
-			else{
-				result_file << l_row <<", "<< two_j_row <<", "<< l_col <<", "<< two_j_col;
-			}
+			result_file << l_row <<", "<< two_j_row <<", "<< l_col <<", "<< two_j_col;
 
 			/* Loop over on-shell q-bins */
 			for (size_t q_idx=0; q_idx<num_q_com; q_idx++){
 				size_t q_WP_idx = q_com_idx_array[q_idx];
-				printf("Storing alpha'=%d, alpha=%d \n", idx_d_row, idx_d_col, q_idx);
-				if (first_row){
-					result_file << ", " << q_WP_idx;
-				}
-				else{
-					size_t U_idx = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + q_idx;
+				
+				size_t U_idx = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + q_idx;
 
-					/* Append U-array element in Python numpy-style complex format */
-        			result_file << ", (" << U_array[U_idx].real() << U_array[U_idx].imag() << "j)";
-				}
+				/* Append U-array element in Python numpy-style complex format */
+        		result_file << ", (" << U_array[U_idx].real() << U_array[U_idx].imag() << "j)";
 			}
 			result_file << "\n";
-
-			if (first_row){
-				first_row = false;
-			}
 		}
 	}
 	
@@ -256,16 +251,9 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 	read_integer_from_h5(Np_WP_file,      "Np_WP",           filename);
 	read_integer_from_h5(Nq_WP_file,      "Nq_WP",           filename);
 
-	//if (print_content){
-	//	int P123_sparse_dim_temp = 0;
-	//	read_integer_from_h5(P123_sparse_dim_temp,      "P123_sparse_dim",           filename);
-	//	P123_sparse_dim = P123_sparse_dim_temp;
-	//}
-	//else{
-		unsigned long long int P123_sparse_dim_temp = 0;
-		read_ULL_integer_from_h5(P123_sparse_dim_temp, "P123_sparse_dim", filename);
-		P123_sparse_dim = P123_sparse_dim_temp;
-	//}
+	unsigned long long int P123_sparse_dim_temp = 0;
+	read_ULL_integer_from_h5(P123_sparse_dim_temp, "P123_sparse_dim", filename);
+	P123_sparse_dim = P123_sparse_dim_temp;
 
 	/* Verify mesh points are equal to current program run, exit if not */
 	if (Nalpha_file!=Nalpha || Np_WP_file!=Np_WP || Nq_WP_file!=Nq_WP){

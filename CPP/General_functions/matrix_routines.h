@@ -10,8 +10,13 @@
 #include "mkl.h"
 #include "mkl_dss.h"
 
-void dot_MM(float *A, float *B, float *C, int N, int K, int M);
+std::complex<double> cdot_VV(std::complex<float>  *X, std::complex<float>  *Y, int N, int INCR_X, int INCR_Y);
+std::complex<double> cdot_VV(std::complex<double> *X, std::complex<double> *Y, int N, int INCR_X, int INCR_Y);
+
+void dot_MM(float  *A, float  *B, float  *C, int N, int K, int M);
 void dot_MM(double *A, double *B, double *C, int N, int K, int M);
+void cdot_MM(std::complex<float>  *A, std::complex<float>  *B, std::complex<float>  *C, int N, int K, int M);
+void cdot_MM(std::complex<double> *A, std::complex<double> *B, std::complex<double> *C, int N, int K, int M);
 
 /* Solves linear system A*X=B for dense NxN matrices, for matrix X */
 void solve_MM(float *A, float *B, int N);

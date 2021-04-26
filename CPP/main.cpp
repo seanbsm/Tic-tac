@@ -104,19 +104,26 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* Start of code segment for parameters, variables and arrays declaration */
 
+	bool default_Tlab_input = false;
+	double Tlab_max = 100;
+
 	/* Current scattering energy */
-	double mu	 = 2*Mp*Md/(Mp+Md);
-	int    num_T_lab	   = 3;
-	double T_lab_array [num_T_lab] = {1.,2.,3.};
-	double q_com_array [num_T_lab];
-	double E_com_array [num_T_lab];
-	for (int i=0; i<num_T_lab; i++){
-		double q_com = lab_energy_to_com_momentum(T_lab_array[i]);
-		q_com_array[i] = q_com;
-		E_com_array[i] = q_com*q_com/mu;
+	size_t  num_T_lab	= 0;
+	double* T_lab_array = NULL;
+	double* q_com_array = NULL;
+	double* E_com_array = NULL;
+
+	/* Use Tlab = 1, 2, 3, ..., num_T_lab (TEMPORARY IMPLEMENTATION) */
+	if (default_Tlab_input){
+		num_T_lab = 1;
+		T_lab_array = new double [num_T_lab];
+		for (size_t i=0; i<num_T_lab; i++){
+			T_lab_array[i] = i + 0.0001*(i==0);
+		}
 	}
+
 	/* Index lookup arrays for keeping track of on-shell nucleon-deuteron channels in state space */
-	int    q_com_idx_array     [num_T_lab];
+	int*   q_com_idx_array     = NULL;
 	int**  deuteron_idx_arrays = NULL;		// Contains indices of deuteron-channels in given 3N-channel
 	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
@@ -130,15 +137,15 @@ int main(int argc, char* argv[]){
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 3;//1; //5;
-	int two_J_3N_max = 11;//25;//1; //25;
+	int J_2N_max 	 = 1;//1; //5;
+	int two_J_3N_max = 1;//25;//1; //25;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 150; //30;
-	int Nq_WP	   	 = 150; //30;
+	int Np_WP	   	 = 40; //30;
+	int Nq_WP	   	 = 40; //30;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -255,9 +262,43 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* Start of code segment for locating on-shell nucleon-deuteron states */
 	if (solve_faddeev){
-		printf("Locating on-shell nucleon-deuteron indices in partial-wave WP state space ... \n");
-		double E_on_shell = E_com_array[0];
-		for (int idx_Tlab=0; idx_Tlab<num_T_lab; idx_Tlab++){
+
+		/* Use q-momentum bin mid-points as on-shell energies if no default input is given */
+		if (default_Tlab_input==false){
+			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
+				double q_upper_boundary = q_WP_array[q_WP_idx+1];
+				double T_lab = com_momentum_to_lab_energy(q_upper_boundary);
+				if (T_lab>Tlab_max){
+					break;
+				}
+				else{
+					num_T_lab += 1;
+				}
+			}
+
+			T_lab_array = new double [num_T_lab];
+
+			for (size_t q_WP_idx=0; q_WP_idx<num_T_lab; q_WP_idx++){
+				double q_mid_point = 0.5*(q_WP_array[q_WP_idx+1] + q_WP_array[q_WP_idx]);
+				double T_lab = com_momentum_to_lab_energy(q_mid_point);
+				
+				T_lab_array[q_WP_idx] = T_lab;
+			}
+		}
+
+		/* Calculate on-shell momentum and energy in centre-of-mass frame */
+		double mu	 = 2*Mp*Md/(Mp+Md);
+		q_com_array = new double [num_T_lab];
+		E_com_array = new double [num_T_lab];
+		for (size_t i=0; i<num_T_lab; i++){
+			double q_com = lab_energy_to_com_momentum(T_lab_array[i]);
+			q_com_array[i] = q_com;
+			E_com_array[i] = q_com*q_com/mu;
+		}
+
+		printf("Locating on-shell q-momentum WP-indices for %zu on-shell energies ... \n", num_T_lab);
+		q_com_idx_array = new int [num_T_lab];
+		for (size_t idx_Tlab=0; idx_Tlab<num_T_lab; idx_Tlab++){
 			double q_com = q_com_array[idx_Tlab];
 
 			int idx_q_bin = -1;
@@ -270,7 +311,7 @@ int main(int argc, char* argv[]){
 
 			if (idx_q_bin==-1){
 				printf("On-shell kinetic energy Tlab=%.3f MeV doesn't exist in WP state space \n", T_lab_array[idx_Tlab]);
-				raise_error("Invalid Tlab enetered. Exiting ...");
+				raise_error("Invalid Tlab entered. Exiting ...");
 			}
 			else{
 				q_com_idx_array[idx_Tlab] = idx_q_bin;
@@ -435,9 +476,9 @@ int main(int argc, char* argv[]){
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		if (chn_3N!=0){
-			continue;
-		}
+		//if (chn_3N!=0){
+		//	continue;
+		//}
 		if (calculate_and_store_P123){
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];

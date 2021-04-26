@@ -24,12 +24,24 @@ void raise_error_DSS_MKL(_INTEGER_t error, const char* function_name){
 	exit(1);
 }
 
+std::complex<double> cdot_VV(std::complex<float> *X, std::complex<float> *Y, int N, int INCR_X, int INCR_Y){
+	std::complex<float> dot_product = 0;
+	cblas_cdotu_sub(N, X, INCR_X, Y, INCR_Y, &dot_product);
+	return dot_product;
+}
+std::complex<double> cdot_VV(std::complex<double> *X, std::complex<double> *Y, int N, int INCR_X, int INCR_Y){
+	std::complex<double> dot_product = 0;
+	cblas_zdotu_sub(N, X, INCR_X, Y, INCR_Y, &dot_product);
+	return dot_product;
+}
+
 void dot_MM(float *A, float *B, float *C, int N, int K, int M){
 	cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, 1.0, A, K, B, M, 0.0, C, M);
 }
 void dot_MM(double *A, double *B, double *C, int N, int K, int M){
 	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, 1.0, A, K, B, M, 0.0, C, M);
 }
+
 void cdot_MM(std::complex<float> *A, std::complex<float> *B, std::complex<float> *C, int N, int K, int M){
 	std::complex<float> beta = {0,0};
 	std::complex<float> alpha = {1,0};

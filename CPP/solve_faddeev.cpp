@@ -72,46 +72,54 @@ void calculate_CPVC_col(double*  col_array,
 					  P123_col_array,
 					  P123_dim);
 
+	/* THOUGHT:
+	 * MOVE ALPHA_I OUTWARDS AND GO BACK TO DIRECT APPEND TO COL_ARRAY.
+	 * BUT USE NON-ZERO IF-TESTING. */
+
+	/* TOUGHT (CONTRADICTORY TO DIRECT APPEND):
+	 * Use dense mat-vec multiplication for sub-blocks  (Can let q be columns of right-vectors? Appealing use of MM-multiplication)
+	 * Use dense vec-vec (or vec-mat-vec?) multiplication for A_An */
+	
+	//#pragma omp parallel
+	//{
 	/* Generate (C^T x PVC)-column */
 	double* CT_subarray     = NULL;
 	double* CT_subarray_row = NULL;
-
+	double* PVC_subcol 		= NULL;
+	//#pragma omp for
 	/* Loop over rows of col_array */
 	for (size_t idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
-		for (size_t idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
-			for (size_t idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
+		/* Beginning of inner-product loops (index "i") */
+		for (size_t idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
+			size_t idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
+			CT_subarray = CT_RM_array[idx_CT_2N_block];
 
-				double inner_product_CPVC = 0;
-
-				/* Beginning of inner-product loops (index "i") */
-				for (size_t idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
-					size_t idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
-					CT_subarray = CT_RM_array[idx_CT_2N_block];
-
-					/* Only do inner-product if CT is not zero due to conservation laws */
-					if (CT_subarray!=NULL){
-						CT_subarray_row = &CT_subarray[idx_p_r*Np_WP];
-					
+			/* Only do inner-product if CT is not zero due to conservation laws */
+			if (CT_subarray!=NULL){
+				PVC_subcol = &PVC_col[idx_alpha_i*Nq_WP*Np_WP];
+				for (size_t idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
 						for (size_t idx_p_i=0; idx_p_i<Np_WP; idx_p_i++){
-							
-							size_t idx_PVC     = idx_alpha_i*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_i;
-							double PVC_element = PVC_col[idx_PVC];
+							//size_t idx_PVC     = idx_alpha_i*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_i;
+							double PVC_element = PVC_subcol[idx_q_r*Np_WP + idx_p_i];
+							if (PVC_element!=0){
+								for (size_t idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
 
-							/* I'm not sure if this is the fastest ordering of the loops */
-							double CT_element  = CT_subarray_row[idx_p_i];
+								/* I'm not sure if this is the fastest ordering of the loops */
+								double CT_element  = CT_subarray[idx_p_r*Np_WP + idx_p_i];
 
-							inner_product_CPVC += CT_element * PVC_element;
+								double prod = CT_element * PVC_element;
+								if (prod!=0){
+									size_t idx_CPVC = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
+									col_array[idx_CPVC] += prod;
+								}
+							}
 						}
 					}
 				}
-
-				size_t idx_CPVC = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
-
-				col_array[idx_CPVC] = inner_product_CPVC;
 			}
 		}
 	}
-	
+	//}
 	delete [] PVC_col;
 }
 
@@ -464,10 +472,12 @@ void pade_method_solve(cdouble*  U_array,
 		#pragma omp parallel
 		{
 		/* Allocate row- and column-arrays for (C^T)(P)(VC) */
-		double* CPVC_col_array = new double [dense_dim];
+		double*  CPVC_col_array  = new double [dense_dim];
+		//cdouble* G_subarray		 = NULL;
+		//cdouble* CPVCG_col_array = new cdouble [dense_dim];
 		#pragma omp for
-		for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
-			for (size_t idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+		for (size_t idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+			for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
 				for (size_t idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
 					size_t idx_col = idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP + idx_p_c;
 				
@@ -488,15 +498,24 @@ void pade_method_solve(cdouble*  U_array,
 									   P123_sparse_dim);
 					
 					/* Calculate all a-coefficients for calculated CPVC-column */
-					for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
-						for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
+					for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
+						
+						//G_subarray = &G_array[idx_q_com*dense_dim];
+						//for (size_t i=0; i<dense_dim; i++){
+						//	CPVCG_col_array[i] = CPVC_col_array[i] * G_subarray[i];
+						//}
+
+						for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 							size_t idx_row_NDOS = idx_d_row*num_q_com + idx_q_com;
 							
 							/* Dot product An*A */
+							//cdouble inner_product = cdot_VV(&A_An_row_array_prev[idx_row_NDOS*dense_dim], CPVCG_col_array, dense_dim, 1, 1);
+
 							cdouble inner_product = 0;
 							for (size_t i=0; i<dense_dim; i++){
 								inner_product += A_An_row_array_prev[idx_row_NDOS*dense_dim + i] * CPVC_col_array[i] * G_array[idx_q_com*dense_dim + i];
 							}
+
 							A_An_row_array[idx_row_NDOS*dense_dim + idx_col] = inner_product;
 						}
 					}
@@ -615,8 +634,8 @@ void solve_faddeev_equations(cdouble*  U_array,
 	
 	/* Test PVC- and CPVC-column multiplication routines with brute-force routines
 	 * WARNING: VERY SLOW TEST, ONLY FOR BENCHMARKING */
-	bool test_PVC_col_routine   = false;
-	bool test_CPVC_col_routine  = false;
+	bool test_PVC_col_routine   = true;
+	bool test_CPVC_col_routine  = true;
 
 	/* Solve the Faddeev eq. using a dense MKL-solver.
 	 * Obviously, this only works for small systems and is meant for benchmarking only */
@@ -681,7 +700,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 						  P123_sparse_row_array,
 						  P123_sparse_col_array_csc,
 						  P123_sparse_dim);
-		printf(" - Done \n");
+		printf("   - Done \n");
 	}
 	/* Test optimized routine for CPVC columns */
 	if (test_CPVC_col_routine){
@@ -695,7 +714,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 						   P123_sparse_row_array,
 						   P123_sparse_col_array_csc,
 						   P123_sparse_dim);
-		printf(" - Done \n");
+		printf("   - Done \n");
 	}
 	
 	printf(" - Solving Faddeev equation ... \n");

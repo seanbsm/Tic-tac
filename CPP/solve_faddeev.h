@@ -50,7 +50,9 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 										int*     L_2N_array,
 										int*     S_2N_array,
 										int*     J_2N_array,
-										int*     T_2N_array);
+										int*     T_2N_array,
+									    int*	 L_1N_array,
+									    int*	 two_J_1N_array);
 
 /* Restructures NN coupled matrix as 4 seperate matrices
  * !!! WARNING: COLUMN-MAJOR ALGORITHM !!! */
@@ -68,7 +70,9 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 										int*     L_2N_array,
 										int*     S_2N_array,
 										int*     J_2N_array,
-										int*     T_2N_array);
+										int*     T_2N_array,
+									    int*	 L_1N_array,
+									    int*	 two_J_1N_array);
 
 void PVC_col_brute_force(double*  col_array,
 					     size_t   idx_alpha_c, size_t idx_p_c, size_t idx_q_c,

@@ -109,19 +109,20 @@ int main(int argc, char* argv[]){
 
 	/* Current scattering energy */
 	size_t  num_T_lab	= 0;
-	double* T_lab_array = NULL;
+	double* T_lab_array = NULL;//new double [5] {7.49793, 12.7426, 22.4742, 37.4248, 52.3506};
 	double* q_com_array = NULL;
 	double* E_com_array = NULL;
-
+	
 	/* Use Tlab = 1, 2, 3, ..., num_T_lab (TEMPORARY IMPLEMENTATION) */
 	if (default_Tlab_input){
 		num_T_lab = 1;
 		T_lab_array = new double [num_T_lab];
 		for (size_t i=0; i<num_T_lab; i++){
 			T_lab_array[i] = i + 0.0001*(i==0);
+			//T_lab_array[i] = 3*i + 0.0001*(i==0);
 		}
 	}
-
+	
 	/* Index lookup arrays for keeping track of on-shell nucleon-deuteron channels in state space */
 	int*   q_com_idx_array     = NULL;
 	int**  deuteron_idx_arrays = NULL;		// Contains indices of deuteron-channels in given 3N-channel
@@ -137,15 +138,15 @@ int main(int argc, char* argv[]){
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 1;//1; //5;
-	int two_J_3N_max = 1;//25;//1; //25;
+	int J_2N_max 	 = 2;
+	int two_J_3N_max = 3;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 40; //30;
-	int Nq_WP	   	 = 40; //30;
+	int Np_WP	   	 = 40;
+	int Nq_WP	   	 = 40;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -287,9 +288,10 @@ int main(int argc, char* argv[]){
 		}
 
 		/* Calculate on-shell momentum and energy in centre-of-mass frame */
-		double mu	 = 2*Mp*Md/(Mp+Md);
+		//double mu	 = 2*Mp*Md/(Mp+Md);
 		q_com_array = new double [num_T_lab];
 		E_com_array = new double [num_T_lab];
+		double mu	 = 2*Mp*Md/(Mp+Md);
 		for (size_t i=0; i<num_T_lab; i++){
 			double q_com = lab_energy_to_com_momentum(T_lab_array[i]);
 			q_com_array[i] = q_com;
@@ -476,9 +478,9 @@ int main(int argc, char* argv[]){
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		//if (chn_3N!=0){
-		//	continue;
-		//}
+		if (chn_3N!=2){
+			continue;
+		}
 		if (calculate_and_store_P123){
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];

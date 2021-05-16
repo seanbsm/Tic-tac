@@ -138,15 +138,15 @@ int main(int argc, char* argv[]){
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 2;
-	int two_J_3N_max = 3;
+	int J_2N_max 	 = 1;
+	int two_J_3N_max = 1;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 40;
-	int Nq_WP	   	 = 40;
+	int Np_WP	   	 = 64;
+	int Nq_WP	   	 = 64;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -372,13 +372,25 @@ int main(int argc, char* argv[]){
 	V_WP_unco_array = new double [V_unco_array_size];
 	V_WP_coup_array = new double [V_coup_array_size];
 	if (solve_faddeev){
-		//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
-		//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
+		pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
+		pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
 		//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
-		pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
-		pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
+		//pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
+		//pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
+		//pot_ptr_np = potential_model::fetch_potential_ptr("malfliet_tjon", "np");
+		//pot_ptr_nn = potential_model::fetch_potential_ptr("malfliet_tjon", "nn");
 	
+		//double temparray [6];
+		//double qi = 5; double qo=10;
+		//int L=0; int S3=1; int J3=1; int S1=0; int J1=0;
+		//std::cout << "Potential vals:" << std::endl;
+		//pot_ptr_nn->V(qi, qo, false, L,S1,J1, temparray);
+		//std::cout << temparray[0] << std::endl;
+		//pot_ptr_nn->V(qi, qo, true,  L,S3,J3, temparray);
+		//std::cout << temparray[2] << std::endl;
+		//return 0;
+
 		printf("Constructing 2N-potential matrices in WP basis ... \n");
 		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array,
 													   V_WP_coup_array,
@@ -478,7 +490,7 @@ int main(int argc, char* argv[]){
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		if (chn_3N!=2){
+		if (chn_3N!=0){
 			continue;
 		}
 		if (calculate_and_store_P123){

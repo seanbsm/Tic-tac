@@ -105,23 +105,21 @@ void look_for_unphysical_bound_states(double* eigenvalues,
 											 
 	int num_bound_states_found = 0;
 
-	/* Cound number of bound states in eigenspectrum */
+	/* Count number of bound states in eigenspectrum */
 	for (int idx=0; idx<mat_dim; idx++){
 		if (eigenvalues[idx]<0){
 			num_bound_states_found += 1;
+			printf(" - Found bound state with energy %.3f MeV \n", eigenvalues[idx]);
 		}
-		//if (chn_3S1){
-		//	std::cout << eigenvalues[idx] << std::endl;
-		//}
 	}
 	
 	/* See if we find the expected number of bounds states (1 for 3S1, 0 otherwise),
 	 * if not then we abort program (unphysical scenario) */
 	
-	if (num_bound_states_found==0 and chn_3S1==false){}
-	else if (num_bound_states_found==1 and chn_3S1==true){}
+	if (num_bound_states_found==0 and chn_3S1==false);
+	else if (num_bound_states_found==1 and chn_3S1==true);
 	else{
-		raise_error("Found an unphysical bound state in NN-pair Hamiltonian eigenspectrum!");
+		raise_error("Found unphysical bound states in NN-pair Hamiltonian eigenspectrum!");
 	}
 }
 

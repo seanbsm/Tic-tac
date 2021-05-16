@@ -7,6 +7,7 @@
 #include "chiral_LO_internal.h"
 #include "chiral_N2LOopt.h"
 #include "chiral_Idaho_N3LO.h"
+#include "malfliet_tjon.h"
 
 
 potential_model::potential_model(){
@@ -60,6 +61,11 @@ potential_model *potential_model::fetch_potential_ptr(std::string model, std::st
 		
 		pot_ptr->setSystem(Tz);
 		
+		return pot_ptr;
+	}
+	else if (model=="malfliet_tjon"){
+		malfliet_tjon* pot_ptr = new malfliet_tjon();
+
 		return pot_ptr;
 	}
 	else{

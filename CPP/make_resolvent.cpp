@@ -11,51 +11,48 @@ double heaviside_step_function(double val){
 }
 
 /* See header-file, commentary (A), for explanation of notation and equations */
-cdouble resolvent_bound_continuum(double E,
+cdouble resolvent_bound_continuum(double E, double Eb,
 								  double q_bin_upper,
-								  double q_bin_lower,
-								  double Eb){
-	
-	/* Reduced masses for p- and q-momenta */
-	double reduced_mass_q = (Md*Mp)/(Md+Mp); // Proton on deuteron target 
+								  double q_bin_lower){
+
+	double mu1 = Mn*(Mn+Mp+Eb)/(Mn + Mn + Mp + Eb);
 
 	/* Bin boundaries in energy */
-	double Eq_lower = q_bin_lower * q_bin_lower / (2*reduced_mass_q);
-	double Eq_upper = q_bin_upper * q_bin_upper / (2*reduced_mass_q);
-
-	/* Temporary variable */
-	double e = Eb - E;
+	double Eq_lower = q_bin_lower*q_bin_lower/(2*mu1);
+	double Eq_upper = q_bin_upper*q_bin_upper/(2*mu1);
 
 	/* Energy width of SWPs (D is short for Delta) for q momenta */
 	double Dq = Eq_upper - Eq_lower;
 
 	/* Real part of the BC resolvent */
-	double Re_R = std::log( std::abs( (Eq_lower + e)/(Eq_upper + e) ) ) / (Dq); 
+	double Re_R = std::log( std::abs( (Eq_lower + Eb - E)/(Eq_upper + Eb - E) ) ) / (Dq); 
 	
 	/* Imaginary part of the BC resolvent */
-	double Im_R = (  heaviside_step_function( Eq_upper + e )
-				   - heaviside_step_function( Eq_lower + e ) ) * (-M_PI)/ (Dq); 
+	double Im_R = (  heaviside_step_function( Eq_upper + Eb - E )
+				   - heaviside_step_function( Eq_lower + Eb - E ) ) * (-M_PI)/ (Dq); 
 	
 	/* Return the complex BC resolvent term Q */
 	return {Re_R, Im_R};
 }
 
 /* See header-file, commentary (A), for explanation of notation and equations */
-cdouble resolvent_continuum_continuum(double E,
+cdouble resolvent_continuum_continuum(double E, double Eb,
 									  double q_bin_upper,
 									  double q_bin_lower,
 									  double e_bin_upper,
 									  double e_bin_lower){
-		
-	/* Reduced masses for p- and q-momenta */
-	double reduced_mass_q = (Md*Mp)/(Md+Mp); // Proton on deuteron target 
+
+	double mu1 = Mn*(Mn+Mp+Eb)/(Mn + Mn + Mp + Eb);
 
 	/* Bin boundaries in energy */
-	double Eq_lower = q_bin_lower * q_bin_lower / (2*reduced_mass_q);
-	double Eq_upper = q_bin_upper * q_bin_upper / (2*reduced_mass_q);
+	double Eq_lower = q_bin_lower*q_bin_lower/(2*mu1);
+	double Eq_upper = q_bin_upper*q_bin_upper/(2*mu1);
 
 	double Ep_lower = e_bin_lower;
 	double Ep_upper = e_bin_upper;
+
+	double Ep = 0.5*(Ep_lower + Ep_upper);
+	double Eq = 0.5*(Eq_lower + Eq_upper);
 
 	/* Energy widths of SWPs (D is short for Delta) for p and q momenta */
 	double Dq = Eq_upper - Eq_lower;
@@ -64,7 +61,7 @@ cdouble resolvent_continuum_continuum(double E,
 	/* Temporary variables */
 	double DM = 0.5*(Dp - Dq);
 	double DP = 0.5*(Dp + Dq);
-	double D  = Ep_upper + Eq_upper - E;
+	double D  = Ep + Eq - E;
 	
 	/* Real part of the CC resolvent */
 	double Re_Q = (  (D+DM) * std::log( std::abs(D+DM) )
@@ -108,7 +105,12 @@ void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 		if (L!=J and J!=0){ // This counts 3P0 as uncoupled (which is intended)
 			int mat_dim = 2*Np_WP;
 			int chn_2N_idx = J-1;
-			e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * mat_dim];
+			if (L<J){
+				e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * mat_dim];
+			}
+			else{
+				e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * mat_dim + Np_WP];
+			}
 		}
 		else{
 			int mat_dim = Np_WP;
@@ -116,12 +118,16 @@ void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 			e_SWP_array_ptr = &e_SWP_unco_array[chn_2N_idx * mat_dim];
 		}
 
+		//printf("%d %d %d %d \n", L, S, J, T);
+
 		/* p-momentum index loop */
 		for (int idx_p_bin=0; idx_p_bin<Np_WP; idx_p_bin++){
 
 			/* Upper and lower boundaries of current p-bin (expressed in energy) */
 			double e_bin_lower = e_SWP_array_ptr[idx_p_bin    ];
 			double e_bin_upper = e_SWP_array_ptr[idx_p_bin + 1];
+
+			//printf("%.4f\n", e_bin_lower);
 
 			/* Bound state check, given by p_bin_lower if bound state exists */
 			bool bound_state_exists = false;
@@ -141,13 +147,12 @@ void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 				cdouble R = {0, 0};
 				cdouble Q = {0, 0};
 				if (bound_state_exists){    // Calculate bound-continuum (BC) resolvent part R
-					R = resolvent_bound_continuum(E,
+					R = resolvent_bound_continuum(E, Eb,
 												  q_bin_upper,
-												  q_bin_lower,
-												  Eb);
+												  q_bin_lower);
 				}
 				else{                       // Calculate continuum-continuum (CC) resolvent part Q
-					Q = resolvent_continuum_continuum(E,
+					Q = resolvent_continuum_continuum(E, Eb,
 													  q_bin_upper,
 													  q_bin_lower,
 													  e_bin_upper,

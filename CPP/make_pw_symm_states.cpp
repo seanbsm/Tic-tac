@@ -1,20 +1,37 @@
 
 #include "make_pw_symm_states.h"
 
-void construct_symmetric_pw_states(int   J_2N_max,
-								   int   two_J_3N_max,
-								   int&  N_chn_3N,
-								   int** chn_3N_idx_array_ptr,
-								   int&  Nalpha,
-								   int** L_2N_array_ptr,
-								   int** S_2N_array_ptr,
-								   int** J_2N_array_ptr,
-								   int** T_2N_array_ptr,
-								   int** L_1N_array_ptr,
-								   int** two_J_1N_array_ptr,
-								   int** two_J_3N_array_ptr,
-								   int** two_T_3N_array_ptr,
-								   int** P_3N_array_ptr){
+//bool check_2N_coupling(int L,  int S,  int J,  int T,
+//					   int Lp, int Sp, int Jp, int Tp,){
+//	
+//	if (abs(L-Lp)<2 && S==Sp && J==Jp && T==Tp){
+//		if (L!=J and J!=0){
+//
+//		}
+//	}
+//	else{
+//		std::string err_msg = "Impossible coupling encountered in check_2N_coupling \n"
+//					 		   << "State 1: L=" << L  << ", S=" << S  << ", J=" << J  << ", T=" << T  << "\n"
+//					 		   << "State 2: L=" << Lp << ", S=" << Sp << ", J=" << Jp << ", T=" << Tp << "\n";
+//		raise_error(err_msg);
+//	}
+//}
+
+void construct_symmetric_pw_states(int    J_2N_max,
+								   int    two_J_3N_max,
+								   int&   N_chn_3N,
+								   int**  chn_3N_idx_array_ptr,
+								   int&   Nalpha,
+								   int**  L_2N_array_ptr,
+								   int**  S_2N_array_ptr,
+								   int**  J_2N_array_ptr,
+								   int**  T_2N_array_ptr,
+								   int**  L_1N_array_ptr,
+								   int**  two_J_1N_array_ptr,
+								   int**  two_J_3N_array_ptr,
+								   int**  two_T_3N_array_ptr,
+								   int**  P_3N_array_ptr,
+								   bool** coupled_array_ptr){
 
 	bool print_content = true;
 	char print_table_format_words[] = "%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s\n";
@@ -42,28 +59,28 @@ void construct_symmetric_pw_states(int   J_2N_max,
 
 	std::vector<int> chn_idx_temp;
 	
-	std::vector<int> L_2N_temp;
-	std::vector<int> S_2N_temp;
-	std::vector<int> J_2N_temp;
-	std::vector<int> T_2N_temp;
-	std::vector<int> L_1N_temp;
-	std::vector<int> two_J_1N_temp;
-	std::vector<int> two_J_3N_temp;
-	std::vector<int> two_T_3N_temp;
-	std::vector<int> P_3N_temp;
+	std::vector<int>  L_2N_temp;
+	std::vector<int>  S_2N_temp;
+	std::vector<int>  J_2N_temp;
+	std::vector<int>  T_2N_temp;
+	std::vector<int>  L_1N_temp;
+	std::vector<int>  two_J_1N_temp;
+	std::vector<int>  two_J_3N_temp;
+	std::vector<int>  two_T_3N_temp;
+	std::vector<int>  P_3N_temp;
 
-	int Nalpha_temp      = 0;
-	int Nalpha_temp_prev = 0;
-	int N_chn_3N_temp    = 0;
-	int L_1N_min         = 0;
-	int L_1N_max         = 0;
-	int L_2N_min         = 0;
-	int L_2N_max         = 0;
-	int T_2N_min         = 0;
-	int T_2N_max         = 0;
-	int two_J_1N_min     = 0;
-	int two_J_1N_max     = 0;
-	int P_3N             = 0;
+	int  Nalpha_temp      = 0;
+	int  Nalpha_temp_prev = 0;
+	int  N_chn_3N_temp    = 0;
+	int  L_1N_min         = 0;
+	int  L_1N_max         = 0;
+	int  L_2N_min         = 0;
+	int  L_2N_max         = 0;
+	int  T_2N_min         = 0;
+	int  T_2N_max         = 0;
+	int  two_J_1N_min     = 0;
+	int  two_J_1N_max     = 0;
+	int  P_3N             = 0;
 	/* two_J_3N loop */
 	for (int two_J_3N=1; two_J_3N<two_J_3N_max+1; two_J_3N+=2){
 		/* two_T_3N loop */
@@ -109,6 +126,14 @@ void construct_symmetric_pw_states(int   J_2N_max,
 												//    if ( (S_2N==0 && L_2N==0 && J_2N==0)==false ){
 												//        continue;
 												//    }
+												//}
+
+												/* Quartet channel for Malfliet-Tjon debugging */
+												//if (L_2N!=0 ||
+												//	S_2N!=0 ||
+												//	J_2N!=0 ||
+												//	T_2N!=1){
+												//	continue;
 												//}
 
 												/* We've found a physical state.

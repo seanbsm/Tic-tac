@@ -68,6 +68,9 @@ void malfliet_tjon::V(double &qi, double &qo, bool coupled, int &S, int &J, int 
     double muA    =    1.550; // [no units]
     double muR    =    3.110; // [no units]
 
+    muA *= hbarc;             // [MeV fm]
+    muR *= hbarc;             // [MeV fm]
+
     /* "num" - numerator
      * "den" - denominator */
     if (J==0){  // MT-I

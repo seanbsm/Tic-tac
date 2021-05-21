@@ -9,6 +9,9 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 
 	double potential_element = NAN;
 
+	/* Sign-convention on off-diagonal coupled elements */
+	double sgn = -1; // -1 USED IN BOUND STATE BENCHMARK
+
 	if (coupled){
 		if (L==Lp and L<J){         // --
 			potential_element =  V_array[2];
@@ -17,10 +20,10 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 			potential_element =  V_array[5];
 		}
 		else if (L<Lp){             // -+
-			potential_element = -V_array[3];
+			potential_element = sgn*V_array[3]; // 3 USED IN BOUND STATE BENCHMARK
 		}
 		else{                       // +-
-			potential_element = -V_array[4];
+			potential_element = sgn*V_array[4]; //4 USED IN BOUND STATE BENCHMARK
 		}
 	}
 	else{

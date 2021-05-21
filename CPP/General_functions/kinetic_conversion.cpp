@@ -15,6 +15,16 @@ double lab_energy_to_com_momentum(double T_lab){
 	return sqrt( Md*Md*T_lab*(T_lab + 2*Mp) / ( (Mp+Md)*(Mp+Md) + 2*T_lab*Md ) );
 }
 
+/* Converts 3N CoM kinetic energy to q-momentum for nucleon-deuteron scattering */
+double com_energy_to_com_q_momentum(double E_com){
+	return sqrt(4*E_com*MN/3);
+}
+
+/* Converts 3N q-momentum to CoM kinetic energy for nucleon-deuteron scattering */
+double com_q_momentum_to_com_energy(double q_com){
+	return 3*q_com*q_com/(4*MN);
+}
+
 double lab_energy_to_com_energy(double T_lab, int Tz){
 }
 

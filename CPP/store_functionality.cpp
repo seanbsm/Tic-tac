@@ -59,7 +59,7 @@ void store_q_WP_boundaries_csv(size_t Nq_WP, double* q_WP_array,
 				<< std::setprecision(8);
 	
 	/* Append array-values */
-	for (size_t i=0; i<Nq_WP; i++){
+	for (size_t i=0; i<Nq_WP+1; i++){
 		/* Append vector element */
         result_file << q_WP_array[i] << "\n";
 	}

@@ -35,7 +35,8 @@ void calculate_PVC_col(double*  col_array,
 				for (size_t idx_i=idx_i_lower; idx_i<idx_i_upper; idx_i++){
 
 					/* Access arrays, this whole function is written to minimize these two calls */
-					double P_element  = P123_val_array[idx_i];
+					/* NOTE THAT P = P123 + P132 = 2*P123 */
+					double P_element  = 2*P123_val_array[idx_i];
 
 					size_t idx_row = P123_row_array[idx_i];
 					/* Write inner product to col_array of PVC-product */
@@ -880,12 +881,19 @@ void solve_faddeev_equations(cdouble*  U_array,
 	std::chrono::duration<double> time_solve = timestamp_solve_end - timestamp_solve_start;
 	printf("   - Done. Time used: %.6f\n", time_solve.count());
 
+	std::string U_mat_foldername = "../../Data/U_matrix_elements/";
+	std::string U_mat_filename = U_mat_foldername + "U_PW_elements_Np_" + std::to_string(Np_WP)
+																		+ "_Nq_" + std::to_string(Np_WP)
+																		+ "_JP_" + std::to_string(3)
+																		+ "_" + std::to_string(1)
+																		+ "_Jmax_" + std::to_string(1)
+																		+ ".csv";
 	store_U_matrix_elements_csv(U_array,
 							    q_com_idx_array,    (size_t) num_q_com,
 					  		    deuteron_idx_array, (size_t) num_deuteron_states,
 							    L_1N_array, 
 							    two_J_1N_array,
-							    "U_PW_elements.csv");
+							    U_mat_filename);
 	
 	if (solve_dense){
 		printf(" - Solving Faddeev equation using a dense direct solver (WARNING: CAN TAKE LONG) ... \n");

@@ -29,7 +29,8 @@ void reorder_coupled_eigenspectrum(double* eigenvalues,
 
 void look_for_unphysical_bound_states(double* eigenvalues,
 						   			  int     mat_dim,
-						   			  bool    chn_3S1);
+						   			  bool    chn_3S1,
+									  double& E_bound);
 
 void make_swp_bin_boundaries(double* eigenvalues,
 							 double* e_SWP_array,
@@ -43,6 +44,7 @@ void make_swp_states(double* e_SWP_unco_array,
 					 double* C_WP_coup_array,
 					 double* V_WP_unco_array,
 					 double* V_WP_coup_array,
+					 double& E_bound,
 					 int Np_WP, double* p_WP_array,
 					 int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array,
 					 int J_2N_max);

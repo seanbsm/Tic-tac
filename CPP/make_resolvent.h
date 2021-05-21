@@ -5,6 +5,7 @@
 
 #include "error_management.h"
 #include "constants.h"
+#include "General_functions/kinetic_conversion.h"
 
 /* COMMENTARY A:
  * Taken from Kukulin 2007 (https://doi.org/10.1007/s11232-007-0030-3), Eqs. (32), (34-35).
@@ -21,12 +22,11 @@
 
 double heaviside_step_function(double val);
 
-cdouble resolvent_bound_continuum(double E,
+cdouble resolvent_bound_continuum(double E, double Eb,
 								  double q_bin_upper,
-								  double q_bin_lower,
-								  double Eb);
+								  double q_bin_lower);
 
-cdouble resolvent_continuum_continuum(double E,
+cdouble resolvent_continuum_continuum(double E, double Eb,
 									  double q_bin_upper,
 									  double q_bin_lower,
 									  double e_bin_upper,

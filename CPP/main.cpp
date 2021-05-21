@@ -139,14 +139,14 @@ int main(int argc, char* argv[]){
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
 	int J_2N_max 	 = 1;
-	int two_J_3N_max = 1;
+	int two_J_3N_max = 3;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 64;
-	int Nq_WP	   	 = 64;
+	int Np_WP	   	 = 8;
+	int Nq_WP	   	 = 8;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -239,6 +239,11 @@ int main(int argc, char* argv[]){
 	make_q_bin_grid(Nq_WP, q_WP_array);
 	printf(" - Done \n");
 
+	//for (int i=0; i<Nq_WP+1; i++){
+	//	printf("%.3f\n", q_WP_array[i]);
+	//}
+	//return 0;
+
 	printf("Constructing p quadrature mesh per WP, for all WPs ... \n");
 	p_array  = new double [Np_per_WP*Np_WP];
 	wp_array = new double [Np_per_WP*Np_WP];
@@ -253,8 +258,10 @@ int main(int argc, char* argv[]){
 	printf(" - Done \n");
 
 	printf("Storing q boundaries to CSV-file ... \n");
+	std::string U_mat_foldername = "../../Data/U_matrix_elements/";
+	std::string q_boundaries_filename = U_mat_foldername + "q_boundaries_Nq_" + to_string(Nq_WP) + ".csv";
 	store_q_WP_boundaries_csv(Nq_WP, q_WP_array,
-						      "q_boundaries.csv");
+						      q_boundaries_filename);
 	printf(" - Done \n");
 
 	/* End of code segment for state space construction */
@@ -291,11 +298,11 @@ int main(int argc, char* argv[]){
 		//double mu	 = 2*Mp*Md/(Mp+Md);
 		q_com_array = new double [num_T_lab];
 		E_com_array = new double [num_T_lab];
-		double mu	 = 2*Mp*Md/(Mp+Md);
+		//double mu	 = 2*Mp*Md/(Mp+Md);
 		for (size_t i=0; i<num_T_lab; i++){
 			double q_com = lab_energy_to_com_momentum(T_lab_array[i]);
 			q_com_array[i] = q_com;
-			E_com_array[i] = q_com*q_com/mu;
+			E_com_array[i] = com_q_momentum_to_com_energy(q_com);
 		}
 
 		printf("Locating on-shell q-momentum WP-indices for %zu on-shell energies ... \n", num_T_lab);
@@ -372,14 +379,14 @@ int main(int argc, char* argv[]){
 	V_WP_unco_array = new double [V_unco_array_size];
 	V_WP_coup_array = new double [V_coup_array_size];
 	if (solve_faddeev){
-		pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
-		pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
+		//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
+		//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
 		//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
 		//pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
-		//pot_ptr_np = potential_model::fetch_potential_ptr("malfliet_tjon", "np");
-		//pot_ptr_nn = potential_model::fetch_potential_ptr("malfliet_tjon", "nn");
+		pot_ptr_np = potential_model::fetch_potential_ptr("malfliet_tjon", "np");
+		pot_ptr_nn = potential_model::fetch_potential_ptr("malfliet_tjon", "nn");
 	
 		//double temparray [6];
 		//double qi = 5; double qo=10;
@@ -389,6 +396,11 @@ int main(int argc, char* argv[]){
 		//std::cout << temparray[0] << std::endl;
 		//pot_ptr_nn->V(qi, qo, true,  L,S3,J3, temparray);
 		//std::cout << temparray[2] << std::endl;
+		//return 0;
+
+		//for (int i=0; i<Np_WP+1; i++){
+		//	std::cout << p_WP_array[i] << std::endl;
+		//}
 		//return 0;
 
 		printf("Constructing 2N-potential matrices in WP basis ... \n");
@@ -410,6 +422,8 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* Start of code segment for scattering wave-packets construction */
 
+	double  E_bound = 0;
+
 	double* e_SWP_unco_array = new double [  (Np_WP+1) * 2*(J_2N_max+1)];
 	double* e_SWP_coup_array = new double [2*(Np_WP+1) *    J_2N_max];
 
@@ -423,11 +437,28 @@ int main(int argc, char* argv[]){
 						C_WP_coup_array,
 						V_WP_unco_array,
 						V_WP_coup_array,
+						E_bound,
 						Np_WP, p_WP_array,
 						Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
 						J_2N_max);
+		printf(" - Using E_bound = %.5f MeV \n", E_bound);
 		printf(" - Done \n");
+
+		for (int i=0; i<Np_WP+1; i++){
+			printf("%.3f\n", p_WP_array[i]);
+		}
+		printf("\n");
+		for (int i=0; i<2*(Nq_WP+1); i++){
+			printf("%.3f\n", e_SWP_coup_array[i]);
+		}
+		return 0;
 	}
+
+	//for (int i=2; i<Nalpha; i++){
+	//	for (int j=0; j<2*Np_WP; j++){
+	//		printf("%.3f\n", e_SWP_unco_array[j]);
+	//	}
+	//}
 
 	/* End of code segment for scattering wave-packets construction */
 	/* ################################################################################################################### */
@@ -490,7 +521,7 @@ int main(int argc, char* argv[]){
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		if (chn_3N!=0){
+		if (chn_3N!=2){
 			continue;
 		}
 		if (calculate_and_store_P123){
@@ -619,9 +650,11 @@ int main(int argc, char* argv[]){
 			
 			printf("Constructing 3N resolvents ... \n");
 			for (int j=0; j<num_T_lab; j++){
-				double E_on_shell = E_com_array[j];
+				double E_com = E_com_array[j];
+				//double E_com = 0.03873911528416455;
+				double E = E_com + E_bound;
 				calculate_resolvent_array_in_SWP_basis(&G_array[j*Nalpha_in_3N_chn*Np_WP*Nq_WP],
-													   E_on_shell,
+													   E,
 													   Np_WP,
 													   e_SWP_unco_array,
 													   e_SWP_coup_array,
@@ -631,8 +664,16 @@ int main(int argc, char* argv[]){
 													   S_2N_subarray,
 													   J_2N_subarray,
 													   T_2N_subarray);
+				//printf("%.10f\n\n",com_energy_to_com_q_momentum(3.8306227657971945-1.9624153103111233, -1.9624153103111233));
+				//double q_com = com_energy_to_com_q_momentum(E_com);
+				//printf("Ecm = %.15f MeV | q = %.15f MeV:\n", E_com, q_com);
+				//for (int i=0; i<Np_WP*Nq_WP; i++){
+				//	printf("%.15e %.15e\n", G_array[i]);
+				//}
 			}
+			//return 0;
 			printf(" - Done \n");
+			
 
 			/* End of code segment for resolvent matrix (diagonal array) construction */
 			/* Start of code segment for iterations of elastic Faddeev equations */

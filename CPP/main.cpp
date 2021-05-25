@@ -163,6 +163,7 @@ int main(int argc, char* argv[]){
 	/* Potential matrices */
 	double* V_WP_unco_array = NULL;
 	double* V_WP_coup_array = NULL;
+	double** V_WP_2N_arrays = NULL;
 
 	/* Quantum numbers of partial-wave expansion in state_3N_array.
 	 * All non-specified quantum numbers are either given by nature,
@@ -378,6 +379,7 @@ int main(int argc, char* argv[]){
 	int V_coup_array_size = Np_WP*Np_WP*4 *    J_2N_max;
 	V_WP_unco_array = new double [V_unco_array_size];
 	V_WP_coup_array = new double [V_coup_array_size];
+	V_WP_2N_arrays  = new double* [Nalpha * Nalpha];
 	if (solve_faddeev){
 		//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
@@ -406,6 +408,7 @@ int main(int argc, char* argv[]){
 		printf("Constructing 2N-potential matrices in WP basis ... \n");
 		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array,
 													   V_WP_coup_array,
+													   V_WP_2N_arrays,
 													   true,
 													   Np_WP, p_WP_array,
 													   Np_per_WP, p_array, wp_array,

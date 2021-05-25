@@ -6,6 +6,7 @@
 
 #include "error_management.h"
 
+#include "make_pw_symm_states.h"
 #include "make_wp_states.h"
 #include "Interactions/potential_model.h"
 
@@ -13,6 +14,7 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 
 void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
 													double* V_WP_coup_array,
+													double** V_WP_2N_arrays,
 													bool mid_point_approximation,
 													int Np_WP, double* p_WP_array,
 													int Np, double* p_array, double* wp_array,

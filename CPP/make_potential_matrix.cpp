@@ -44,6 +44,7 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 /* Construct 2N potential matrices <k|v|k_p> for all 3N partial wave channels */
 void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 													double*  V_WP_coup_array,
+													double** V_WP_2N_arrays,
 													bool mid_point_approximation,
 													int Np_WP, double* p_WP_array,
 													int Np_per_WP, double* p_array, double* wp_array,
@@ -94,7 +95,8 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 			int T_c = T_2N_array[idx_alpha_c];
 
 			/* Check if possible channel through interaction */
-			if (T_r==T_c and J_r==J_c and S_r==S_c and abs(L_r-L_c)<=2){
+			//if (T_r==T_c and J_r==J_c and S_r==S_c and abs(L_r-L_c)<=2){
+			if ( check_2N_coupling(L_r, S_r, J_r, T_r, L_c, S_c, J_c, T_c)==true ){
 
 				/* Detemine if this is a coupled channel */
 				bool coupled_matrix = false;

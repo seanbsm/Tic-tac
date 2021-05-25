@@ -1,21 +1,19 @@
 
 #include "make_pw_symm_states.h"
 
-//bool check_2N_coupling(int L,  int S,  int J,  int T,
-//					   int Lp, int Sp, int Jp, int Tp,){
-//	
-//	if (abs(L-Lp)<2 && S==Sp && J==Jp && T==Tp){
-//		if (L!=J and J!=0){
-//
-//		}
-//	}
-//	else{
-//		std::string err_msg = "Impossible coupling encountered in check_2N_coupling \n"
-//					 		   << "State 1: L=" << L  << ", S=" << S  << ", J=" << J  << ", T=" << T  << "\n"
-//					 		   << "State 2: L=" << Lp << ", S=" << Sp << ", J=" << Jp << ", T=" << Tp << "\n";
-//		raise_error(err_msg);
-//	}
-//}
+bool check_2N_coupling(int L,  int S,  int J,  int T,
+					   int Lp, int Sp, int Jp, int Tp,){
+	
+	bool coupled = false;
+	if (abs(L-Lp)<2 && S==Sp && J==Jp && T==Tp){
+		coupled = true;
+	}
+	else{
+		coupled = false;
+	}
+
+	return coupled;
+}
 
 void construct_symmetric_pw_states(int    J_2N_max,
 								   int    two_J_3N_max,

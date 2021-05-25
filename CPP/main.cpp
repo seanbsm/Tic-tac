@@ -193,6 +193,12 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* Start of code segment for state space construction */
 	printf("Constructing 3N partial-wave basis ... \n");
+	bool tensor_force_on = true;
+	int Nalpha_1N = 0;
+	int Nalpha_2N = 0;
+	pw_1N_state* pw_1N_states_array = NULL;
+	pw_2N_state* pw_2N_states_array = NULL;
+	pw_3N_state* pw_3N_states_array = NULL;
 	construct_symmetric_pw_states(J_2N_max,
 								  two_J_3N_max,
 								  N_chn_3N,
@@ -206,7 +212,13 @@ int main(int argc, char* argv[]){
 								  &two_J_1N_array,
 								  &two_J_3N_array,
 								  &two_T_3N_array,
-								  &P_3N_array);
+								  &P_3N_array,
+								  tensor_force_on,
+								  Nalpha_1N,
+								  Nalpha_2N,
+								  &pw_1N_states_array,
+								  &pw_2N_states_array,
+								  &pw_3N_states_array);
 	printf(" - There are %d 3N-channels \n", N_chn_3N);
 
 	/* Allocate deuteron-channel index-lookup arrays */

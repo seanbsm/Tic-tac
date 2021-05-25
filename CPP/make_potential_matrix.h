@@ -10,7 +10,7 @@
 #include "make_wp_states.h"
 #include "Interactions/potential_model.h"
 
-double extract_potential_element_from_array(int L, int Lp, int J, int S, bool coupled, double* V_array);
+double extract_potential_element_from_array(int L, int Lp, int J, int S, double* V_array);
 
 void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array,
 													double* V_WP_coup_array,

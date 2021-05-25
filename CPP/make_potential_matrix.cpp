@@ -96,7 +96,7 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 
 			/* Check if possible channel through interaction */
 			//if (T_r==T_c and J_r==J_c and S_r==S_c and abs(L_r-L_c)<=2){
-			if ( check_2N_coupling(L_r, S_r, J_r, T_r, L_c, S_c, J_c, T_c)==true ){
+			if ( abs(L_r-L_c)<=2 && S_r==S_c && J_r==J_c && T_r==T_c ){
 
 				/* Detemine if this is a coupled channel */
 				bool coupled_matrix = false;

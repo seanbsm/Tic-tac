@@ -931,20 +931,6 @@ void solve_faddeev_equations(cdouble*  U_array,
 	auto timestamp_solve_end = std::chrono::system_clock::now();
 	std::chrono::duration<double> time_solve = timestamp_solve_end - timestamp_solve_start;
 	printf("   - Done. Time used: %.6f\n", time_solve.count());
-
-	std::string U_mat_foldername = "../../Data/U_matrix_elements/";
-	std::string U_mat_filename = U_mat_foldername + "U_PW_elements_Np_" + std::to_string(Np_WP)
-																		+ "_Nq_" + std::to_string(Np_WP)
-																		+ "_JP_" + std::to_string(3)
-																		+ "_" + std::to_string(1)
-																		+ "_Jmax_" + std::to_string(1)
-																		+ ".csv";
-	store_U_matrix_elements_csv(U_array,
-							    q_com_idx_array,    (size_t) num_q_com,
-					  		    deuteron_idx_array, (size_t) num_deuteron_states,
-							    L_1N_array, 
-							    two_J_1N_array,
-							    U_mat_filename);
 }
 
 /* Create array of pointers to C^T matrices for product (C^T)PVC in row-major format */

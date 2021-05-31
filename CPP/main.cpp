@@ -129,7 +129,7 @@ int main(int argc, char* argv[]){
 	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
-	bool calculate_and_store_P123 = false;
+	bool calculate_and_store_P123 = true;
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
 	 * and solve Faddeev in a single run */
@@ -145,8 +145,8 @@ int main(int argc, char* argv[]){
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 8;
-	int Nq_WP	   	 = 8;
+	int Np_WP	   	 = 40;
+	int Nq_WP	   	 = 40;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -260,7 +260,7 @@ int main(int argc, char* argv[]){
 	printf(" - Done \n");
 
 	printf("Storing q boundaries to CSV-file ... \n");
-	std::string U_mat_foldername = "../../Data/U_matrix_elements/";
+	std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
 	std::string q_boundaries_filename = U_mat_foldername + "q_boundaries_Nq_" + to_string(Nq_WP) + ".csv";
 	store_q_WP_boundaries_csv(Nq_WP, q_WP_array,
 						      q_boundaries_filename);
@@ -558,9 +558,9 @@ int main(int argc, char* argv[]){
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		if (chn_3N!=2){
-			continue;
-		}
+		//if (chn_3N!=2){
+		//	continue;
+		//}
 		if (calculate_and_store_P123){
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];
@@ -695,14 +695,14 @@ int main(int argc, char* argv[]){
 				P123_subarray[i*Np_WP*Nq_WP + j] = val;
 			}
 		}
-		for (int i=0; i<Np_WP*Nq_WP; i++){
-			for (int j=0; j<Np_WP*Nq_WP; j++){
-				double val = P123_subarray[i*Np_WP*Nq_WP + j];
-				if (val!=0){
-					std::cout << "i = " << i << "| j = " << j << "| val = " << val << std::endl;
-				}
-			}			
-		}
+		//for (int i=0; i<Np_WP*Nq_WP; i++){
+		//	for (int j=0; j<Np_WP*Nq_WP; j++){
+		//		double val = P123_subarray[i*Np_WP*Nq_WP + j];
+		//		if (val!=0){
+		//			std::cout << "i = " << i << "| j = " << j << "| val = " << val << std::endl;
+		//		}
+		//	}			
+		//}
 		//return 0;
 
 		/* End of code segment for permutation matrix construction */
@@ -730,22 +730,22 @@ int main(int argc, char* argv[]){
 													   S_2N_subarray,
 													   J_2N_subarray,
 													   T_2N_subarray);
-				//printf("%.10f\n\n",com_energy_to_com_q_momentum(3.8306227657971945-1.9624153103111233, -1.9624153103111233));
-				double q_com = com_energy_to_com_q_momentum(E_com);
-				printf("E = %.15f MeV | Ecm = %.15f MeV | q = %.15f MeV:\n", E, E_com, q_com);
-				int idx_of_interest = 25-idx_alpha_lower;
-				printf("L=%d S=%d J=%d T=%d 2l=%d 2j=%d \n", L_2N_subarray[idx_of_interest],
-														  S_2N_subarray[idx_of_interest],
-														  J_2N_subarray[idx_of_interest],
-														  T_2N_subarray[idx_of_interest],
-														  L_1N_subarray[idx_of_interest],
-														  two_J_1N_subarray[idx_of_interest]);
-				cdouble* G_subarray = &G_array[j*Nalpha_in_3N_chn*Np_WP*Nq_WP + idx_of_interest*Np_WP*Nq_WP];
-				int idx_2N_of_interest = unique_2N_idx(0,1,1,0,tensor_force_true, false);
-				//std::cout << e_SWP_unco_array[idx_2N_of_interest*(Np_WP+1)] << std::endl;
-				for (int i=0; i<Np_WP*Nq_WP; i++){
-					printf("%.15e %.15e\n", G_subarray[i].real(), G_subarray[i].imag());
-				}
+				////printf("%.10f\n\n",com_energy_to_com_q_momentum(3.8306227657971945-1.9624153103111233, -1.9624153103111233));
+				//double q_com = com_energy_to_com_q_momentum(E_com);
+				//printf("E = %.15f MeV | Ecm = %.15f MeV | q = %.15f MeV:\n", E, E_com, q_com);
+				//int idx_of_interest = 25-idx_alpha_lower;
+				//printf("L=%d S=%d J=%d T=%d 2l=%d 2j=%d \n", L_2N_subarray[idx_of_interest],
+				//										  S_2N_subarray[idx_of_interest],
+				//										  J_2N_subarray[idx_of_interest],
+				//										  T_2N_subarray[idx_of_interest],
+				//										  L_1N_subarray[idx_of_interest],
+				//										  two_J_1N_subarray[idx_of_interest]);
+				//cdouble* G_subarray = &G_array[j*Nalpha_in_3N_chn*Np_WP*Nq_WP + idx_of_interest*Np_WP*Nq_WP];
+				//int idx_2N_of_interest = unique_2N_idx(0,1,1,0,tensor_force_true, false);
+				////std::cout << e_SWP_unco_array[idx_2N_of_interest*(Np_WP+1)] << std::endl;
+				//for (int i=0; i<Np_WP*Nq_WP; i++){
+				//	printf("%.15e %.15e\n", G_subarray[i].real(), G_subarray[i].imag());
+				//}
 			}
 			//return 0;
 			printf(" - Done \n");
@@ -783,6 +783,20 @@ int main(int argc, char* argv[]){
 									two_J_1N_subarray,
 									tensor_force_true);
 			printf(" - Done \n");
+
+			std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
+			std::string U_mat_filename = U_mat_foldername + "U_PW_elements_Np_" + std::to_string(Np_WP)
+																				+ "_Nq_" + std::to_string(Np_WP)
+																				+ "_JP_" + std::to_string(two_J_3N)
+																				+ "_" + std::to_string(P_3N)
+																				+ "_Jmax_" + std::to_string(J_2N_max)
+																				+ ".csv";
+			store_U_matrix_elements_csv(U_array,
+									    q_com_idx_array,    (size_t) num_T_lab,
+							  		    deuteron_idx_array, (size_t) num_deuteron_states,
+									    L_1N_array, 
+									    two_J_1N_array,
+									    U_mat_filename);
 
 			/* End of code segment for iterations of elastic Faddeev equations */
 			/* Start of code segment for storing on-shell U-matrix solutions */

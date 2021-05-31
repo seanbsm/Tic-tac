@@ -67,13 +67,13 @@ void construct_full_hamiltonian(double* mat_ptr_H,
 		}
 	}
 
-	for (int idx_bin_r=0; idx_bin_r<mat_dim; idx_bin_r++){
-        for (int idx_bin_c=0; idx_bin_c<mat_dim; idx_bin_c++){
-			printf(" %.4e", mat_ptr_V[idx_bin_r*mat_dim + idx_bin_c]);
-		}
-		printf("\n");
-	}
-	printf("\n");
+	//for (int idx_bin_r=0; idx_bin_r<mat_dim; idx_bin_r++){
+    //    for (int idx_bin_c=0; idx_bin_c<mat_dim; idx_bin_c++){
+	//		printf(" %.4e", mat_ptr_V[idx_bin_r*mat_dim + idx_bin_c]);
+	//	}
+	//	printf("\n");
+	//}
+	//printf("\n");
 }
 
 /* This function reorders the eigenvalues and corresponding vectors to correspond to coupled channels.

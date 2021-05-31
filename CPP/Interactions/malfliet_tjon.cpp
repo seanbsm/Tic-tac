@@ -62,9 +62,9 @@ void malfliet_tjon::V(double &qi, double &qo, bool coupled, int &S, int &J, int 
     /* Potential parameters.
      * "R" is for repulsive.
      * "A" is for attractive. */
-    double VA_I   =  513.958; // [MeV fm]
+    double VA_I   =  513.968; // [MeV fm]
     double VA_III =  626.885; // [MeV fm]
-    double VR     = 1438.770; // [MeV fm]
+    double VR     = 1438.720; // [MeV fm]
     double muA    =    1.550; // [no units]
     double muR    =    3.110; // [no units]
 

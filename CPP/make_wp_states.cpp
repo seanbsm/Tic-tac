@@ -1,21 +1,26 @@
 #include "make_wp_states.h"
 
 double p_normalization(double p0, double p1){
-	//return sqrt( (p1*p1-p0*p0)/MN );
-	return sqrt(p1-p0);
+	//double Ep0 = p0*p0/MN;
+	//double Ep1 = p1*p1/MN;
+	//return sqrt(Ep1-Ep0);	// energy WPs
+	return sqrt(p1-p0);	// momentum WPs
 }
 double q_normalization(double q0, double q1){
-	//return sqrt( (q1*q1-q0*q0)/MN );
-	return sqrt(q1-q0);
+	//double Eq0 = com_q_momentum_to_com_energy(q0);
+	//double Eq1 = com_q_momentum_to_com_energy(q1);
+	//return sqrt(Eq1-Eq0);	// energy WPs
+	//return sqrt( (q1*q1-q0*q0)/MN );	// energy WPs (old)
+	return sqrt(q1-q0);	// momentum WPs
 }
 
 double p_weight_function(double p){
-	//return sqrt(2*p/MN);
-	return 1;
+	//return sqrt(2*p/MN);	// energy WPs
+	return 1;				// momentum WPs
 }
 double q_weight_function(double q){
-	//return sqrt(2*q/MN);
-	return 1;
+	//return sqrt(2*q/MN);	// energy WPs
+	return 1;				// momentum WPs
 }
 
 void make_chebyshev_distribution(int N_WP,

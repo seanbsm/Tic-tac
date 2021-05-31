@@ -10,22 +10,22 @@
  * for example, proton mass
  */
 
-const floatType deg_to_rad = M_PI/180.;		// conversion from degrees to radians	[rad/deg]
-const floatType rad_to_deg = 180./M_PI;		// conversion from radians to degress	[deg/rad]
-const floatType divTwo	= 0.5;				// factor 0.5
-const floatType one		= 1.;				// factor 1.0
-const floatType two		= 2.;				// factor 2.0
-const floatType pi		= M_PI;				// pi									[no units]
-const floatType Mp		= 938.272;			// proton mass  						[MeV]
-const floatType Mn		= 939.565;			// neutron mass 						[MeV]
-const floatType MN		= 2*Mp*Mn/(Mp+Mn);	// Nucleon mass							[MeV]
-const floatType Ed      = 2.22457;          // Deuteron binding energy              [MeV]
-const floatType Md      = Mn + Mp - Ed;     // Deuteron mass                        [MeV]
-const floatType Lambda	= 450;				// cut-off for renormalization of LO 	[MeV]
-const floatType gA 		= 1.289;			// axial coupling constant 			 	[no units]
-const floatType fpi 	= 92.2;				// pion decay constant 				 	[MeV] 		(used convention 130.41/sqrt(2) = 92.2)
-const floatType mpi 	= 138.039;			// pion_0 mass 						 	[MeV] 		(average of pi+, pi-, and pi0 masses)
-const floatType hbarc   = 197.326;          // MeV fm
+const floatType deg_to_rad  = M_PI/180.;		     // conversion from degrees to radians	 [rad/deg]
+const floatType rad_to_deg  = 180./M_PI;		     // conversion from radians to degress	 [deg/rad]
+const floatType divTwo	    = 0.5;				     // factor 0.5
+const floatType one		    = 1.;				     // factor 1.0
+const floatType two		    = 2.;				     // factor 2.0
+const floatType pi		    = M_PI;				     // pi									 [no units]
+const floatType Mp		    = 938.272;			     // proton mass  						 [MeV]
+const floatType Mn		    = 939.565;			     // neutron mass 						 [MeV]
+const floatType MN		    = 0.5*(Mp+Mn);//2*Mp*Mn/(Mp+Mn);	     // Nucleon mass					     [MeV]
+const floatType Ed_measured = 2.22457;               // Measured deuteron binding energy     [MeV]
+const floatType Md_measured = Mn + Mp - Ed_measured; // Measured deuteron mass               [MeV]
+const floatType Lambda	    = 450;				     // cut-off for renormalization of LO 	 [MeV]
+const floatType gA 		    = 1.289;			     // axial coupling constant 			 [no units]
+const floatType fpi 	    = 92.2;				     // pion decay constant 				 [MeV] 		(used convention 130.41/sqrt(2) = 92.2)
+const floatType mpi 	    = 138.039;			     // pion_0 mass 						 [MeV] 		(average of pi+, pi-, and pi0 masses)
+const floatType hbarc       = 197.327;               // MeV fm
 
 
 

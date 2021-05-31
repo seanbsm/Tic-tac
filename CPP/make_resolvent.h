@@ -5,6 +5,7 @@
 
 #include "error_management.h"
 #include "constants.h"
+#include "make_pw_symm_states.h"
 #include "General_functions/kinetic_conversion.h"
 
 /* COMMENTARY A:
@@ -34,6 +35,7 @@ cdouble resolvent_continuum_continuum(double E, double Eb,
 
 void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 											double   E,
+											bool 	 tensor_force_true,
 											int      Np_WP, double* e_SWP_unco_array, double* e_SWP_coup_array,
 											int      Nq_WP, double* q_WP_array,
 											int      Nalpha,

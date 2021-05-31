@@ -67,13 +67,13 @@ void construct_full_hamiltonian(double* mat_ptr_H,
 		}
 	}
 
-	//for (int idx_bin_r=0; idx_bin_r<mat_dim; idx_bin_r++){
-    //    for (int idx_bin_c=0; idx_bin_c<mat_dim; idx_bin_c++){
-	//		printf(" %.4e", mat_ptr_V[idx_bin_r*mat_dim + idx_bin_c]);
-	//	}
-	//	printf("\n");
-	//}
-	//printf("\n");
+	for (int idx_bin_r=0; idx_bin_r<mat_dim; idx_bin_r++){
+        for (int idx_bin_c=0; idx_bin_c<mat_dim; idx_bin_c++){
+			printf(" %.4e", mat_ptr_V[idx_bin_r*mat_dim + idx_bin_c]);
+		}
+		printf("\n");
+	}
+	printf("\n");
 }
 
 /* This function reorders the eigenvalues and corresponding vectors to correspond to coupled channels.
@@ -118,7 +118,7 @@ void look_for_unphysical_bound_states(double* eigenvalues,
 	for (int idx=0; idx<mat_dim; idx++){
 		if (eigenvalues[idx]<0){
 			num_bound_states_found += 1;
-			printf("   - Found bound state with energy %.3f MeV \n", eigenvalues[idx]);
+			printf("   - Found bound state with energy %.10f MeV \n", eigenvalues[idx]);
 
 			/* Save bound-state energy to special variable. This is okay since the code halts
 			 * if more than one bound state is located */
@@ -158,9 +158,9 @@ void make_swp_bin_boundaries(double* eigenvalues,
 	}
 
 	/* Set end boundary */
-	e_SWP_array[Np_WP] = eigenvalues[Np_WP-1] + 0.5*(eigenvalues[Np_WP-2] + eigenvalues[Np_WP-3]);
+	e_SWP_array[Np_WP] = eigenvalues[Np_WP-1] + 0.5*(e_SWP_array[Np_WP-1] - e_SWP_array[Np_WP-2]);
 	if (coupled){
-		e_SWP_array[2*Np_WP+1] = eigenvalues[2*Np_WP-1] + 0.5*(eigenvalues[2*Np_WP-2] + eigenvalues[2*Np_WP-3]);
+		e_SWP_array[2*Np_WP+1] = eigenvalues[2*Np_WP-1] + 0.5*(e_SWP_array[2*Np_WP] - e_SWP_array[2*Np_WP-1]);
 	}
 
 	/* Modify first boundary for 3S1 */
@@ -168,6 +168,11 @@ void make_swp_bin_boundaries(double* eigenvalues,
 		e_SWP_array[0] = eigenvalues[0];
 		e_SWP_array[1] = 0;
 	}
+
+	//for (int idx_p=0; idx_p<Np_WP+1; idx_p++){
+	//	std::cout << e_SWP_array[idx_p] << std::endl;
+	//}
+	//std::cout << std::endl;
 }
 
 void make_swp_states(double* e_SWP_unco_array,
@@ -176,14 +181,22 @@ void make_swp_states(double* e_SWP_unco_array,
 					 double* C_WP_coup_array,
 					 double* V_WP_unco_array,
                      double* V_WP_coup_array,
+					 bool 	 tensor_force_true,
 					 double& E_bound,
 					 int Np_WP, double* p_WP_array,
 					 int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array,
 					 int J_2N_max){
 	
 	/* Number of uncoupled and coupled 2N-channels */
-	int num_unco_chns = 2*(J_2N_max+1);
-	int num_coup_chns =    J_2N_max;
+	int num_unco_chns = 0;
+	int num_coup_chns = 0;
+	if (tensor_force_true){
+		num_unco_chns = 2*(J_2N_max+1);
+		num_coup_chns =    J_2N_max;
+	}
+	else{
+		num_unco_chns = 4*J_2N_max + 2;
+	}
 
 	/* Check-lists to keep track of which 2N Hamiltonian diagonalizations have been done.
 	 * This removes excessive work due to distinct 3N channels containing equal
@@ -265,13 +278,13 @@ void make_swp_states(double* e_SWP_unco_array,
 
                 /* Detemine if this is a coupled channel */
 	            bool coupled_matrix = false;
-	            if (L_r!=L_c or (L_r==L_c and L_r!=J_r and J_r!=0)){ // This counts 3P0 as uncoupled (which is intended)
-	            	coupled_matrix  = true;
-	            }
+	            if (tensor_force_true && (L_r!=L_c or (L_r==L_c and L_r!=J_r and J_r!=0)) ){    // This counts 3P0 as uncoupled; used in matrix structure
+					coupled_matrix  = true;
+				}
 
-                /* Skip redundant calculations by only doing the coupled calculation when L_r<L_c */
+                /* Skip redundant calculations by only doing the coupled calculation when L_r==L_c */
                 if (coupled_matrix){
-                    if ( (L_r<L_c)==false ){
+                    if ( (L_r==L_c)==false ){
                         continue;
                     }
                 }
@@ -287,7 +300,7 @@ void make_swp_states(double* e_SWP_unco_array,
 				double* e_SWP_array_ptr = NULL;
                 if (coupled_matrix){
 					mat_dim   		= 2*Np_WP;
-					chn_idx   		= J_r-1;
+					chn_idx   		= unique_2N_idx(L_r, S_r, J_r, T_r, tensor_force_true, coupled_matrix);
 
 					/* Check if 2N channels diagonalization has already
 					 * been performed in previous loop-iterations,
@@ -303,12 +316,12 @@ void make_swp_states(double* e_SWP_unco_array,
 					mat_ptr_H 		= &H_WP_coup_array [chn_idx * mat_dim*(mat_dim+1)/2];
 					mat_ptr_V 		= &V_WP_coup_array [chn_idx * mat_dim*mat_dim];
 					mat_ptr_C 		= &C_WP_coup_array [chn_idx * mat_dim*mat_dim];
-					e_SWP_array_ptr = &e_SWP_coup_array[chn_idx * mat_dim];
+					e_SWP_array_ptr = &e_SWP_coup_array[chn_idx * 2*(Np_WP+1)];
 					mat_ptr_H0 		= H0_WP_coup_array;
                 }
 			    else{
 					mat_dim   		= Np_WP;
-					chn_idx   		= 2*J_r + S_r;
+					chn_idx   		= unique_2N_idx(L_r, S_r, J_r, T_r, tensor_force_true, coupled_matrix);
 
 					/* Check if 2N channels diagonalization has already
 					 * been performed in previous loop-iterations,
@@ -324,7 +337,7 @@ void make_swp_states(double* e_SWP_unco_array,
 					mat_ptr_H 		= &H_WP_unco_array [chn_idx * mat_dim*(mat_dim+1)/2];
 					mat_ptr_V 		= &V_WP_unco_array [chn_idx * mat_dim*mat_dim];
 					mat_ptr_C 		= &C_WP_unco_array [chn_idx * mat_dim*mat_dim];
-					e_SWP_array_ptr = &e_SWP_unco_array[chn_idx * mat_dim];
+					e_SWP_array_ptr = &e_SWP_unco_array[chn_idx * (Np_WP+1)];
 					mat_ptr_H0 		= H0_WP_unco_array;
                 }
 
@@ -355,8 +368,7 @@ void make_swp_states(double* e_SWP_unco_array,
 
 				/* Abort if unphysical bound states are found in eigenvalues,
 				   or if 3S1-bound state is missing */
-				//bool chn_3S1 = (J_r==0 and S_r==0 and L_r==L_c and L_r==0);
-				bool chn_3S1 = (coupled_matrix && J_r==1);
+				bool chn_3S1 = (L_r==0 && S_r==1 && J_r==1 && T_r==0);
 				look_for_unphysical_bound_states(eigenvalues, mat_dim, chn_3S1, E_bound);
 				
 				/* The eigenspectrum of coupled channels is returned in ascending

@@ -15,6 +15,7 @@
 #include "type_defs.h"
 #include "store_functionality.h"
 #include "error_management.h"
+#include "make_pw_symm_states.h"
 #include "General_functions/matrix_routines.h"
 
 void solve_faddeev_equations(cdouble*  U_array,
@@ -38,12 +39,14 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 int*      J_2N_array,
 							 int*      T_2N_array,
 							 int*      L_1N_array, 
-							 int*      two_J_1N_array);
+							 int*      two_J_1N_array,
+							 bool 	   tensor_force_true);
 
 /* Create array of pointers to C^T matrices for product (C^T)PVC in row-major format */
 void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 										double*  C_WP_unco_array,
 										double*  C_WP_coup_array,
+										bool     tensor_force_true,
 										size_t   Np_WP,
 										int      J_2N_max,
 										size_t   Nalpha,
@@ -64,6 +67,7 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 										double*  C_WP_coup_array,
 										double*  V_WP_unco_array,
 										double*  V_WP_coup_array,
+										bool     tensor_force_true,
 										size_t   Np_WP,
 										int      J_2N_max,
 										size_t   Nalpha,

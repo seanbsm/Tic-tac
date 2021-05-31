@@ -294,6 +294,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	
 	printf("   - Precalculating momentum conservations \n");
 	fflush(stdout);
+	if (false){
 	#pragma omp parallel
 	{
 		#pragma omp for
@@ -379,6 +380,56 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 			}
 		}
 	}
+	}
+	}
+	else{
+		for (int qp_idx_WP=0; qp_idx_WP<Nq_WP; qp_idx_WP++){
+			double qp_l = q_array_WP_bounds[qp_idx_WP];
+			double qp_u = q_array_WP_bounds[qp_idx_WP+1];
+			for (int pp_idx_WP=0; pp_idx_WP<Np_WP; pp_idx_WP++){
+				double pp_l = p_array_WP_bounds[pp_idx_WP];
+				double pp_u = p_array_WP_bounds[pp_idx_WP+1];
+
+				double phi_lower = atan(pp_l/qp_u);
+				double phi_upper = atan(pp_u/qp_l);
+
+				/* Create phi-mesh */
+				calc_gauss_points ( &phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+								   &wphi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+								   phi_lower, phi_upper,
+								   Nphi);
+
+				for (int q_idx_WP=0; q_idx_WP<Nq_WP; q_idx_WP++){
+					double q_l = q_array_WP_bounds[q_idx_WP];
+					double q_u = q_array_WP_bounds[q_idx_WP+1];
+					for (int p_idx_WP=0; p_idx_WP<Np_WP; p_idx_WP++){
+						double p_l = p_array_WP_bounds[p_idx_WP];
+						double p_u = p_array_WP_bounds[p_idx_WP+1];
+	
+						double pi1_min = pi1_tilde(pp_l, qp_l, -1.0);
+						double pi1_max = pi1_tilde(pp_u, qp_u, +1.0);
+						bool p_in_pi1 = ( (pi1_min<=p_l && p_l<=pi1_max) || (pi1_min<=p_u && p_u<=pi1_max) );
+
+						double pi2_min = pi2_tilde(pp_l, qp_l, +1.0);
+						double pi2_max = pi2_tilde(pp_u, qp_u, -1.0);
+						bool q_in_pi2 = ( (pi2_min<=q_l && q_l<=pi2_max) || (pi2_min<=q_u && q_u<=pi2_max) );
+
+						bool WP_overlap = false;
+						if ( p_in_pi1 && q_in_pi2 ){
+							WP_overlap = true;
+						}
+
+						/* Unique index for current combination of WPs */
+						size_t pq_WP_idx = qp_idx_WP*Np_WP*Nq_WP*Np_WP
+								  	  	 + pp_idx_WP*Nq_WP*Np_WP
+								  	  	 +  q_idx_WP*Np_WP
+								  	  	 +  p_idx_WP;
+
+						pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
+					}
+				}
+			}
+		}
 	}
 	//double sparsity = 0.99881;
 	//for (int i=0; i<Nq_WP*Nq_WP*Np_WP*Np_WP; i++){
@@ -467,7 +518,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	size_t mem_check_num_doubles = 2 * mem_check_nnz;
 	size_t mem_check_num_ints    = 4 * mem_check_nnz; 
 	double mem_check_size_in_GB  = (mem_check_num_doubles*sizeof(double) + mem_check_num_ints*sizeof(int))/std::pow(2.0,30);
-	printf("   - Maximum memory required for P123 calculation + storage: %.2f GB \n", mem_check_size_in_GB);
+	printf("   - Maximum memory required for P123 calculation + storage routines: %.2f GB \n", mem_check_size_in_GB);
 	printf("     - Checking if required memory is available ... \n");
 	double* mem_check_array_doubles = NULL;
 	int*    mem_check_array_ints    = NULL;

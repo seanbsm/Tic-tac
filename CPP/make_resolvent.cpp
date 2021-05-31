@@ -81,6 +81,7 @@ cdouble resolvent_continuum_continuum(double E, double Eb,
 
 void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 											double   E,
+											bool 	 tensor_force_true,
 											int      Np_WP, double* e_SWP_unco_array, double* e_SWP_coup_array,
 											int      Nq_WP, double* q_WP_array,
 											int      Nalpha,
@@ -102,20 +103,18 @@ void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 		int T = T_2N_array[idx_alpha];
 
 		/* Detemine if this is a coupled channel */
-		if (L!=J and J!=0){ // This counts 3P0 as uncoupled (which is intended)
-			int mat_dim = 2*Np_WP;
-			int chn_2N_idx = J-1;
+		if (tensor_force_true && L!=J && J!=0){ // This counts 3P0 as uncoupled (which is intended)
+			int chn_2N_idx = unique_2N_idx(L, S, J, T, tensor_force_true, true);
 			if (L<J){
-				e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * mat_dim];
+				e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1)];
 			}
 			else{
-				e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * mat_dim + Np_WP];
+				e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1) + Np_WP+1];
 			}
 		}
 		else{
-			int mat_dim = Np_WP;
-			int chn_2N_idx = 2*J + S;
-			e_SWP_array_ptr = &e_SWP_unco_array[chn_2N_idx * mat_dim];
+			int chn_2N_idx = unique_2N_idx(L, S, J, T, tensor_force_true, false);
+			e_SWP_array_ptr = &e_SWP_unco_array[chn_2N_idx * (Np_WP+1)];
 		}
 
 		//printf("%d %d %d %d \n", L, S, J, T);
@@ -163,6 +162,10 @@ void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 				/* Use identical indexing as used in permutation matrix */
 				int G_idx = idx_alpha*Nq_WP*Np_WP + idx_q_bin*Np_WP + idx_p_bin;
 				G_array[G_idx] = R + Q;
+
+				//if (e_bin_lower<0){
+				//	std::cout << R << " " << Q << std::endl;
+				//}
 				//std::cout << R << " " << Q << std::endl;
 			}
 		}

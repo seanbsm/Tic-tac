@@ -692,6 +692,9 @@ double calculate_P123_element_in_WP_basis_mod (double* Gtilde_subarray,
 	double kmax    = 0;
 	double Gtilde  = 0;
 
+	int idx_i = qp_idx_WP*Np_WP + pp_idx_WP;
+	int idx_j =  q_idx_WP*Np_WP +  p_idx_WP;
+
 	/* Loop over quadrature points */
 	double integral_sum = 0;
 	for (int x_idx=0; x_idx<Nx; x_idx++){
@@ -700,6 +703,8 @@ double calculate_P123_element_in_WP_basis_mod (double* Gtilde_subarray,
 		for (int phi_idx=0; phi_idx<Nphi; phi_idx++){
 			sin_phi = sin_phi_subarray[phi_idx];
 			cos_phi = cos_phi_subarray[phi_idx];
+			//cos_phi = sin_phi_subarray[phi_idx];
+			//sin_phi = cos_phi_subarray[phi_idx];
 			wphi    = wphi_subarray[phi_idx];
 
 			zeta_1 = pi1_tilde(sin_phi, cos_phi, x);
@@ -710,6 +715,15 @@ double calculate_P123_element_in_WP_basis_mod (double* Gtilde_subarray,
 
 			kmin = *std::max_element(kmin_array, kmin_array+4);
 			kmax = *std::min_element(kmax_array, kmax_array+4);
+
+			//if (idx_i==63 && idx_j==58){
+			//	std::cout << "qp_lo: " << qp_l << " qp_hi: " << qp_u << std::endl;
+			//	std::cout << "pp_lo: " << pp_l << " pp_hi: " << pp_u << std::endl;
+			//	std::cout << "q_lo:  " << q_l << "  q_hi:  " << q_u << std::endl;
+			//	std::cout << "p_lo:  " << p_l << "  p_hi:  " << p_u << std::endl;
+			//	std::cout << "zeta1: " << zeta_1 << "  zeta2: " << zeta_2 << std::endl;
+			//	std::cout <<"x: "<<x_idx<<": "<<x<<" | phi: "<<phi_idx<<": "<<asin(sin_phi)<<" | Q: " << kmin << " " << kmax << std::endl;
+			//}
 
 			/* Skip momentum-violating integral boundaries */
 			if (kmin>kmax){

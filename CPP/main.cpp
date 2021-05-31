@@ -105,7 +105,7 @@ int main(int argc, char* argv[]){
 	/* Start of code segment for parameters, variables and arrays declaration */
 
 	bool default_Tlab_input = false;
-	double Tlab_max = 100;
+	double Tlab_max = 300;
 
 	/* Current scattering energy */
 	size_t  num_T_lab	= 0;
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]){
 	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
-	bool calculate_and_store_P123 = false;
+	bool calculate_and_store_P123 = true;
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
 	 * and solve Faddeev in a single run */
@@ -151,8 +151,8 @@ int main(int argc, char* argv[]){
 	double* q_WP_array  = NULL;
 
 	/* Quadrature 3N momenta per WP cell */
-	int Nphi		 = 50;
-	int Nx 			 = 20;
+	int Nphi		 = 48;//50;
+	int Nx 			 = 15;//20;
 	int Np_per_WP	 = 8;
 	int Nq_per_WP	 = 8;
 	double* p_array  = NULL;
@@ -183,8 +183,10 @@ int main(int argc, char* argv[]){
 	int* chn_3N_idx_array = NULL;
 
 	/* Potential model class pointers */
-	potential_model* pot_ptr_np = NULL;
-	potential_model* pot_ptr_nn = NULL;
+	potential_model* pot_ptr_np  = NULL;
+	potential_model* pot_ptr_nn  = NULL;
+	bool tensor_force_true		 = false;
+	bool mid_point_approximation = true;
 
 	/* End of code segment for variables and arrays declaration */
 	/* ################################################################################################################### */
@@ -240,7 +242,7 @@ int main(int argc, char* argv[]){
 	printf(" - Done \n");
 
 	//for (int i=0; i<Nq_WP+1; i++){
-	//	printf("%.3f\n", q_WP_array[i]);
+	//	printf("%.10e\n", q_WP_array[i]);
 	//}
 	//return 0;
 
@@ -268,14 +270,129 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
+	/* Start of code segment for potential matrix construction */
+
+	int num_2N_unco_states = 0;
+	int num_2N_coup_states = 0;
+	if (tensor_force_true){
+		num_2N_unco_states = 2*(J_2N_max+1);
+		num_2N_coup_states =    J_2N_max;
+	}
+	else{
+		num_2N_unco_states = 4*J_2N_max + 2;
+	}
+
+	int V_unco_array_size = 0;
+	int V_coup_array_size = 0;
+
+	/* Check if we can have coupled channels */
+	if (tensor_force_true){
+		V_unco_array_size = Np_WP*Np_WP   * num_2N_unco_states;
+		V_coup_array_size = Np_WP*Np_WP*4 * num_2N_coup_states;
+	}
+	else{
+		V_unco_array_size = Np_WP*Np_WP * num_2N_unco_states;
+	}
+
+	V_WP_unco_array = new double [V_unco_array_size];
+	V_WP_coup_array = new double [V_coup_array_size];
+	if (solve_faddeev){
+		//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
+		//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
+		//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
+		//pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
+		//pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
+		//pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
+		pot_ptr_np = potential_model::fetch_potential_ptr("malfliet_tjon", "np");
+		pot_ptr_nn = potential_model::fetch_potential_ptr("malfliet_tjon", "nn");
+	
+		//double temparray [6];
+		//double qi = 5; double qo=10;
+		//int L=0; int S3=1; int J3=1; int S1=0; int J1=0;
+		//std::cout << "Potential vals:" << std::endl;
+		//pot_ptr_nn->V(qi, qo, false, L,S1,J1, temparray);
+		//std::cout << temparray[0] << std::endl;
+		//pot_ptr_nn->V(qi, qo, true,  L,S3,J3, temparray);
+		//std::cout << temparray[2] << std::endl;
+		//return 0;
+
+		//for (int i=0; i<Np_WP+1; i++){
+		//	std::cout << p_WP_array[i] << std::endl;
+		//}
+		//return 0;
+
+		printf("Constructing 2N-potential matrices in WP basis ... \n");
+		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array,
+													   V_WP_coup_array,
+													   tensor_force_true,
+													   mid_point_approximation,
+													   Np_WP, p_WP_array,
+													   Np_per_WP, p_array, wp_array,
+													   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
+													   J_2N_max,
+													   pot_ptr_nn,
+													   pot_ptr_np);
+		printf(" - Done \n");
+	}
+
+	/* End of code segment for potential matrix construction */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* Start of code segment for scattering wave-packets construction */
+
+	double  E_bound = 0;
+
+	double* e_SWP_unco_array = new double [  (Np_WP+1) * num_2N_unco_states];
+	double* e_SWP_coup_array = new double [2*(Np_WP+1) * num_2N_coup_states];
+
+	double* C_WP_unco_array = new double [V_unco_array_size];
+	double* C_WP_coup_array = new double [V_coup_array_size];
+	if (solve_faddeev){
+		printf("Constructing 2N SWPs ... \n");
+		make_swp_states(e_SWP_unco_array,
+						e_SWP_coup_array,
+						C_WP_unco_array,
+						C_WP_coup_array,
+						V_WP_unco_array,
+						V_WP_coup_array,
+						tensor_force_true,
+						E_bound,
+						Np_WP, p_WP_array,
+						Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
+						J_2N_max);
+		printf(" - Using E_bound = %.5f MeV \n", E_bound);
+		printf(" - Done \n");
+
+		//for (int i=0; i<Np_WP+1; i++){
+		//	printf("%.7e\n", p_WP_array[i]);
+		//}
+		//printf("\n");
+		//int idx_of_interest = unique_2N_idx(0, 1, 1, 0, tensor_force_true, false);
+		//for (int i=0; i<Np_WP+1; i++){
+		//	printf("%.7e\n", e_SWP_unco_array[i + idx_of_interest*(Np_WP+1)]);
+		//}
+		//return 0;
+	}
+
+	//for (int i=2; i<Nalpha; i++){
+	//	for (int j=0; j<2*Np_WP; j++){
+	//		printf("%.3f\n", e_SWP_unco_array[j]);
+	//	}
+	//}
+
+	/* End of code segment for scattering wave-packets construction */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
 	/* Start of code segment for locating on-shell nucleon-deuteron states */
 	if (solve_faddeev){
 
-		/* Use q-momentum bin mid-points as on-shell energies if no default input is given */
+		/* Use q-momentum bin ENERGY mid-points as on-shell energies if no default input is given */
 		if (default_Tlab_input==false){
 			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
 				double q_upper_boundary = q_WP_array[q_WP_idx+1];
-				double T_lab = com_momentum_to_lab_energy(q_upper_boundary);
+				double T_lab = com_momentum_to_lab_energy(q_upper_boundary, E_bound);
 				if (T_lab>Tlab_max){
 					break;
 				}
@@ -287,9 +404,12 @@ int main(int argc, char* argv[]){
 			T_lab_array = new double [num_T_lab];
 
 			for (size_t q_WP_idx=0; q_WP_idx<num_T_lab; q_WP_idx++){
-				double q_mid_point = 0.5*(q_WP_array[q_WP_idx+1] + q_WP_array[q_WP_idx]);
-				double T_lab = com_momentum_to_lab_energy(q_mid_point);
-				
+				double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
+				double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
+				double E_com = 0.5*(Eq_upper + Eq_lower);
+				//printf("%.10e\n",E_com);
+				double q = com_energy_to_com_q_momentum(E_com);
+				double T_lab = com_momentum_to_lab_energy(q, E_bound);
 				T_lab_array[q_WP_idx] = T_lab;
 			}
 		}
@@ -300,10 +420,19 @@ int main(int argc, char* argv[]){
 		E_com_array = new double [num_T_lab];
 		//double mu	 = 2*Mp*Md/(Mp+Md);
 		for (size_t i=0; i<num_T_lab; i++){
-			double q_com = lab_energy_to_com_momentum(T_lab_array[i]);
+			double q_com = lab_energy_to_com_momentum(T_lab_array[i], E_bound);
 			q_com_array[i] = q_com;
-			E_com_array[i] = com_q_momentum_to_com_energy(q_com);
+			E_com_array[i] = com_q_momentum_to_com_energy(q_com); 
 		}
+
+		//for (int i=0; i<num_T_lab; i++){
+		//	printf("%.10e\n",E_com_array[i]);
+		//}
+		//return 0;
+		//for (int i=0; i<Nq_WP+1; i++){
+		//	printf("%.10e\n", 0.5*(q_WP_array[i] *q_WP_array[i])/mu1(E_bound));
+		//}
+		//return 0;
 
 		printf("Locating on-shell q-momentum WP-indices for %zu on-shell energies ... \n", num_T_lab);
 		q_com_idx_array = new int [num_T_lab];
@@ -369,98 +498,6 @@ int main(int argc, char* argv[]){
 		printf(" - Done \n");
 	}
 	/* End of code segment for locating on-shell nucleon-deuteron states */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* Start of code segment for potential matrix construction */
-
-	int V_unco_array_size = Np_WP*Np_WP   * 2*(J_2N_max+1);
-	int V_coup_array_size = Np_WP*Np_WP*4 *    J_2N_max;
-	V_WP_unco_array = new double [V_unco_array_size];
-	V_WP_coup_array = new double [V_coup_array_size];
-	if (solve_faddeev){
-		//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
-		//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
-		//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
-		//pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
-		//pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
-		//pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
-		pot_ptr_np = potential_model::fetch_potential_ptr("malfliet_tjon", "np");
-		pot_ptr_nn = potential_model::fetch_potential_ptr("malfliet_tjon", "nn");
-	
-		//double temparray [6];
-		//double qi = 5; double qo=10;
-		//int L=0; int S3=1; int J3=1; int S1=0; int J1=0;
-		//std::cout << "Potential vals:" << std::endl;
-		//pot_ptr_nn->V(qi, qo, false, L,S1,J1, temparray);
-		//std::cout << temparray[0] << std::endl;
-		//pot_ptr_nn->V(qi, qo, true,  L,S3,J3, temparray);
-		//std::cout << temparray[2] << std::endl;
-		//return 0;
-
-		//for (int i=0; i<Np_WP+1; i++){
-		//	std::cout << p_WP_array[i] << std::endl;
-		//}
-		//return 0;
-
-		printf("Constructing 2N-potential matrices in WP basis ... \n");
-		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array,
-													   V_WP_coup_array,
-													   true,
-													   Np_WP, p_WP_array,
-													   Np_per_WP, p_array, wp_array,
-													   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
-													   J_2N_max,
-													   pot_ptr_nn,
-													   pot_ptr_np);
-		printf(" - Done \n");
-	}
-
-	/* End of code segment for potential matrix construction */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* Start of code segment for scattering wave-packets construction */
-
-	double  E_bound = 0;
-
-	double* e_SWP_unco_array = new double [  (Np_WP+1) * 2*(J_2N_max+1)];
-	double* e_SWP_coup_array = new double [2*(Np_WP+1) *    J_2N_max];
-
-	double* C_WP_unco_array = new double [V_unco_array_size];
-	double* C_WP_coup_array = new double [V_coup_array_size];
-	if (solve_faddeev){
-		printf("Constructing 2N SWPs ... \n");
-		make_swp_states(e_SWP_unco_array,
-						e_SWP_coup_array,
-						C_WP_unco_array,
-						C_WP_coup_array,
-						V_WP_unco_array,
-						V_WP_coup_array,
-						E_bound,
-						Np_WP, p_WP_array,
-						Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
-						J_2N_max);
-		printf(" - Using E_bound = %.5f MeV \n", E_bound);
-		printf(" - Done \n");
-
-		for (int i=0; i<Np_WP+1; i++){
-			printf("%.3f\n", p_WP_array[i]);
-		}
-		printf("\n");
-		for (int i=0; i<2*(Nq_WP+1); i++){
-			printf("%.3f\n", e_SWP_coup_array[i]);
-		}
-		return 0;
-	}
-
-	//for (int i=2; i<Nalpha; i++){
-	//	for (int j=0; j<2*Np_WP; j++){
-	//		printf("%.3f\n", e_SWP_unco_array[j]);
-	//	}
-	//}
-
-	/* End of code segment for scattering wave-packets construction */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
@@ -640,6 +677,34 @@ int main(int argc, char* argv[]){
 			//	raise_error("dim not right");
 			//}
 		}
+		
+		double* P123_subarray = new double [Np_WP*Np_WP*Nq_WP*Nq_WP];
+		for (int i=0; i<Np_WP*Np_WP*Nq_WP*Nq_WP; i++){
+			P123_subarray[i] = 0;
+		}
+		int idx_of_interest = 25-idx_alpha_lower;
+		for (int nnz=0; nnz<P123_sparse_dim; nnz++){
+			int row = P123_sparse_row_array[nnz];
+			int col = P123_sparse_col_array[nnz];
+			double val = P123_sparse_val_array[nnz];
+			int ralpha = row / (Np_WP*Nq_WP);
+			int calpha = col / (Np_WP*Nq_WP);
+			int i = row % (Np_WP*Nq_WP);
+			int j = col % (Np_WP*Nq_WP);
+			if (ralpha==idx_of_interest && calpha==idx_of_interest){
+				P123_subarray[i*Np_WP*Nq_WP + j] = val;
+			}
+		}
+		for (int i=0; i<Np_WP*Nq_WP; i++){
+			for (int j=0; j<Np_WP*Nq_WP; j++){
+				double val = P123_subarray[i*Np_WP*Nq_WP + j];
+				if (val!=0){
+					std::cout << "i = " << i << "| j = " << j << "| val = " << val << std::endl;
+				}
+			}			
+		}
+		//return 0;
+
 		/* End of code segment for permutation matrix construction */
 
 		if (solve_faddeev){
@@ -655,6 +720,7 @@ int main(int argc, char* argv[]){
 				double E = E_com + E_bound;
 				calculate_resolvent_array_in_SWP_basis(&G_array[j*Nalpha_in_3N_chn*Np_WP*Nq_WP],
 													   E,
+													   tensor_force_true,
 													   Np_WP,
 													   e_SWP_unco_array,
 													   e_SWP_coup_array,
@@ -665,11 +731,21 @@ int main(int argc, char* argv[]){
 													   J_2N_subarray,
 													   T_2N_subarray);
 				//printf("%.10f\n\n",com_energy_to_com_q_momentum(3.8306227657971945-1.9624153103111233, -1.9624153103111233));
-				//double q_com = com_energy_to_com_q_momentum(E_com);
-				//printf("Ecm = %.15f MeV | q = %.15f MeV:\n", E_com, q_com);
-				//for (int i=0; i<Np_WP*Nq_WP; i++){
-				//	printf("%.15e %.15e\n", G_array[i]);
-				//}
+				double q_com = com_energy_to_com_q_momentum(E_com);
+				printf("E = %.15f MeV | Ecm = %.15f MeV | q = %.15f MeV:\n", E, E_com, q_com);
+				int idx_of_interest = 25-idx_alpha_lower;
+				printf("L=%d S=%d J=%d T=%d 2l=%d 2j=%d \n", L_2N_subarray[idx_of_interest],
+														  S_2N_subarray[idx_of_interest],
+														  J_2N_subarray[idx_of_interest],
+														  T_2N_subarray[idx_of_interest],
+														  L_1N_subarray[idx_of_interest],
+														  two_J_1N_subarray[idx_of_interest]);
+				cdouble* G_subarray = &G_array[j*Nalpha_in_3N_chn*Np_WP*Nq_WP + idx_of_interest*Np_WP*Nq_WP];
+				int idx_2N_of_interest = unique_2N_idx(0,1,1,0,tensor_force_true, false);
+				//std::cout << e_SWP_unco_array[idx_2N_of_interest*(Np_WP+1)] << std::endl;
+				for (int i=0; i<Np_WP*Nq_WP; i++){
+					printf("%.15e %.15e\n", G_subarray[i].real(), G_subarray[i].imag());
+				}
 			}
 			//return 0;
 			printf(" - Done \n");
@@ -704,7 +780,8 @@ int main(int argc, char* argv[]){
 									J_2N_subarray,
 									T_2N_subarray,
 									L_1N_subarray, 
-									two_J_1N_subarray);
+									two_J_1N_subarray,
+									tensor_force_true);
 			printf(" - Done \n");
 
 			/* End of code segment for iterations of elastic Faddeev equations */

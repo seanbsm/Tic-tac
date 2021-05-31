@@ -8,6 +8,7 @@
 
 #include "constants.h"
 #include "error_management.h"
+#include "make_pw_symm_states.h"
 
 void diagonalize_real_symm_matrix(float *A, float *w, float *z, int N);
 void diagonalize_real_symm_matrix(double *A, double *w, double *z, int N);
@@ -44,6 +45,7 @@ void make_swp_states(double* e_SWP_unco_array,
 					 double* C_WP_coup_array,
 					 double* V_WP_unco_array,
 					 double* V_WP_coup_array,
+					 bool 	 tensor_force_true,
 					 double& E_bound,
 					 int Np_WP, double* p_WP_array,
 					 int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array,

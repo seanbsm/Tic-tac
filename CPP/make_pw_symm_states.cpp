@@ -1,21 +1,27 @@
 
 #include "make_pw_symm_states.h"
 
-//bool check_2N_coupling(int L,  int S,  int J,  int T,
-//					   int Lp, int Sp, int Jp, int Tp,){
-//	
-//	if (abs(L-Lp)<2 && S==Sp && J==Jp && T==Tp){
-//		if (L!=J and J!=0){
-//
-//		}
-//	}
-//	else{
-//		std::string err_msg = "Impossible coupling encountered in check_2N_coupling \n"
-//					 		   << "State 1: L=" << L  << ", S=" << S  << ", J=" << J  << ", T=" << T  << "\n"
-//					 		   << "State 2: L=" << Lp << ", S=" << Sp << ", J=" << Jp << ", T=" << Tp << "\n";
-//		raise_error(err_msg);
-//	}
-//}
+int unique_2N_idx(int L_2N, int S_2N, int J_2N, int T_2N, bool tensor_force_true, bool coupled){
+	
+	if (coupled==true && tensor_force_true==false){
+		raise_error("Cannot have coupled states without a tensor force.");
+	}
+
+	int unique_idx;
+	if (tensor_force_true){
+		if (coupled){
+			unique_idx = J_2N-1;
+		}
+		else{
+			unique_idx = 2*J_2N + S_2N;
+		}
+	}
+	else{
+		unique_idx = J_2N*(4*(J_2N>1) + 2) + (S_2N==1) + (S_2N==1 && J_2N!=0)*(J_2N-L_2N + 1);
+	}
+
+	return unique_idx;
+}
 
 void construct_symmetric_pw_states(int    J_2N_max,
 								   int    two_J_3N_max,
@@ -30,8 +36,7 @@ void construct_symmetric_pw_states(int    J_2N_max,
 								   int**  two_J_1N_array_ptr,
 								   int**  two_J_3N_array_ptr,
 								   int**  two_T_3N_array_ptr,
-								   int**  P_3N_array_ptr,
-								   bool** coupled_array_ptr){
+								   int**  P_3N_array_ptr){
 
 	bool print_content = true;
 	char print_table_format_words[] = "%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s\n";

@@ -378,7 +378,7 @@ void faddeev_dense_solver(cdouble*  U_array,
 		/* Solve */
 		solve_MM(L_array, R_array, dense_dim);
 
-		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+		/*for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 			for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
 				size_t idx_alpha_row = deuteron_idx_array[idx_d_row];
 				size_t idx_alpha_col = deuteron_idx_array[idx_d_col];
@@ -392,8 +392,33 @@ void faddeev_dense_solver(cdouble*  U_array,
 
 				printf("   - U-matrix element for alpha'=%d, alpha=%d, q=%d: %.10e + %.10ei \n", idx_alpha_row, idx_alpha_col, idx_q_NDOS, idx_p_NDOS, U_val.real(), U_val.imag());
 			}
-		}
+		}*/
 
+		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+			for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
+
+				size_t idx_q_com		  = j;
+
+				/* Nucleon-deuteron on-shell (NDOS) indices
+				 * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
+				size_t idx_alpha_NDOS_row = deuteron_idx_array[idx_d_row];
+				size_t idx_alpha_NDOS_col = deuteron_idx_array[idx_d_col];
+				size_t idx_p_NDOS 	  	  = 0;
+				size_t idx_q_NDOS 	   	  = q_com_idx_array[idx_q_com];
+
+				size_t idx_row_NDOS = idx_alpha_NDOS_row*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
+				size_t idx_col_NDOS = idx_alpha_NDOS_col*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
+
+				cdouble U_val = R_array[idx_row_NDOS*dense_dim + idx_col_NDOS];
+
+				size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
+
+				/* Set U-matrix element equal "best" PA */
+				U_array[idx_NDOS] = U_val;
+
+				printf(" - U-matrix element for alpha'=%d, alpha=%d, q=%d: %.10e + %.10ei \n", idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, U_array[idx_NDOS].real(), U_array[idx_NDOS].imag());
+			}
+		}
 	}
 	delete [] L_array;
 	delete [] R_array;
@@ -419,7 +444,7 @@ void pade_method_solve(cdouble*  U_array,
 	/* Print Pade-approximant convergences */
 	bool print_PA_convergences = false;
 	/* Print Neumann terms */
-	bool print_neumann_terms = true;
+	bool print_neumann_terms = false;
 	
 	/* Number of on-shell nucleon-deuteron channels (deuteron states can mix, hence ^2) */
 	size_t num_on_shell_A_rows = num_deuteron_states * num_q_com;
@@ -753,7 +778,8 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 int*      J_2N_array,
 							 int*      T_2N_array,
 							 int*      L_1N_array, 
-							 int*      two_J_1N_array){
+							 int*      two_J_1N_array,
+							 bool 	   tensor_force_true){
 	
 	/* Test PVC- and CPVC-column multiplication routines with brute-force routines
 	 * WARNING: VERY SLOW TEST, ONLY FOR BENCHMARKING */
@@ -769,6 +795,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 	create_CT_row_maj_3N_pointer_array(CT_RM_array,
 									   C_WP_unco_array,
 									   C_WP_coup_array,
+									   tensor_force_true,
 									   Np_WP,
 									   J_2N_max,
 									   Nalpha,
@@ -786,6 +813,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 									   C_WP_coup_array,
 									   V_WP_unco_array,
 									   V_WP_coup_array,
+									   tensor_force_true,
 									   Np_WP,
 									   J_2N_max,
 									   Nalpha,
@@ -862,20 +890,43 @@ void solve_faddeev_equations(cdouble*  U_array,
 	
 	printf(" - Solving Faddeev equation ... \n");
 	auto timestamp_solve_start = std::chrono::system_clock::now();
-	
-	pade_method_solve(U_array,
-					  G_array,
-					  q_com_idx_array,	  num_q_com,
-					  deuteron_idx_array, num_deuteron_states,
-					  Nalpha,
-					  Nq_WP,
-					  Np_WP,
-					  CT_RM_array,
-					  VC_CM_array,
-					  P123_sparse_val_array,
-					  P123_sparse_row_array,
-					  P123_sparse_col_array_csc,
-					  P123_sparse_dim);
+	if (solve_dense==false){
+		pade_method_solve(U_array,
+						  G_array,
+						  q_com_idx_array,	  num_q_com,
+						  deuteron_idx_array, num_deuteron_states,
+						  Nalpha,
+						  Nq_WP,
+						  Np_WP,
+						  CT_RM_array,
+						  VC_CM_array,
+						  P123_sparse_val_array,
+						  P123_sparse_row_array,
+						  P123_sparse_col_array_csc,
+						  P123_sparse_dim);
+	}
+	else{
+		printf("   - Solving Faddeev equation using a dense direct solver (WARNING: CAN TAKE LONG) ... \n");
+		//auto timestamp_solve_start = std::chrono::system_clock::now();
+
+		faddeev_dense_solver(U_array,
+						     G_array,
+						     q_com_idx_array,	 num_q_com,
+						     deuteron_idx_array, num_deuteron_states,
+						     Nalpha,
+						     Nq_WP,
+						     Np_WP,
+						     CT_RM_array,
+						     VC_CM_array,
+						     P123_sparse_val_array,
+						     P123_sparse_row_array,
+						     P123_sparse_col_array_csc,
+						     P123_sparse_dim);
+
+		//auto timestamp_solve_end = std::chrono::system_clock::now();
+		//std::chrono::duration<double> time_solve = timestamp_solve_end - timestamp_solve_start;
+		//printf("   - Done. Time used: %.6f\n", time_solve.count());
+	}
 
 	auto timestamp_solve_end = std::chrono::system_clock::now();
 	std::chrono::duration<double> time_solve = timestamp_solve_end - timestamp_solve_start;
@@ -894,35 +945,13 @@ void solve_faddeev_equations(cdouble*  U_array,
 							    L_1N_array, 
 							    two_J_1N_array,
 							    U_mat_filename);
-	
-	if (solve_dense){
-		printf(" - Solving Faddeev equation using a dense direct solver (WARNING: CAN TAKE LONG) ... \n");
-		auto timestamp_solve_start = std::chrono::system_clock::now();
-
-		faddeev_dense_solver(U_array,
-						     G_array,
-						     q_com_idx_array,	 num_q_com,
-						     deuteron_idx_array, num_deuteron_states,
-						     Nalpha,
-						     Nq_WP,
-						     Np_WP,
-						     CT_RM_array,
-						     VC_CM_array,
-						     P123_sparse_val_array,
-						     P123_sparse_row_array,
-						     P123_sparse_col_array_csc,
-						     P123_sparse_dim);
-
-		auto timestamp_solve_end = std::chrono::system_clock::now();
-		std::chrono::duration<double> time_solve = timestamp_solve_end - timestamp_solve_start;
-		printf("   - Done. Time used: %.6f\n", time_solve.count());
-	}
 }
 
 /* Create array of pointers to C^T matrices for product (C^T)PVC in row-major format */
 void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 										double*  C_WP_unco_array,
 										double*  C_WP_coup_array,
+										bool     tensor_force_true,
 										size_t   Np_WP,
 										int      J_2N_max,
 										size_t   Nalpha,
@@ -932,34 +961,40 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 										int*     T_2N_array,
 							 			int*     L_1N_array, 
 							 			int*     two_J_1N_array){
+	
+	/* Number of uncoupled and coupled 2N-channels */
+	int num_unco_chns = 0;
+	int num_coup_chns = 0;
+	if (tensor_force_true){
+		num_unco_chns = 2*(J_2N_max+1);
+		num_coup_chns =    J_2N_max;
+	}
+	else{
+		num_unco_chns = 4*J_2N_max + 2;
+	}
 
 	double* C_subarray  = NULL;
 	double* CT_subarray = NULL;
 
-	double* CT_unco_array = new double [Np_WP*Np_WP   * 2*(J_2N_max+1)];
-	double* CT_coup_array = new double [Np_WP*Np_WP*4 *    J_2N_max   ];
+	double* CT_unco_array = new double [Np_WP*Np_WP   * num_unco_chns];
+	double* CT_coup_array = new double [Np_WP*Np_WP*4 * num_coup_chns];
 	
 	/* Copy and transpose all 2N-uncoupled C-arrays */
-	for (int J_2N=0; J_2N<J_2N_max+1; J_2N++){
-		for (int S_2N=0; S_2N<2; S_2N++){
-			size_t idx_chn_unco       = 2*J_2N + S_2N;
-			size_t idx_2N_mat_WP_unco = idx_chn_unco*Np_WP*Np_WP;
+	for (int idx_chn_unco=0; idx_chn_unco<num_unco_chns; idx_chn_unco++){
+		size_t idx_2N_mat_WP_unco = idx_chn_unco*Np_WP*Np_WP;
 			
-			C_subarray  = &C_WP_unco_array[idx_2N_mat_WP_unco];
-			CT_subarray = &CT_unco_array  [idx_2N_mat_WP_unco];
+		C_subarray  = &C_WP_unco_array[idx_2N_mat_WP_unco];
+		CT_subarray = &CT_unco_array  [idx_2N_mat_WP_unco];
 
-			/* Copy content to avoid rewriting C-arrays */
-			std::copy(C_subarray, C_subarray + Np_WP*Np_WP, CT_subarray);
+		/* Copy content to avoid rewriting C-arrays */
+		std::copy(C_subarray, C_subarray + Np_WP*Np_WP, CT_subarray);
 			
-			/* Transpose C to get C^T */
-			simple_transpose_matrix_routine(CT_subarray, Np_WP);
-
-		}
+		/* Transpose C to get C^T */
+		simple_transpose_matrix_routine(CT_subarray, Np_WP);
 	}
 
 	/* Copy and transpose all 2N-coupled C-arrays */
-	for (int J_2N=1; J_2N<J_2N_max+1; J_2N++){
-		size_t idx_chn_coup     = J_2N-1;
+	for (int idx_chn_coup=0; idx_chn_coup<num_coup_chns; idx_chn_coup++){
 		size_t idx_2N_mat_WP_coup = idx_chn_coup*4*Np_WP*Np_WP;
 
 		C_subarray  = &C_WP_coup_array[idx_2N_mat_WP_coup];
@@ -993,22 +1028,25 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 			int two_J_1N_c = two_J_1N_array[idx_alpha_c];
 
 			/* Check if possible channel through interaction */
-			if (T_2N_r==T_2N_c &&
-			    J_2N_r==J_2N_c &&
-				S_2N_r==S_2N_c &&
-				abs(L_2N_r-L_2N_c)<=2 &&
-				L_1N_r==L_1N_c &&
-				two_J_1N_r==two_J_1N_c){
+			bool check_T = (T_2N_r==T_2N_c);
+			bool check_J = (J_2N_r==J_2N_c);
+			bool check_S = (S_2N_r==S_2N_c);
+			bool check_L = ( (tensor_force_true && abs(L_2N_r-L_2N_c)<=2) || L_2N_r==L_2N_c);
+			bool check_l = (L_1N_r==L_1N_c);
+			bool check_j = (two_J_1N_r==two_J_1N_c);
+
+			/* Check if possible channel through interaction */
+			if (check_T && check_J && check_S && check_L && check_l && check_j){
 
 				/* Detemine if this is a coupled channel */
 				bool coupled_matrix = false;
-				if (L_2N_r!=L_2N_c || (L_2N_r==L_2N_c & L_2N_r!=J_2N_r & J_2N_r!=0)){ // This counts 3P0 as uncoupled; used in matrix structure
+				if ( tensor_force_true && (L_2N_r!=L_2N_c || (L_2N_r==L_2N_c & L_2N_r!=J_2N_r & J_2N_r!=0)) ){ // This counts 3P0 as uncoupled; used in matrix structure
 					coupled_matrix  = true;
 				}
 
 				/* find which VC-product corresponds to the current coupling */
 				if (coupled_matrix){
-					size_t idx_chn_coup       = (size_t) J_2N_r-1;
+					size_t idx_chn_coup       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, tensor_force_true, coupled_matrix);
 					size_t idx_2N_mat_WP_coup = idx_chn_coup*4*Np_WP*Np_WP;
 					if (L_2N_r<L_2N_c){       // L_r=J_r-1, L_c=J_r+1
 						CT_subarray = &CT_coup_array[idx_2N_mat_WP_coup + 1*Np_WP*Np_WP];
@@ -1024,7 +1062,7 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 					}
 				}
 				else{
-					size_t idx_chn_unco       = (size_t) 2*J_2N_r + S_2N_r;
+					size_t idx_chn_unco       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, tensor_force_true, coupled_matrix);
 					size_t idx_2N_mat_WP_unco = idx_chn_unco*Np_WP*Np_WP;
 					CT_subarray = &CT_unco_array[idx_2N_mat_WP_unco];
 				}
@@ -1076,6 +1114,7 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 										double*  C_WP_coup_array,
 										double*  V_WP_unco_array,
 										double*  V_WP_coup_array,
+										bool     tensor_force_true,
 										size_t   Np_WP,
 										int      J_2N_max,
 										size_t   Nalpha,
@@ -1086,35 +1125,42 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 							 			int*     L_1N_array, 
 							 			int*     two_J_1N_array){
 
+	/* Number of uncoupled and coupled 2N-channels */
+	int num_unco_chns = 0;
+	int num_coup_chns = 0;
+	if (tensor_force_true){
+		num_unco_chns = 2*(J_2N_max+1);
+		num_coup_chns =    J_2N_max;
+	}
+	else{
+		num_unco_chns = 4*J_2N_max + 2;
+	}
+
 	double* V_subarray = NULL;
 	double* C_subarray = NULL;
 
-	double* VC_unco_array = new double [Np_WP*Np_WP   * 2*(J_2N_max+1)];
-	double* VC_coup_array = new double [Np_WP*Np_WP*4 *    J_2N_max   ];
+	double* VC_unco_array = new double [Np_WP*Np_WP   * num_unco_chns];
+	double* VC_coup_array = new double [Np_WP*Np_WP*4 * num_coup_chns];
 
 	double* VC_product = NULL;
 
 	/* Calculate all 2N-uncoupled VC-products and convert to column-major format */
-	for (int J_2N=0; J_2N<J_2N_max+1; J_2N++){
-		for (int S_2N=0; S_2N<2; S_2N++){
-			size_t idx_chn_unco       = (size_t) 2*J_2N + S_2N;
-			size_t idx_2N_mat_WP_unco = idx_chn_unco*Np_WP*Np_WP;
+	for (int idx_chn_unco=0; idx_chn_unco<num_unco_chns; idx_chn_unco++){
+		size_t idx_2N_mat_WP_unco = idx_chn_unco*Np_WP*Np_WP;
 			
-			V_subarray = &V_WP_unco_array[idx_2N_mat_WP_unco];
-			C_subarray = &C_WP_unco_array[idx_2N_mat_WP_unco];
-			VC_product = &VC_unco_array  [idx_2N_mat_WP_unco];
+		V_subarray = &V_WP_unco_array[idx_2N_mat_WP_unco];
+		C_subarray = &C_WP_unco_array[idx_2N_mat_WP_unco];
+		VC_product = &VC_unco_array  [idx_2N_mat_WP_unco];
 
-			/* Multiply V and C using BLAS */
-			dot_MM(V_subarray, C_subarray, VC_product, Np_WP, Np_WP, Np_WP);
+		/* Multiply V and C using BLAS */
+		dot_MM(V_subarray, C_subarray, VC_product, Np_WP, Np_WP, Np_WP);
 
-			/* Transpose VC-product to get column-major format */
-			simple_transpose_matrix_routine(VC_product, Np_WP);
-		}
+		/* Transpose VC-product to get column-major format */
+		simple_transpose_matrix_routine(VC_product, Np_WP);
 	}
 
 	/* Calculate all 2N-coupled VC-products and convert to column-major format */
-	for (int J_2N=1; J_2N<J_2N_max+1; J_2N++){
-		size_t idx_chn_coup       = (size_t) J_2N-1;
+	for (int idx_chn_coup=0; idx_chn_coup<num_coup_chns; idx_chn_coup++){
 		size_t idx_2N_mat_WP_coup = idx_chn_coup*4*Np_WP*Np_WP;
 
 		V_subarray = &V_WP_coup_array[idx_2N_mat_WP_coup];
@@ -1148,22 +1194,25 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 			int two_J_1N_c = two_J_1N_array[idx_alpha_c];
 
 			/* Check if possible channel through interaction */
-			if (T_2N_r==T_2N_c &&
-			    J_2N_r==J_2N_c &&
-				S_2N_r==S_2N_c &&
-				abs(L_2N_r-L_2N_c)<=2 &&
-				L_1N_r==L_1N_c &&
-				two_J_1N_r==two_J_1N_c){
+			bool check_T = (T_2N_r==T_2N_c);
+			bool check_J = (J_2N_r==J_2N_c);
+			bool check_S = (S_2N_r==S_2N_c);
+			bool check_L = ( (tensor_force_true && abs(L_2N_r-L_2N_c)<=2) || L_2N_r==L_2N_c);
+			bool check_l = (L_1N_r==L_1N_c);
+			bool check_j = (two_J_1N_r==two_J_1N_c);
+
+			/* Check if possible channel through interaction */
+			if (check_T && check_J && check_S && check_L && check_l && check_j){
 
 				/* Detemine if this is a coupled channel */
 				bool coupled_matrix = false;
-				if (L_2N_r!=L_2N_c || (L_2N_r==L_2N_c && L_2N_r!=J_2N_r && J_2N_r!=0)){ // This counts 3P0 as uncoupled; used in matrix structure
+				if ( tensor_force_true && (L_2N_r!=L_2N_c || (L_2N_r==L_2N_c & L_2N_r!=J_2N_r & J_2N_r!=0)) ){ // This counts 3P0 as uncoupled; used in matrix structure
 					coupled_matrix  = true;
 				}
 
 				/* find which VC-product corresponds to the current coupling */
 				if (coupled_matrix){
-					size_t idx_chn_coup       = (size_t) J_2N_r-1;
+					size_t idx_chn_coup       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, tensor_force_true, coupled_matrix);
 					size_t idx_2N_mat_WP_coup = idx_chn_coup*4*Np_WP*Np_WP;
 					if (L_2N_r<L_2N_c){       // L_r=J_r-1, L_c=J_r+1
 						VC_product = &VC_coup_array[idx_2N_mat_WP_coup + 1*Np_WP*Np_WP];
@@ -1179,7 +1228,7 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 					}
 				}
 				else{
-					size_t idx_chn_unco       = (size_t) 2*J_2N_r + S_2N_r;
+					size_t idx_chn_unco       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, tensor_force_true, coupled_matrix);
 					size_t idx_2N_mat_WP_unco = idx_chn_unco*Np_WP*Np_WP;
 					VC_product = &VC_unco_array[idx_2N_mat_WP_unco];
 				}

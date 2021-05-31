@@ -27,14 +27,20 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 		}
 	}
 	else{
-		if (J==0 and L!=J){         // 3P0 (++)
+		if (L==J+1){         // 3P0 or (++)
 			potential_element = V_array[5];
+		}
+		else if (L==J-1){			// (--)
+			potential_element = V_array[2];
 		}
 		else if (S==0){             // S=0
 			potential_element = V_array[0];
 		}
-		else{                       // S=1
+		else if (S==1 and L==J){    // S=1
 			potential_element = V_array[1];
+		}
+		else{
+			potential_element = 0;
 		}
 	}
 
@@ -44,6 +50,7 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 /* Construct 2N potential matrices <k|v|k_p> for all 3N partial wave channels */
 void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 													double*  V_WP_coup_array,
+													bool tensor_force_true,
 													bool mid_point_approximation,
 													int Np_WP, double* p_WP_array,
 													int Np_per_WP, double* p_array, double* wp_array,
@@ -66,8 +73,15 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 	int idx_V_WP_lower_right = 0;
 
 	/* Temporary track-keeping arrays for avoiding repeat matrix-calculations (initialize to false) */
-	int unco_array_size = 2*(J_2N_max+1);
-	int coup_array_size =    J_2N_max;
+	int unco_array_size = 0;
+	int coup_array_size = 0;
+	if (tensor_force_true){
+		unco_array_size = 2*(J_2N_max+1);
+		coup_array_size =    J_2N_max;
+	}
+	else{
+		unco_array_size = 4*J_2N_max + 2;
+	}
 	bool* matrix_calculated_unco_array = new bool [unco_array_size];
 	bool* matrix_calculated_coup_array = new bool [coup_array_size];
 	for (int i=0; i<unco_array_size; i++){
@@ -92,14 +106,21 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 			int S_c = S_2N_array[idx_alpha_c];
 			int J_c = J_2N_array[idx_alpha_c];
 			int T_c = T_2N_array[idx_alpha_c];
+			
+
+			bool check_T = T_r==T_c;
+			bool check_J = J_r==J_c;
+			bool check_S = S_r==S_c;
+			bool check_L = ( (tensor_force_true && abs(L_r-L_c)<=2) || L_r==L_c);
+
 
 			/* Check if possible channel through interaction */
-			if (T_r==T_c and J_r==J_c and S_r==S_c and abs(L_r-L_c)<=2){
+			if (check_T && check_J && check_S && check_L){
 
 				/* Detemine if this is a coupled channel */
 				bool coupled_matrix = false;
 				bool coupled_model  = false;
-				if (L_r!=L_c or (L_r==L_c and L_r!=J_r and J_r!=0)){    // This counts 3P0 as uncoupled; used in matrix structure
+				if (tensor_force_true && (L_r!=L_c or (L_r==L_c and L_r!=J_r and J_r!=0)) ){    // This counts 3P0 as uncoupled; used in matrix structure
 					coupled_matrix  = true;
 				}
 				if (L_r!=L_c or (L_r==L_c and L_r!=J_r)){               // This counts 3P0 as coupled; used in potential models
@@ -107,8 +128,14 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 				}
 
 				/* Unique 2N-channel indices */
-				int chn_idx_V_coup = J_r-1;
-				int chn_idx_V_unco = 2*J_r + S_r;
+				int chn_idx_V_coup = 0;
+				int chn_idx_V_unco = 0;
+				if (coupled_matrix){
+					chn_idx_V_coup = unique_2N_idx(L_r, S_r, J_r, T_r, tensor_force_true, coupled_matrix);
+				}
+				else{
+					chn_idx_V_unco = unique_2N_idx(L_r, S_r, J_r, T_r, tensor_force_true, coupled_matrix);
+				}
 
 				/* Check if calculation has already been performed in some other alpha'-alpha interaction */
 				if (coupled_matrix){
@@ -183,6 +210,10 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 							double p_in  = 0.5*(bin_c_lower + bin_c_upper);
 							double p_out = 0.5*(bin_r_lower + bin_r_upper);
 
+							/* Weigth-function terms */
+							double f_in  = p_weight_function(p_in);
+							double f_out = p_weight_function(p_out);
+
 							/* Momentum bin-width */
 							double d_c   = bin_c_upper - bin_c_lower;
 							double d_r   = bin_r_upper - bin_r_lower;
@@ -201,7 +232,11 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 							
 							/* We integrate into wave-packet potential and normalize */
 							for (int idx_element=0; idx_element<6; idx_element++){
-								V_WP_elements[idx_element] += p_in*p_out *d_r*d_c * V_IS_elements[idx_element] / (N_r*N_c);
+								//V_WP_elements[idx_element] += p_in*p_out *f_in*f_out *d_r*d_c * V_IS_elements[idx_element] / (N_r*N_c);
+
+								double p_r_2 = bin_r_upper*bin_r_upper - bin_r_lower*bin_r_lower;
+								double p_c_2 = bin_c_upper*bin_c_upper - bin_c_lower*bin_c_lower;
+								V_WP_elements[idx_element] += p_r_2 * p_c_2 * V_IS_elements[idx_element] / (4*N_r*N_c);
 							}
 						}
 						else{

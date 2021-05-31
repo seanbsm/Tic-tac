@@ -232,11 +232,11 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 							
 							/* We integrate into wave-packet potential and normalize */
 							for (int idx_element=0; idx_element<6; idx_element++){
-								//V_WP_elements[idx_element] += p_in*p_out *f_in*f_out *d_r*d_c * V_IS_elements[idx_element] / (N_r*N_c);
+								V_WP_elements[idx_element] += p_in*p_out *f_in*f_out *d_r*d_c * V_IS_elements[idx_element] / (N_r*N_c);
 
-								double p_r_2 = bin_r_upper*bin_r_upper - bin_r_lower*bin_r_lower;
-								double p_c_2 = bin_c_upper*bin_c_upper - bin_c_lower*bin_c_lower;
-								V_WP_elements[idx_element] += p_r_2 * p_c_2 * V_IS_elements[idx_element] / (4*N_r*N_c);
+								//double p_r_2 = bin_r_upper*bin_r_upper - bin_r_lower*bin_r_lower;
+								//double p_c_2 = bin_c_upper*bin_c_upper - bin_c_lower*bin_c_lower;
+								//V_WP_elements[idx_element] += p_r_2 * p_c_2 * V_IS_elements[idx_element] / (4*N_r*N_c);
 							}
 						}
 						else{

@@ -294,7 +294,7 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 	
 	printf("   - Precalculating momentum conservations \n");
 	fflush(stdout);
-	if (false){
+	if (true){
 	#pragma omp parallel
 	{
 		#pragma omp for

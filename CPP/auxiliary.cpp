@@ -947,7 +947,7 @@ double Gtilde_new (double p, double q, double x, int alpha, int alphaprime, int 
 
 }
 
-double Gtilde_subarray_new (double p, double q, double x, int L12, int L12prime, int l3, int l3prime, double *A_store_alpha_alphaprime_subarray, int two_Jtotal){
+double Gtilde_subarray_new (double p, double q, double x, int L12, int L12prime, int l3, int l3prime, double *A_store_alpha_alphaprime_subarray, int two_Jtotal, double* ClebschGordan_data, int two_jmax_Clebsch){
 
 	double ret = 0.0;
 
@@ -978,27 +978,30 @@ double Gtilde_subarray_new (double p, double q, double x, int L12, int L12prime,
 	for (int Ltotal = max(abs(L12 - l3), abs(L12prime - l3prime)); Ltotal <= min((two_Jtotal + 5) / 2, min(L12 + l3, L12prime + l3prime)); Ltotal++){
 		fac1 = 8.0 * M_PI * M_PI * A_store_alpha_alphaprime_subarray[Ltotal];
 
-		for (int Mtotal = -min(l3, Ltotal); Mtotal <= min(l3, Ltotal); Mtotal++)
-		{
+		if (fac1!=0){
+			for (int Mtotal = -min(l3, Ltotal); Mtotal <= min(l3, Ltotal); Mtotal++){
 
-			fac2 = ClebschGordan(2 * L12, 2 * l3, 2 * Ltotal, 0, 2 * Mtotal, 2 * Mtotal)
-				   * sqrt((2.0 * L12 + 1) / (4 * M_PI))
-				   * gsl_sf_pow_int(-1, Mtotal)
-				   * Plm(l3, Mtotal, x); // -1^M phase since azimutal angles of p' and q' = pi
-
-			for (int M12primesum = -L12prime; M12primesum <= L12prime; M12primesum++)
-			{
-				if (abs(Mtotal - M12primesum) <= l3prime)
-				{
-					ret += fac1
-						   * fac2
-						   * ClebschGordan(2 * L12prime, 2 * l3prime, 2 * Ltotal, 2 * M12primesum, 2 * Mtotal - 2 * M12primesum, 2 * Mtotal)
-						   * Plm(L12prime, M12primesum, costheta1)
-						   * Plm(l3prime, Mtotal - M12primesum, costheta2);
+				fac2 = ClebschGordan_array(two_jmax_Clebsch, ClebschGordan_data, 2 * L12, 2 * l3, 2 * Ltotal, 0, 2 * Mtotal)//ClebschGordan(2 * L12, 2 * l3, 2 * Ltotal, 0, 2 * Mtotal, 2 * Mtotal)
+					   //* sqrt((2.0 * L12 + 1) / (4 * M_PI))
+					   * gsl_sf_pow_int(-1, Mtotal)
+					   * Plm(l3, Mtotal, x); // -1^M phase since azimutal angles of p' and q' = pi
+				
+				if (fac2!=0){
+					for (int M12primesum = -L12prime; M12primesum <= L12prime; M12primesum++){
+						if (abs(Mtotal - M12primesum) <= l3prime){
+							ret +=   fac1
+								   * fac2
+								   * ClebschGordan_array(two_jmax_Clebsch, ClebschGordan_data, 2 * L12prime, 2 * l3prime, 2 * Ltotal, 2 * M12primesum, 2 * Mtotal - 2 * M12primesum)//ClebschGordan(2 * L12prime, 2 * l3prime, 2 * Ltotal, 2 * M12primesum, 2 * Mtotal - 2 * M12primesum, 2 * Mtotal)
+								   * Plm(L12prime, M12primesum, costheta1)
+								   * Plm(l3prime, Mtotal - M12primesum, costheta2);
+						}
+					}
 				}
 			}
 		}
 	}
+//ClebschGordan_array (int two_jmax, double *data_array, int two_j1, int two_j2, int two_j3, int two_m1, int two_m2)
+	ret *= sqrt((2.0 * L12 + 1) / (4 * M_PI));
 
 	return ret;
 

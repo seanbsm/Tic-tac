@@ -20,10 +20,10 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 			potential_element =  V_array[5];
 		}
 		else if (L<Lp){             // -+
-			potential_element = sgn*V_array[3]; // 3 USED IN BOUND STATE BENCHMARK
+			potential_element = sgn*V_array[4]; // 3 USED IN BOUND STATE BENCHMARK
 		}
 		else{                       // +-
-			potential_element = sgn*V_array[4]; //4 USED IN BOUND STATE BENCHMARK
+			potential_element = sgn*V_array[3]; //4 USED IN BOUND STATE BENCHMARK
 		}
 	}
 	else{

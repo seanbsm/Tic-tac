@@ -35,7 +35,7 @@ void construct_free_hamiltonian(double* H0_WP_array,
 		double p2 = p_WP_array[idx_p+1];
 	
 		/* Free Hamiltonian for 2-nucleon pair for momentum WPs */
-		H0_WP_array[idx_p] = (p2*p2 + p2*p1 + p1*p1)/(3*MN);
+		H0_WP_array[idx_p] = (p2*p2 + p2*p1 + p1*p1)/(6*mu23);
 		/* Free Hamiltonian for 2-nucleon pair for energy WPs */
         //H0_WP_array[idx_p] = (p2*p2 + p1*p1)/(2*MN);
 	}
@@ -67,9 +67,13 @@ void construct_full_hamiltonian(double* mat_ptr_H,
 		}
 	}
 
+	//for (int idx_bin_c=0; idx_bin_c<mat_dim; idx_bin_c++){
+	//	printf(" %.8e \n", mat_ptr_H0[idx_bin_c]);
+	//}
+	//printf("\n");
 	//for (int idx_bin_r=0; idx_bin_r<mat_dim; idx_bin_r++){
     //    for (int idx_bin_c=0; idx_bin_c<mat_dim; idx_bin_c++){
-	//		printf(" %.4e", mat_ptr_V[idx_bin_r*mat_dim + idx_bin_c]);
+	//		printf(" %.8e", mat_ptr_V[idx_bin_r*mat_dim + idx_bin_c]);
 	//	}
 	//	printf("\n");
 	//}

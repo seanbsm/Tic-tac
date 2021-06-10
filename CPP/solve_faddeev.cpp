@@ -566,20 +566,24 @@ void pade_method_solve(cdouble*  U_array,
 			times_array[i] = 0;
 		}
 
-		#pragma omp parallel
+		#pragma omp parallel num_threads(1)
 		{
 		/* Allocate row- and column-arrays for (C^T)(P)(VC) */
 		double*  CPVC_col_array  		= new double [dense_dim];
 		int*     CPVC_row_to_nnz_array  = new int    [dense_dim];
 		int*     CPVC_nnz_to_row_array  = new int    [dense_dim];
-		size_t   thread_idx = omp_get_thread_num();
+		size_t   thread_idx = 0;//omp_get_thread_num();
 		//cdouble* G_subarray		 = NULL;
 		//cdouble* CPVCG_col_array = new cdouble [dense_dim];
 		#pragma omp for
 		for (size_t idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
 			for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
-				for (size_t idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+		//for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+		//	for (size_t idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+				for (size_t idx_p_c=0; idx_p_c<1; idx_p_c++){
 					size_t idx_col = idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP + idx_p_c;
+
+					//printf("\r Working on col %d of %d", idx_col, Nalpha*Np_WP*Nq_WP);
 
 					double timestamp_0 = omp_get_wtime();
 					/* Reset CPVC-column array */

@@ -105,7 +105,7 @@ int main(int argc, char* argv[]){
 	/* Start of code segment for parameters, variables and arrays declaration */
 
 	bool default_Tlab_input = false;
-	double Tlab_max = 300;
+	double Tlab_max = 1; //100
 
 	/* Current scattering energy */
 	size_t  num_T_lab	= 0;
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]){
 	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
-	bool calculate_and_store_P123 = true;
+	bool calculate_and_store_P123 = false;
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
 	 * and solve Faddeev in a single run */
@@ -138,15 +138,15 @@ int main(int argc, char* argv[]){
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 1;
-	int two_J_3N_max = 3;
+	int J_2N_max 	 = 3;
+	int two_J_3N_max = 1;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 40;
-	int Nq_WP	   	 = 40;
+	int Np_WP	   	 = 100;
+	int Nq_WP	   	 = 100;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -185,7 +185,7 @@ int main(int argc, char* argv[]){
 	/* Potential model class pointers */
 	potential_model* pot_ptr_np  = NULL;
 	potential_model* pot_ptr_nn  = NULL;
-	bool tensor_force_true		 = false;
+	bool tensor_force_true		 = true;
 	bool mid_point_approximation = true;
 
 	/* End of code segment for variables and arrays declaration */
@@ -301,10 +301,10 @@ int main(int argc, char* argv[]){
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
 		//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
-		//pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
-		//pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
-		pot_ptr_np = potential_model::fetch_potential_ptr("malfliet_tjon", "np");
-		pot_ptr_nn = potential_model::fetch_potential_ptr("malfliet_tjon", "nn");
+		pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
+		pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
+		//pot_ptr_np = potential_model::fetch_potential_ptr("malfliet_tjon", "np");
+		//pot_ptr_nn = potential_model::fetch_potential_ptr("malfliet_tjon", "nn");
 	
 		//double temparray [6];
 		//double qi = 5; double qo=10;
@@ -374,7 +374,7 @@ int main(int argc, char* argv[]){
 		//}
 		//return 0;
 	}
-
+	//return 0;
 	//for (int i=2; i<Nalpha; i++){
 	//	for (int j=0; j<2*Np_WP; j++){
 	//		printf("%.3f\n", e_SWP_unco_array[j]);
@@ -557,10 +557,11 @@ int main(int argc, char* argv[]){
 		std::string P123_filename =    permutation_matrices_folder + "P123_sparse_JTP_"
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
-									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-		//if (chn_3N!=2){
-		//	continue;
-		//}
+									 + "_J2max_" + to_string(J_2N_max) + ".h5";//_MF.h5";
+		if (chn_3N==0 || chn_3N==2){}
+		else{
+			continue;
+		}
 		if (calculate_and_store_P123){
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];
@@ -678,23 +679,23 @@ int main(int argc, char* argv[]){
 			//}
 		}
 		
-		double* P123_subarray = new double [Np_WP*Np_WP*Nq_WP*Nq_WP];
-		for (int i=0; i<Np_WP*Np_WP*Nq_WP*Nq_WP; i++){
-			P123_subarray[i] = 0;
-		}
-		int idx_of_interest = 25-idx_alpha_lower;
-		for (int nnz=0; nnz<P123_sparse_dim; nnz++){
-			int row = P123_sparse_row_array[nnz];
-			int col = P123_sparse_col_array[nnz];
-			double val = P123_sparse_val_array[nnz];
-			int ralpha = row / (Np_WP*Nq_WP);
-			int calpha = col / (Np_WP*Nq_WP);
-			int i = row % (Np_WP*Nq_WP);
-			int j = col % (Np_WP*Nq_WP);
-			if (ralpha==idx_of_interest && calpha==idx_of_interest){
-				P123_subarray[i*Np_WP*Nq_WP + j] = val;
-			}
-		}
+		//double* P123_subarray = new double [Np_WP*Np_WP*Nq_WP*Nq_WP];
+		//for (int i=0; i<Np_WP*Np_WP*Nq_WP*Nq_WP; i++){
+		//	P123_subarray[i] = 0;
+		//}
+		//int idx_of_interest = 25-idx_alpha_lower;
+		//for (int nnz=0; nnz<P123_sparse_dim; nnz++){
+		//	int row = P123_sparse_row_array[nnz];
+		//	int col = P123_sparse_col_array[nnz];
+		//	double val = P123_sparse_val_array[nnz];
+		//	int ralpha = row / (Np_WP*Nq_WP);
+		//	int calpha = col / (Np_WP*Nq_WP);
+		//	int i = row % (Np_WP*Nq_WP);
+		//	int j = col % (Np_WP*Nq_WP);
+		//	if (ralpha==idx_of_interest && calpha==idx_of_interest){
+		//		P123_subarray[i*Np_WP*Nq_WP + j] = val;
+		//	}
+		//}
 		//for (int i=0; i<Np_WP*Nq_WP; i++){
 		//	for (int j=0; j<Np_WP*Nq_WP; j++){
 		//		double val = P123_subarray[i*Np_WP*Nq_WP + j];

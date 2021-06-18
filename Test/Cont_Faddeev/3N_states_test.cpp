@@ -238,11 +238,11 @@ int main(int argc, char* argv[]){
 	/* PWE truncation */
 	/* Maximum (max) and minimum (min) values for J_2N and J_1N */
     int J_2N_min 	 = 0;	// The LS-solver will fail if this is not zero - I haven't taken this into account in my indexing
-    int J_2N_max 	 = 2;
+    int J_2N_max 	 = 3;
 
 	/* Quadrature 3N momenta */
 	int Np	   		 = 32;
-	int Nq	   		 = 30;
+	int Nq	   		 = 10;
 	int Nx 			 = 20;
 	int Nalpha 		 =  0;
 	double* p_array  = NULL;
@@ -323,12 +323,12 @@ int main(int argc, char* argv[]){
 
 			/* Convert from fm^-1 to MeV */
 			for (int i = 0; i<Np; i++){
-				p_array[i]  *= hbarc;
-				wp_array[i] *= hbarc;
+				p_array[i]  *= 1;//hbarc;
+				wp_array[i] *= 1;//hbarc;
 			}
 			for (int i = 0; i<Nq; i++){
-				q_array[i]  *= hbarc;
-				wq_array[i] *= hbarc;
+				q_array[i]  *= 1;//hbarc;
+				wq_array[i] *= 1;//hbarc;
 			}
         }
 	}

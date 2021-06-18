@@ -105,7 +105,7 @@ int main(int argc, char* argv[]){
 	/* Start of code segment for parameters, variables and arrays declaration */
 
 	bool default_Tlab_input = false;
-	double Tlab_max = 1; //100
+	double Tlab_max = 100;
 
 	/* Current scattering energy */
 	size_t  num_T_lab	= 0;
@@ -145,8 +145,8 @@ int main(int argc, char* argv[]){
 	}
 
 	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 100;
-	int Nq_WP	   	 = 100;
+	int Np_WP	   	 = 50;
+	int Nq_WP	   	 = 50;
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
@@ -186,7 +186,7 @@ int main(int argc, char* argv[]){
 	potential_model* pot_ptr_np  = NULL;
 	potential_model* pot_ptr_nn  = NULL;
 	bool tensor_force_true		 = true;
-	bool mid_point_approximation = true;
+	bool mid_point_approximation = false;
 
 	/* End of code segment for variables and arrays declaration */
 	/* ################################################################################################################### */
@@ -301,10 +301,12 @@ int main(int argc, char* argv[]){
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
 		//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
-		pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
-		pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
+		//pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
+		//pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
 		//pot_ptr_np = potential_model::fetch_potential_ptr("malfliet_tjon", "np");
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("malfliet_tjon", "nn");
+		pot_ptr_np = potential_model::fetch_potential_ptr("nijmegen", "np");
+		pot_ptr_nn = potential_model::fetch_potential_ptr("nijmegen", "nn");
 	
 		//double temparray [6];
 		//double qi = 5; double qo=10;
@@ -390,27 +392,44 @@ int main(int argc, char* argv[]){
 
 		/* Use q-momentum bin ENERGY mid-points as on-shell energies if no default input is given */
 		if (default_Tlab_input==false){
+			std::vector<size_t> q_WP_idx_vec;
 			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
+				/* Special condition to reduce number of on-shell calculations */
+				double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
+				double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
+				double E_com = 0.5*(Eq_upper + Eq_lower);
+				if (E_com<1 && q_WP_idx%5!=0){
+					continue;
+				}
+				else if (E_com<10 && q_WP_idx%2!=0){
+					continue;
+				}
+				else if (E_com>200){
+					continue;
+				}
+
 				double q_upper_boundary = q_WP_array[q_WP_idx+1];
 				double T_lab = com_momentum_to_lab_energy(q_upper_boundary, E_bound);
 				if (T_lab>Tlab_max){
 					break;
 				}
 				else{
+					q_WP_idx_vec.push_back(q_WP_idx);
 					num_T_lab += 1;
 				}
 			}
 
 			T_lab_array = new double [num_T_lab];
 
-			for (size_t q_WP_idx=0; q_WP_idx<num_T_lab; q_WP_idx++){
+			for (size_t Tlab_idx=0; Tlab_idx<num_T_lab; Tlab_idx++){
+				size_t q_WP_idx = q_WP_idx_vec[Tlab_idx];
 				double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
 				double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
 				double E_com = 0.5*(Eq_upper + Eq_lower);
 				//printf("%.10e\n",E_com);
 				double q = com_energy_to_com_q_momentum(E_com);
 				double T_lab = com_momentum_to_lab_energy(q, E_bound);
-				T_lab_array[q_WP_idx] = T_lab;
+				T_lab_array[Tlab_idx] = T_lab;
 			}
 		}
 

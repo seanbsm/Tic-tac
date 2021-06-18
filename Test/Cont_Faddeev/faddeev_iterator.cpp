@@ -415,11 +415,11 @@ void calculate_potential_matrices_array(double* V_unco_array,
 
                 for (int idx_p_r=0; idx_p_r<Np; idx_p_r++){
                     p_r = p_array[idx_p_r];
-                    p_in = p_r;//*hbarc;
+                    p_in = p_r*hbarc;
 
                     for (int idx_p_c=0; idx_p_c<Np; idx_p_c++){
 	                    p_c = p_array[idx_p_c];
-                        p_out = p_c;//*hbarc;
+                        p_out = p_c*hbarc;
 
 	                    /* We create an isoscalar potential */
 	                    if (T_r==1){ // Interaction can be either nn or np

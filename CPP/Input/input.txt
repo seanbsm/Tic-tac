@@ -1,0 +1,14 @@
+# Run "-h" or "--help" to see meaning of arguments
+two_J_3N=1
+P_3N=1
+Np_WP=50
+Nq_WP=50
+J_2N_max=3
+Nphi=48
+Nx=15
+potential_model=nijmegen
+grid_type=chebyshev
+parameter_walk=off
+average=off
+output_folder=../../Data/Faddeev_code/U_matrix_elements
+P123_folder=../../Data/permutation_matrices/

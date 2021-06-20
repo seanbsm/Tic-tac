@@ -31,8 +31,11 @@
 #include "hdf5/serial/hdf5.h"
 #include "hdf5/serial/hdf5_hl.h"
 
+#include "type_defs.h"
 #include "error_management.h"
 #include "General_functions/matrix_routines.h"
+
+void store_run_parameters(run_params run_parameters);
 
 void store_q_WP_boundaries_csv(size_t Nq_WP, double* q_WP_array,
 						   	   std::string filename);

@@ -13,6 +13,7 @@
 #include <chrono>
 #include <ctime>
 
+#include "set_run_parameters.h"
 #include "make_pw_symm_states.h"
 #include "make_permutation_matrix.h"
 #include "General_functions/gauss_legendre.h"
@@ -92,17 +93,26 @@ int main(int argc, char* argv[]){
 			raise_error("Job_ID is greater than or equal to the number of jobs");
 		}
 	}
-	else if (argc!=1){
-		raise_error("Invalid number of input arguments in main.cpp");
-	}
 
 	auto program_start = chrono::system_clock::now();
 	
+	// Handy for converting Tlab to Ecm
+	//std::cout << com_q_momentum_to_com_energy(lab_energy_to_com_momentum(13, -Ed_measured)) << std::endl;
+	//return 0;
+
 	/* ------------------- Start main body of code here ------------------- */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* Start of code segment for parameters, variables and arrays declaration */
+
+	/* Interpret command-line input and save in run_parameters */
+	run_params run_parameters;
+	set_run_parameters(argc, argv, run_parameters);
+
+	/* Wave-packet 3N momenta */
+	int Np_WP = run_parameters.Np_WP;
+	int Nq_WP = run_parameters.Nq_WP;
 
 	bool default_Tlab_input = false;
 	double Tlab_max = 100;
@@ -130,31 +140,32 @@ int main(int argc, char* argv[]){
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
 	bool calculate_and_store_P123 = false;
+	
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
 	 * and solve Faddeev in a single run */
 	bool solve_faddeev		      = true;
+
+	/* Setting to do realistic, or fast toy-model, calculations for P123 */
 	bool production_run			  = true;
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
 	int J_2N_max 	 = 3;
-	int two_J_3N_max = 1;
+	int two_J_3N_max = 3;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
-	/* Wave-packet 3N momenta */
-	int Np_WP	   	 = 50;
-	int Nq_WP	   	 = 50;
+	/* Wave-packet 3N momentum boundaries */
 	double* p_WP_array  = NULL;
 	double* q_WP_array  = NULL;
 
 	/* Quadrature 3N momenta per WP cell */
-	int Nphi		 = 48;//50;
-	int Nx 			 = 15;//20;
-	int Np_per_WP	 = 8;
-	int Nq_per_WP	 = 8;
+	int Nphi		 = run_parameters.Nphi;
+	int Nx 			 = run_parameters.Nx;
+	int Np_per_WP	 = run_parameters.Np_per_WP;
+	int Nq_per_WP	 = run_parameters.Nq_per_WP;
 	double* p_array  = NULL;
 	double* q_array  = NULL;
 	double* wp_array = NULL;
@@ -183,10 +194,17 @@ int main(int argc, char* argv[]){
 	int* chn_3N_idx_array = NULL;
 
 	/* Potential model class pointers */
-	potential_model* pot_ptr_np  = NULL;
-	potential_model* pot_ptr_nn  = NULL;
+	potential_model* pot_ptr_np  = potential_model::fetch_potential_ptr(run_parameters.potential_model, "np");
+	potential_model* pot_ptr_nn  = potential_model::fetch_potential_ptr(run_parameters.potential_model, "nn");
+
+	/* Turn on/off tensor-force (off-diagonal l',l-couplings) terms */
 	bool tensor_force_true		 = true;
+
+	/* Turn on/off bin mid-point averaging */
 	bool mid_point_approximation = false;
+	if (run_parameters.average=="on"){
+		mid_point_approximation = true;
+	}
 
 	/* End of code segment for variables and arrays declaration */
 	/* ################################################################################################################### */
@@ -260,10 +278,9 @@ int main(int argc, char* argv[]){
 	printf(" - Done \n");
 
 	printf("Storing q boundaries to CSV-file ... \n");
-	std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
-	std::string q_boundaries_filename = U_mat_foldername + "q_boundaries_Nq_" + to_string(Nq_WP) + ".csv";
-	store_q_WP_boundaries_csv(Nq_WP, q_WP_array,
-						      q_boundaries_filename);
+	//std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
+	std::string q_boundaries_filename = run_parameters.output_folder + "q_boundaries_Nq_" + to_string(Nq_WP) + ".csv";
+	store_q_WP_boundaries_csv(Nq_WP, q_WP_array, q_boundaries_filename);
 	printf(" - Done \n");
 
 	/* End of code segment for state space construction */
@@ -305,8 +322,8 @@ int main(int argc, char* argv[]){
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
 		//pot_ptr_np = potential_model::fetch_potential_ptr("malfliet_tjon", "np");
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("malfliet_tjon", "nn");
-		pot_ptr_np = potential_model::fetch_potential_ptr("nijmegen", "np");
-		pot_ptr_nn = potential_model::fetch_potential_ptr("nijmegen", "nn");
+		//pot_ptr_np = potential_model::fetch_potential_ptr("nijmegen", "np");
+		//pot_ptr_nn = potential_model::fetch_potential_ptr("nijmegen", "nn");
 	
 		//double temparray [6];
 		//double qi = 5; double qo=10;
@@ -525,22 +542,22 @@ int main(int argc, char* argv[]){
 	for (int chn_3N=0; chn_3N<N_chn_3N; chn_3N++){
 
 		/* Check channel distribution in case of parallell execution */
-		if (job_array_on){
-			int num_chn_per_node = N_chn_3N/num_jobs;
-
-			int chn_lower = job_ID*num_chn_per_node;
-			int chn_upper = (job_ID+1)*num_chn_per_node;
-
-			/* Last job handles the last number of permutation matrices - NOT OPTIMAL*/
-			if (job_ID == num_jobs-1){
-				chn_upper = N_chn_3N;
-			}
-			
-			/* Skip to next chn-iteration if chn does not fit in current job_ID's domain */
-			if (chn_3N<chn_lower || chn_upper<=chn_3N){
-				continue;
-			}
-		}
+		//if (job_array_on){
+		//	int num_chn_per_node = N_chn_3N/num_jobs;
+		//
+		//	int chn_lower = job_ID*num_chn_per_node;
+		//	int chn_upper = (job_ID+1)*num_chn_per_node;
+		//
+		//	/* Last job handles the last number of permutation matrices - NOT OPTIMAL*/
+		//	if (job_ID == num_jobs-1){
+		//		chn_upper = N_chn_3N;
+		//	}
+		//	
+		//	/* Skip to next chn-iteration if chn does not fit in current job_ID's domain */
+		//	if (chn_3N<chn_lower || chn_upper<=chn_3N){
+		//		continue;
+		//	}
+		//}
 
 		/* Start of 3N-channel setup */
 		/* Lower and upper limits on PW state space for channel */
@@ -552,6 +569,10 @@ int main(int argc, char* argv[]){
 		int two_J_3N = two_J_3N_array[idx_alpha_lower];
 		int two_T_3N = two_T_3N_array[idx_alpha_lower];
 		int P_3N 	 = P_3N_array    [idx_alpha_lower];
+
+		if (two_J_3N!=run_parameters.two_J_3N || P_3N!=run_parameters.P_3N){
+			continue;
+		}
 
 		/* Pointers to sub-arrays of PW state space corresponding to chn_3N */
 		int* L_2N_subarray 	   = &L_2N_array[idx_alpha_lower];
@@ -572,15 +593,15 @@ int main(int argc, char* argv[]){
 
 		/* Default filename for current chn_3N - used for storage and reading P123 */
 		
-		std::string permutation_matrices_folder = "../../Data/permutation_matrices/";
-		std::string P123_filename =    permutation_matrices_folder + "P123_sparse_JTP_"
+		//std::string permutation_matrices_folder = "../../Data/permutation_matrices/";
+		std::string P123_filename =    run_parameters.P123_folder + "P123_sparse_JTP_"
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";//_MF.h5";
-		if (chn_3N==0 || chn_3N==2){}
-		else{
-			continue;
-		}
+		//if (chn_3N==2 || chn_3N==2){}
+		//else{
+		//	continue;
+		//}
 		if (calculate_and_store_P123){
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];
@@ -804,18 +825,18 @@ int main(int argc, char* argv[]){
 									tensor_force_true);
 			printf(" - Done \n");
 
-			std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
-			std::string U_mat_filename = U_mat_foldername + "U_PW_elements_Np_" + std::to_string(Np_WP)
-																				+ "_Nq_" + std::to_string(Np_WP)
-																				+ "_JP_" + std::to_string(two_J_3N)
-																				+ "_" + std::to_string(P_3N)
-																				+ "_Jmax_" + std::to_string(J_2N_max)
-																				+ ".csv";
+			//std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
+			std::string U_mat_filename = run_parameters.output_folder + "U_PW_elements_Np_" + std::to_string(Np_WP)
+																	  + "_Nq_" + std::to_string(Np_WP)
+																	  + "_JP_" + std::to_string(two_J_3N)
+																	  + "_" + std::to_string(P_3N)
+																	  + "_Jmax_" + std::to_string(J_2N_max)
+																	  + ".csv";
 			store_U_matrix_elements_csv(U_array,
 									    q_com_idx_array,    (size_t) num_T_lab,
 							  		    deuteron_idx_array, (size_t) num_deuteron_states,
-									    L_1N_array, 
-									    two_J_1N_array,
+									    L_1N_subarray, 
+									    two_J_1N_subarray,
 									    U_mat_filename);
 
 			/* End of code segment for iterations of elastic Faddeev equations */

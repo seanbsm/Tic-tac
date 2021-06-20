@@ -981,6 +981,16 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 			
 		/* Transpose C to get C^T */
 		simple_transpose_matrix_routine(CT_subarray, Np_WP);
+
+		//double* tempprod = new double [Np_WP*Np_WP];
+		//dot_MM(CT_subarray, C_subarray, tempprod, Np_WP, Np_WP, Np_WP);
+		//for (int i=0; i<Np_WP; i++){
+		//	for (int j=0; j<Np_WP; j++){
+		//		if (i!=j and abs(tempprod[i*Np_WP+j])>1e-15){
+		//			std::cout << "unco " << i << " " << j << " " << tempprod[i*Np_WP+j] << std::endl;
+		//		}
+		//	}
+		//}
 	}
 
 	/* Copy and transpose all 2N-coupled C-arrays */
@@ -991,10 +1001,21 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 		CT_subarray = &CT_coup_array  [idx_2N_mat_WP_coup];
 		
 		/* Copy content to avoid rewriting C-arrays */
-		std::copy(C_subarray, C_subarray + Np_WP*Np_WP, CT_subarray);
+		std::copy(C_subarray, C_subarray + 4*Np_WP*Np_WP, CT_subarray);
 		
 		/* Transpose C to get C^T */
 		simple_transpose_matrix_routine(CT_subarray, 2*Np_WP);
+
+		//double* tempprod = new double [4*Np_WP*Np_WP];
+		//dot_MM(CT_subarray, C_subarray, tempprod, 2*Np_WP, 2*Np_WP, 2*Np_WP);
+		//for (int i=0; i<2*Np_WP; i++){
+		//	for (int j=0; j<2*Np_WP; j++){
+		//		if (i!=j and abs(tempprod[i*2*Np_WP+j])>1e-15){
+		//			std::cout << "coup " << i << " " << j << " " << tempprod[i*2*Np_WP+j] << std::endl;
+		//		}
+		//	}
+		//}
+
 		/* Restucture coupled matrix array into 4 seperate arrays */
 		restructure_coupled_VC_product(CT_subarray, Np_WP);
 	}

@@ -45,6 +45,48 @@ typedef struct Psparse_table{
 
 using namespace std;
 
+void open_file(std::ofstream &file,
+			   std::string file_path,
+			   bool rewrite_file){
+	if (rewrite_file){
+		/* Overwrite file */
+		file.open(file_path);
+	}
+	else{
+		/* Append to file */
+		file.open(file_path, std::ios_base::app);
+	}
+}
+
+void store_run_parameters(run_params run_parameters){
+	
+	std::string file_path = run_parameters.output_folder + "run_parameters.txt";
+	
+	/* Open file */
+	std::ofstream output_file;
+	open_file(output_file, file_path, true);
+	
+	/* Append input */
+	output_file << "two_J_3N          = " << run_parameters.two_J_3N          << "\n";
+	output_file << "P_3N              = " << run_parameters.P_3N              << "\n";
+	output_file << "Np_WP             = " << run_parameters.Np_WP             << "\n";
+	output_file << "Nq_WP             = " << run_parameters.Nq_WP             << "\n";
+	output_file << "J_2N_max          = " << run_parameters.J_2N_max          << "\n";
+	output_file << "Nphi              = " << run_parameters.Nphi              << "\n";
+	output_file << "Nx                = " << run_parameters.Nx                << "\n";
+	output_file << "potential_model   = " << run_parameters.potential_model   << "\n";
+	output_file << "subfolder         = " << run_parameters.subfolder         << "\n";
+	output_file << "grid_type         = " << run_parameters.grid_type         << "\n";
+	output_file << "parameter_walk    = " << run_parameters.parameter_walk    << "\n";
+	output_file << "energy_input_file = " << run_parameters.energy_input_file << "\n";
+	output_file << "average           = " << run_parameters.average           << "\n";
+	output_file << "output_folder     = " << run_parameters.output_folder     << "\n";
+	output_file << "P123_folder       = " << run_parameters.P123_folder       << "\n";
+	
+	/* Close file */
+	output_file.close();
+}
+
 void store_q_WP_boundaries_csv(size_t Nq_WP, double* q_WP_array,
 						   	   std::string filename){
 	/* Open file*/

@@ -60,7 +60,7 @@ void open_file(std::ofstream &file,
 
 void store_run_parameters(run_params run_parameters){
 	
-	std::string file_path = run_parameters.output_folder + "run_parameters.txt";
+	std::string file_path = run_parameters.output_folder + "/" + "run_parameters.txt";
 	
 	/* Open file */
 	std::ofstream output_file;

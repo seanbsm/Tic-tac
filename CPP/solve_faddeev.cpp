@@ -451,11 +451,13 @@ void pade_method_solve(cdouble*  U_array,
 	size_t num_on_shell_A_vals = num_deuteron_states * num_deuteron_states * num_q_com;
 	
 	/* Upper limit on polynomial approximation of Faddeev eq. */
-	size_t N_pade = 14;
-	size_t M_pade = 14;
+	//size_t N_pade = 14;
+	//size_t M_pade = 14;
+	size_t NM_max = 14;
+	size_t num_neumann_terms = 2*NM_max+1;
 
 	/* Coefficients for calculating Pade approximant */
-	cdouble* a_coeff_array = new cdouble [ (N_pade + M_pade + 1) * num_on_shell_A_vals];
+	cdouble* a_coeff_array = new cdouble [ num_neumann_terms * num_on_shell_A_vals];
 
 	/* Dense dimension of 3N-channel */
 	size_t dense_dim = Nalpha * Nq_WP * Np_WP;
@@ -469,41 +471,10 @@ void pade_method_solve(cdouble*  U_array,
 		A_An_row_array[i] 	   = 0;
 		A_An_row_array_prev[i] = 0;
 	}
-	
-	//double* PVC_col_1 = new double [dense_dim];
-	//double* PVC_col_2 = new double [dense_dim];
-	//for (size_t i=0; i<dense_dim; i++){
-	//	PVC_col_1[i] = 0;
-	//	PVC_col_2[i] = 0;
-	//}
-	//calculate_PVC_col(PVC_col_1,
-	//				  5, 0, 1,
-	//				  Nalpha,      Nq_WP,   Np_WP,
-	//				  VC_CM_array,
-	//				  P123_sparse_val_array,
-	//				  P123_sparse_row_array,
-	//				  P123_sparse_col_array,
-	//				  P123_sparse_dim);
-	//calculate_PVC_col(PVC_col_2,
-	//				  7, 0, 1,
-	//				  Nalpha,      Nq_WP,   Np_WP,
-	//				  VC_CM_array,
-	//				  P123_sparse_val_array,
-	//				  P123_sparse_row_array,
-	//				  P123_sparse_col_array,
-	//				  P123_sparse_dim);
-	//for (size_t i=0; i<dense_dim; i++){
-	//	if (PVC_col_1[i]!=0){
-	//		std::cout << PVC_col_1[i] << std::endl;
-	//		std::cout << PVC_col_2[i] << std::endl;
-	//		std::cout << std::endl;
-	//	}
-	//}
-	//raise_error("end of test");
-
 
 	/* Set initial values for A_Kn_row_array, where K^n=1 for n=0 */
-	printf("   - Starting CPVC-row calc. for all relevant rows \n");//row alpha=%d, q=%d, p=%d\n", idx_alpha_NDOS, idx_q_NDOS, idx_p_NDOS);
+	printf("   - Working on Pade approximant P[N,M] for N=%d, M=%d \n",0,0); fflush(stdout);
+	printf("     - Calculating on-shell rows of A*K^n for n=%d. \n", 0); fflush(stdout);
 	auto timestamp_start = std::chrono::system_clock::now();
 	/* Calculate CPVC-row and write to A_Kn_row_array_prev */
 	calculate_all_CPVC_rows(A_An_row_array_prev,
@@ -518,10 +489,11 @@ void pade_method_solve(cdouble*  U_array,
 							P123_sparse_dim);
 	auto timestamp_end = std::chrono::system_clock::now();
 	std::chrono::duration<double> time = timestamp_end - timestamp_start;
-	printf("   - Time CPVC-rows: %.6f\n", time.count());
-
+	printf("       - Time generating CPVC-rows:     %.6f \n", time.count()); fflush(stdout);
+	printf("       - Done \n", time.count()); fflush(stdout);
+	
 	/* First Neumann-term */
-	printf("   - Pade iteration n=%d \n",0);
+	printf("     - Extracting on-shell Neumann-series terms a_n=A*K^n for n=%d. \n",0); fflush(stdout);
 	for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 		for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
 			for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
@@ -540,19 +512,38 @@ void pade_method_solve(cdouble*  U_array,
 
 				/* Store coefficient */
 				size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
-				a_coeff_array[idx_NDOS*(N_pade+M_pade+1)] = a_coeff;
+				a_coeff_array[idx_NDOS*num_neumann_terms] = a_coeff;
 				
 				if (print_neumann_terms){
-					printf("     - Neumann term %d for alpha'=%d, alpha=%d, q=%d: %.16e + %.16ei \n", 0, idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, a_coeff.real(), a_coeff.imag());
+					printf("       - Neumann term %d for alpha'=%d, alpha=%d, q=%d: %.16e + %.16ei \n", 0, idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, a_coeff.real(), a_coeff.imag());
+					fflush(stdout);
 				}
 			}
 		}
 	}
+	printf("       - Done \n"); fflush(stdout);
 	
+	/* Arrays to store Pade-approximants (PA) for each on-shelle elements */
+	cdouble* pade_approximants_array      = new cdouble [num_on_shell_A_vals * (NM_max+1)];
+	size_t*  pade_approximants_idx_array  = new size_t  [num_on_shell_A_vals];
+	bool*    pade_approximants_conv_array = new bool    [num_on_shell_A_vals];
+	size_t	 num_converged_elements		  = 0;
+
+	for (size_t idx_NDOS=0; idx_NDOS<num_on_shell_A_vals; idx_NDOS++){
+		pade_approximants_conv_array[idx_NDOS] = false;
+	}
+
 	/* Loop over number of Pade-terms we use */
-	for (size_t n=1; n<N_pade+M_pade+1; n++){
-		printf("   - Pade iteration n=%d \n",n);
-		auto timestamp_start = std::chrono::system_clock::now();
+	for (size_t NM=0; NM<NM_max+1; NM++){
+		std::cout << num_converged_elements << std::endl;
+		if (num_converged_elements==num_on_shell_A_vals){
+			printf("   - Convergence reached for all on-shell elements! \n"); fflush(stdout);
+			break;
+		}
+
+		if (NM!=0){
+			printf("   - Working on Pade approximant P[N,M] for N=%d, M=%d \n",NM,NM); fflush(stdout);
+		}
 		
 		size_t counter_array [100];
 		for (size_t i=0; i<100; i++){
@@ -561,161 +552,252 @@ void pade_method_solve(cdouble*  U_array,
 		/* Iterate through columns of A */
 		
 		int num_threads = omp_get_max_threads();
+		/* Time-keeper array for parallel environment */
 		double*  times_array = new double [3*num_threads];
-		for (int i=0; i<3*num_threads; i++){
-			times_array[i] = 0;
-		}
+		
+		for (int n=2*NM-1; n<2*NM+1; n++){
+			/* We've already done n=0 above */
+			if (n<=0){
+				continue;
+			}
 
-		#pragma omp parallel //num_threads(1)
-		{
-		/* Allocate row- and column-arrays for (C^T)(P)(VC) */
-		double*  CPVC_col_array  		= new double [dense_dim];
-		int*     CPVC_row_to_nnz_array  = new int    [dense_dim];
-		int*     CPVC_nnz_to_row_array  = new int    [dense_dim];
-		size_t   thread_idx = 0;//omp_get_thread_num();
-		//cdouble* G_subarray		 = NULL;
-		//cdouble* CPVCG_col_array = new cdouble [dense_dim];
-		#pragma omp for
-		for (size_t idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
-			for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
-		//for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
-		//	for (size_t idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
-				for (size_t idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
-					size_t idx_col = idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP + idx_p_c;
+			auto timestamp_start = std::chrono::system_clock::now();
 
-					//printf("\r Working on col %d of %d", idx_col, Nalpha*Np_WP*Nq_WP);
+			/* Reset time-keeper array */
+			for (int i=0; i<3*num_threads; i++){
+				times_array[i] = 0;
+			}
 
-					double timestamp_0 = omp_get_wtime();
-					/* Reset CPVC-column array */
-					for (size_t row_idx=0; row_idx<dense_dim; row_idx++){
-						CPVC_col_array[row_idx] = 0;
+			printf("     - Calculating on-shell rows of A*K^n for n=%d. \n", n); fflush(stdout);
+			#pragma omp parallel //num_threads(1)
+			{
+			/* Allocate row- and column-arrays for (C^T)(P)(VC) */
+			double*  CPVC_col_array  		= new double [dense_dim];
+			int*     CPVC_row_to_nnz_array  = new int    [dense_dim];
+			int*     CPVC_nnz_to_row_array  = new int    [dense_dim];
+			size_t   thread_idx = 0;
 
-						CPVC_row_to_nnz_array[row_idx] = -1;
-						CPVC_nnz_to_row_array[row_idx] = -1;
-					}
+			#pragma omp for
+			for (size_t idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
+				for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
+					for (size_t idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+						size_t idx_col = idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP + idx_p_c;
 
-					double timestamp_1 = omp_get_wtime();
-					double time1 = timestamp_1 - timestamp_0;
-					times_array[3*thread_idx] += time1;
+						//printf("\r Working on col %d of %d", idx_col, Nalpha*Np_WP*Nq_WP);
 
-					/* Calculate CPVC-column */
-					size_t CPVC_num_nnz = 0;
-					calculate_CPVC_col(CPVC_col_array,
-									   CPVC_row_to_nnz_array,
-									   CPVC_nnz_to_row_array,
-									   CPVC_num_nnz,
-									   idx_alpha_c, idx_p_c, idx_q_c,
-									   Nalpha, Nq_WP, Np_WP,
-									   CT_RM_array,
-									   VC_CM_array,
-									   P123_sparse_val_array,
-									   P123_sparse_row_array,
-									   P123_sparse_col_array,
-									   P123_sparse_dim);
-					counter_array[thread_idx] += CPVC_num_nnz;
+						double timestamp_0 = omp_get_wtime();
+						/* Reset CPVC-column array */
+						for (size_t row_idx=0; row_idx<dense_dim; row_idx++){
+							CPVC_col_array[row_idx] = 0;
 
-					double timestamp_2 = omp_get_wtime();
-					double time2 = timestamp_2 - timestamp_1;
-					times_array[3*thread_idx + 1] += time2;
-					
-
-					/* Calculate all a-coefficients for calculated CPVC-column */
-					for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
-						for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
-							size_t idx_row_NDOS = idx_d_row*num_q_com + idx_q_com;
-							
-							/* Dot product An*A */
-							//cdouble inner_product = cdot_VV(&A_An_row_array_prev[idx_row_NDOS*dense_dim], CPVCG_col_array, dense_dim, 1, 1);
-
-							cdouble inner_product = 0;
-							////cdouble inner_products [omp_get_max_threads()];
-							////#pragma omp parallel for
-							//for (size_t i=0; i<dense_dim; i++){
-							//	inner_product += A_An_row_array_prev[idx_row_NDOS*dense_dim + i] * CPVC_col_array[i] * G_array[idx_q_com*dense_dim + i];
-							//	//inner_products[omp_get_thread_num()] += A_An_row_array_prev[idx_row_NDOS*dense_dim + i] * CPVC_col_array[i] * G_array[idx_q_com*dense_dim + i];
-							//}
-
-							int row_idx = 0;
-							for (size_t nnz_idx=0; nnz_idx<CPVC_num_nnz; nnz_idx++){
-								row_idx = CPVC_nnz_to_row_array[nnz_idx];
-								inner_product += A_An_row_array_prev[idx_row_NDOS*dense_dim + row_idx] * CPVC_col_array[nnz_idx] * G_array[idx_q_com*dense_dim + row_idx];
-							}
-
-							A_An_row_array[idx_row_NDOS*dense_dim + idx_col] = inner_product;
+							CPVC_row_to_nnz_array[row_idx] = -1;
+							CPVC_nnz_to_row_array[row_idx] = -1;
 						}
-					}
 
-					double timestamp_3 = omp_get_wtime();
-					double time3 = timestamp_3 - timestamp_2;
-					times_array[3*thread_idx + 2] += time3;
+						double timestamp_1 = omp_get_wtime();
+						double time1 = timestamp_1 - timestamp_0;
+						times_array[3*thread_idx] += time1;
+
+						/* Calculate CPVC-column */
+						size_t CPVC_num_nnz = 0;
+						calculate_CPVC_col(CPVC_col_array,
+										   CPVC_row_to_nnz_array,
+										   CPVC_nnz_to_row_array,
+										   CPVC_num_nnz,
+										   idx_alpha_c, idx_p_c, idx_q_c,
+										   Nalpha, Nq_WP, Np_WP,
+										   CT_RM_array,
+										   VC_CM_array,
+										   P123_sparse_val_array,
+										   P123_sparse_row_array,
+										   P123_sparse_col_array,
+										   P123_sparse_dim);
+						counter_array[thread_idx] += CPVC_num_nnz;
+
+						double timestamp_2 = omp_get_wtime();
+						double time2 = timestamp_2 - timestamp_1;
+						times_array[3*thread_idx + 1] += time2;
+
+
+						/* Calculate all a-coefficients for calculated CPVC-column */
+						for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
+							for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+								size_t idx_row_NDOS = idx_d_row*num_q_com + idx_q_com;
+
+								/* We see if we need to multiply this row further or not */
+								bool unconverged_on_shell_element_exists = false;
+								for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
+									size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
+									/* Check if we've already reached convergence for this on-shell element */
+									if (pade_approximants_conv_array[idx_NDOS]==false){
+										unconverged_on_shell_element_exists = true;
+										break;
+									}
+								}
+								if (unconverged_on_shell_element_exists==false){
+									continue;
+								}
+
+								/* Dot product An*A */
+								//cdouble inner_product = cdot_VV(&A_An_row_array_prev[idx_row_NDOS*dense_dim], CPVCG_col_array, dense_dim, 1, 1);
+
+								cdouble inner_product = 0;
+
+								int row_idx = 0;
+								for (size_t nnz_idx=0; nnz_idx<CPVC_num_nnz; nnz_idx++){
+									row_idx = CPVC_nnz_to_row_array[nnz_idx];
+									inner_product += A_An_row_array_prev[idx_row_NDOS*dense_dim + row_idx] * CPVC_col_array[nnz_idx] * G_array[idx_q_com*dense_dim + row_idx];
+								}
+
+								A_An_row_array[idx_row_NDOS*dense_dim + idx_col] = inner_product;
+							}
+						}
+
+						double timestamp_3 = omp_get_wtime();
+						double time3 = timestamp_3 - timestamp_2;
+						times_array[3*thread_idx + 2] += time3;
+					}
 				}
 			}
-		}
-		delete [] CPVC_col_array;
-		delete [] CPVC_row_to_nnz_array;
-		delete [] CPVC_nnz_to_row_array;
-		}
-		auto timestamp_end = std::chrono::system_clock::now();
-		std::chrono::duration<double> time = timestamp_end - timestamp_start;
+			delete [] CPVC_col_array;
+			delete [] CPVC_row_to_nnz_array;
+			delete [] CPVC_nnz_to_row_array;
+			}
+			auto timestamp_end = std::chrono::system_clock::now();
+			std::chrono::duration<double> time = timestamp_end - timestamp_start;
 
-		double time_resetting_arrays = 0;
-		double time_CPVC_cols = 0;
-		double time_An_CPVC_multiply = 0;
-		for (int thread_idx=0; thread_idx<num_threads; thread_idx++){
-			time_resetting_arrays += times_array[3*thread_idx];
-			time_CPVC_cols 		  += times_array[3*thread_idx+1];
-			time_An_CPVC_multiply += times_array[3*thread_idx+2];
+			double time_resetting_arrays = 0;
+			double time_CPVC_cols = 0;
+			double time_An_CPVC_multiply = 0;
+			for (int thread_idx=0; thread_idx<num_threads; thread_idx++){
+				time_resetting_arrays += times_array[3*thread_idx];
+				time_CPVC_cols 		  += times_array[3*thread_idx+1];
+				time_An_CPVC_multiply += times_array[3*thread_idx+2];
+			}
+			printf("       - Time resetting arrays:         %.6f \n", time_resetting_arrays/num_threads);
+			printf("       - Time generating CPVC-cols:     %.6f \n", time_CPVC_cols/num_threads);
+			printf("       - Time multiplying with An-rows: %.6f \n", time_An_CPVC_multiply/num_threads);
+			printf("       - Total time:                    %.6f \n", time.count());
+			printf("       - Done \n"); fflush(stdout);
+
+			//size_t nnz_counts = 0;
+			//for (size_t i=0; i<100; i++){
+			//	nnz_counts += counter_array[i];
+			//}
+			//printf("NUMBER OF NNZ ELEMENTS IN A: %zu \n", nnz_counts);
+			//printf("NUMBER OF NNZ ELEMENTS IN P: %zu \n", P123_sparse_dim);
+
+			/* Rewrite previous A_An with current A_An */
+			for (size_t i=0; i<num_on_shell_A_rows*dense_dim; i++){
+				A_An_row_array_prev[i] = A_An_row_array[i];
+			}
+
+			printf("     - Extracting on-shell Neumann-series terms a_n=A*K^n for n=%d. \n", n); fflush(stdout);
+			/* Extract coefficients "a" for Pade approximant */
+			for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+				for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
+					for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
+						/* Nucleon-deuteron on-shell (NDOS) indices
+						 * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
+						size_t idx_alpha_NDOS_row = deuteron_idx_array[idx_d_row];
+						size_t idx_alpha_NDOS_col = deuteron_idx_array[idx_d_col];
+						size_t idx_p_NDOS 	  = 0;
+						size_t idx_q_NDOS 	  = q_com_idx_array[idx_q_com];
+
+						size_t idx_row_NDOS   = idx_d_row*num_q_com + idx_q_com;
+						size_t idx_col_NDOS   = idx_alpha_NDOS_col*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
+
+						size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
+
+						/* Check if we've already reached convergence for this on-shell element */
+						if (pade_approximants_conv_array[idx_NDOS]==true){
+							continue;
+						}
+
+						/* Calculate coefficient */
+						cdouble a_coeff = A_An_row_array[idx_row_NDOS*dense_dim + idx_col_NDOS];
+
+						/* Store coefficient */
+						a_coeff_array[idx_NDOS*num_neumann_terms + n] = a_coeff;
+
+						if (print_neumann_terms){
+							printf("       - Neumann term %d for alpha'=%d, alpha=%d, q=%d: %.16e + %.16ei \n", n, idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, a_coeff.real(), a_coeff.imag());
+						}
+					}
+				}
+			}
+			printf("       - Done \n");
 		}
-		printf("     - Time resetting arrays:         %.6f \n", time_resetting_arrays/num_threads);
-		printf("     - Time generating CPVC-cols:     %.6f \n", time_CPVC_cols/num_threads);
-		printf("     - Time multiplying with An-rows: %.6f \n", time_An_CPVC_multiply/num_threads);
-		printf("     - Total time:                    %.6f \n", time.count());
-		printf("     - Done. \n");
+		delete [] times_array;
 
-		//size_t nnz_counts = 0;
-		//for (size_t i=0; i<100; i++){
-		//	nnz_counts += counter_array[i];
-		//}
-		//printf("NUMBER OF NNZ ELEMENTS IN A: %zu \n", nnz_counts);
-		//printf("NUMBER OF NNZ ELEMENTS IN P: %zu \n", P123_sparse_dim);
-
-		/* Rewrite previous A_An with current A_An */
-		for (size_t i=0; i<num_on_shell_A_rows*dense_dim; i++){
-			A_An_row_array_prev[i] = A_An_row_array[i];
-		}
-
-		printf("   - Extracting Neumann-series terms a_n \n");
-		/* Extract coefficients "a" for Pade approximant */
+		printf("     - Calculating Pade approximants PA[%d,%d]. \n", NM, NM); fflush(stdout);
+		/* Calculate Pade approximants (PA) */
 		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 			for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
 				for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
-					/* Nucleon-deuteron on-shell (NDOS) indices
-					 * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
-					size_t idx_alpha_NDOS_row = deuteron_idx_array[idx_d_row];
-					size_t idx_alpha_NDOS_col = deuteron_idx_array[idx_d_col];
-					size_t idx_p_NDOS 	  = 0;
-					size_t idx_q_NDOS 	  = q_com_idx_array[idx_q_com];
+					///* Nucleon-deuteron on-shell (NDOS) indices
+					// * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
+					//size_t idx_alpha_NDOS_row = deuteron_idx_array[idx_d_row];
+					//size_t idx_alpha_NDOS_col = deuteron_idx_array[idx_d_col];
+					//size_t idx_q_NDOS 	   	  = q_com_idx_array[idx_q_com];
 
-					size_t idx_row_NDOS   = idx_d_row*num_q_com + idx_q_com;
-					size_t idx_col_NDOS   = idx_alpha_NDOS_col*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
-					
-					/* Calculate coefficient */
-					cdouble a_coeff = A_An_row_array[idx_row_NDOS*dense_dim + idx_col_NDOS];
-
-					/* Store coefficient */
 					size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
-					a_coeff_array[idx_NDOS*(N_pade+M_pade+1) + n] = a_coeff;
 
-					if (print_neumann_terms){
-						printf("     - Neumann term %d for alpha'=%d, alpha=%d, q=%d: %.16e + %.16ei \n", n, idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, a_coeff.real(), a_coeff.imag());
+					/* Check and skip if we've already reached convergence for this on-shell element */
+					if (pade_approximants_conv_array[idx_NDOS]==true){
+						continue;
 					}
+
+					/* Calculate and append PA */
+					cdouble PA = pade_approximant(&a_coeff_array[idx_NDOS*num_neumann_terms], NM, NM, 1);
+
+					pade_approximants_array[idx_NDOS*(NM_max+1) + NM] = PA;
+					
+					/* See if we've reached convergence with this iteration */
+					size_t idx_best_PA = 0;
+					bool convergence_reached = false;
+
+					/* Find minimum PA from previous calculations */
+					double min_PA_diff = 1;
+					for (int NM_prev=0; NM_prev<NM; NM_prev++){
+						cdouble PA_prev = pade_approximants_array[idx_NDOS*(NM_max+1) + NM_prev];
+
+						/* Calculate difference between PAs from previous PA-calculations */
+						double PA_diff_prev = std::abs(PA_prev - pade_approximants_array[idx_NDOS*(NM_max+1) + NM_prev-1]);
+
+						/* Ignore PA_diff_prev if numerically equal to the previous PA_diff, overwrite if smaller than min_PA_diff */
+						if (PA_diff_prev<min_PA_diff && PA_diff_prev>1e-15){
+							idx_best_PA = NM_prev;
+							min_PA_diff = PA_diff_prev;
+						}
+					}
+					/* See if current PA is better/worse than previous minimum */
+					double PA_diff_curr = std::abs(PA - pade_approximants_array[idx_NDOS*(NM_max+1) + NM - 1]);
+					
+					/* Ignore PA_diff_curr if numerically equal to the previous PA_diff_curr, overwrite if smaller than min_PA_diff */
+					if (PA_diff_curr<min_PA_diff && PA_diff_curr>1e-15){
+						idx_best_PA = NM;
+						min_PA_diff = PA_diff_curr;
+					}
+
+					/* Condition for convergence: 3 or more iterations past minimum PA, or last iteration NM=NM_max */
+					if (NM-idx_best_PA>4 || NM==NM_max){
+						pade_approximants_conv_array[idx_NDOS] = true;
+						pade_approximants_idx_array[idx_NDOS]  = idx_best_PA;
+						num_converged_elements += 1;
+					}
+
+					//if (print_PA_convergences){
+					//	printf("PA[%d,%d] = %.16e + %.16ei, PA_diff = %.16e \n", NM,NM,PA.real(), PA.imag(), PA_diff);
+					//}
 				}
 			}
 		}
-		printf("     - Done \n");
+		printf("       - Done \n"); fflush(stdout);
 	}
 
-	/* Calculate Pade approximants (PA) */
+	printf("   - Extracting on-shell U-matrix elements \n"); fflush(stdout);
+	/* Set on-shell U-matrix elements equal "best" PA */
 	for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 		for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
 			for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
@@ -727,34 +809,14 @@ void pade_method_solve(cdouble*  U_array,
 
 				size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
 
-				cdouble pade_approximants_array [N_pade+M_pade+1];
+				size_t idx_best_PA = pade_approximants_idx_array[idx_NDOS];
 
-				double min_PA_diff = 1;
-				size_t idx_best_PA = 0;
-
-				/* Calculate PAs and find index for most converged PA */
-				for (size_t NM=0; NM<N_pade+M_pade+1; NM+=2){
-					cdouble PA = pade_approximant(&a_coeff_array[idx_NDOS*(N_pade+M_pade+1)], NM/2, NM/2, 1);
-
-					pade_approximants_array[NM/2] = PA;
-
-					double PA_diff = std::abs(PA - pade_approximants_array[NM/2 - 1]);
-					if (print_PA_convergences){
-						printf("PA[%d,%d] = %.16e + %.16ei, PA_diff = %.16e \n", NM/2,NM/2,PA.real(), PA.imag(), PA_diff);
-					}
-					/* Ignore PA_diff if numerically equal to the previous PA_diff, overwrite if smaller than min_PA_diff */
-					if (PA_diff<min_PA_diff && PA_diff>1e-15){
-						idx_best_PA = NM/2;
-						min_PA_diff = PA_diff;
-					}
-				}
-
-				/* Set U-matrix element equal "best" PA */
-				U_array[idx_NDOS] = pade_approximants_array[idx_best_PA];
-				printf(" - U-matrix element for alpha'=%d, alpha=%d, q=%d: %.10e + %.10ei \n", idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, U_array[idx_NDOS].real(), U_array[idx_NDOS].imag());
+				U_array[idx_NDOS] = pade_approximants_array[idx_NDOS*(NM_max+1) + idx_best_PA];
+				printf("     - U-matrix element for alpha'=%d, alpha=%d, q=%d: %.10e + %.10ei \n", idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, U_array[idx_NDOS].real(), U_array[idx_NDOS].imag());
 			}
 		}
 	}
+	printf("     - Done \n"); fflush(stdout);
 
 	delete [] A_An_row_array;
 	delete [] A_An_row_array_prev;

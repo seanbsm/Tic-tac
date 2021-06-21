@@ -151,7 +151,7 @@ int main(int argc, char* argv[]){
 
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
-	int J_2N_max 	 = 3;
+	int J_2N_max 	 = run_parameters.J_2N_max;
 	int two_J_3N_max = 3;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
@@ -279,7 +279,7 @@ int main(int argc, char* argv[]){
 
 	printf("Storing q boundaries to CSV-file ... \n");
 	//std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
-	std::string q_boundaries_filename = run_parameters.output_folder + "q_boundaries_Nq_" + to_string(Nq_WP) + ".csv";
+	std::string q_boundaries_filename = run_parameters.output_folder + "/" + "q_boundaries_Nq_" + to_string(Nq_WP) + ".csv";
 	store_q_WP_boundaries_csv(Nq_WP, q_WP_array, q_boundaries_filename);
 	printf(" - Done \n");
 
@@ -594,7 +594,7 @@ int main(int argc, char* argv[]){
 		/* Default filename for current chn_3N - used for storage and reading P123 */
 		
 		//std::string permutation_matrices_folder = "../../Data/permutation_matrices/";
-		std::string P123_filename =    run_parameters.P123_folder + "P123_sparse_JTP_"
+		std::string P123_filename =    run_parameters.P123_folder + "/" + "P123_sparse_JTP_"
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";//_MF.h5";
@@ -826,12 +826,12 @@ int main(int argc, char* argv[]){
 			printf(" - Done \n");
 
 			//std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
-			std::string U_mat_filename = run_parameters.output_folder + "U_PW_elements_Np_" + std::to_string(Np_WP)
-																	  + "_Nq_" + std::to_string(Np_WP)
-																	  + "_JP_" + std::to_string(two_J_3N)
-																	  + "_" + std::to_string(P_3N)
-																	  + "_Jmax_" + std::to_string(J_2N_max)
-																	  + ".csv";
+			std::string U_mat_filename = run_parameters.output_folder + "/" + "U_PW_elements_Np_" + std::to_string(Np_WP)
+																	        + "_Nq_"   + std::to_string(Np_WP)
+																	        + "_JP_"   + std::to_string(two_J_3N)
+																	        + "_"      + std::to_string(P_3N)
+																	        + "_Jmax_" + std::to_string(J_2N_max)
+																	        + ".csv";
 			store_U_matrix_elements_csv(U_array,
 									    q_com_idx_array,    (size_t) num_T_lab,
 							  		    deuteron_idx_array, (size_t) num_deuteron_states,

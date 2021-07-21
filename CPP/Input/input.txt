@@ -11,4 +11,4 @@ grid_type=chebyshev
 parameter_walk=off
 average=off
 output_folder=../../Data/Faddeev_code/U_matrix_elements
-P123_folder=../../Data/permutation_matrices/
+P123_folder=../../../Data/permutation_matrices/

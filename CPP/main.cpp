@@ -425,8 +425,10 @@ int main(int argc, char* argv[]){
 					continue;
 				}
 
-				double q_upper_boundary = q_WP_array[q_WP_idx+1];
-				double T_lab = com_momentum_to_lab_energy(q_upper_boundary, E_bound);
+				//double q_upper_boundary = q_WP_array[q_WP_idx+1];
+				//double T_lab = com_momentum_to_lab_energy(q_upper_boundary, E_bound);
+				double q_com = com_energy_to_com_q_momentum(E_com);
+				double T_lab = com_momentum_to_lab_energy(q_com, E_bound);
 				if (T_lab>Tlab_max){
 					break;
 				}

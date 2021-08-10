@@ -12,12 +12,12 @@
 #include "type_defs.h"
 #include "store_functionality.h"
 
-void read_input_list_and_set_parameters(run_params& run_parameters);
+void read_input_list_and_set_parameters(run_params& run_parameters, std::string filename);
 void show_usage();
 
 void no_options_entered();
 
-void use_input_list(run_params& run_parameters);
+void use_input_list(run_params& run_parameters, std::string filename);
 
 void set_default_values(run_params& run_parameters);
 

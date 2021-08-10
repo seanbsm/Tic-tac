@@ -27,13 +27,18 @@ void make_chebyshev_distribution(int N_WP,
 								 double* boundary_array,
 								 double scale,
 								 int 	sparseness_degree){
-	double tan_term;
+	double tan_term = 0;
+	double boundary = 0;
 	
 	for (int i=1; i<N_WP+1; i++){
 		tan_term = tan( (2*i-1)*M_PI/(4*N_WP) ); 
+
+		boundary = scale*pow(tan_term, sparseness_degree);
 		
-		//boundary_array[i] = i;
-		boundary_array[i] = scale*pow(tan_term, sparseness_degree);
+		/* Momentum distribution */
+		boundary_array[i] = boundary;
+		/* Energy distribution */
+		//boundary_array[i] = com_energy_to_com_q_momentum(boundary);
 	}
 	boundary_array[0] = 0.0;
 }

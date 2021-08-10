@@ -100,6 +100,40 @@ int main(int argc, char* argv[]){
 	//std::cout << com_q_momentum_to_com_energy(lab_energy_to_com_momentum(13, -Ed_measured)) << std::endl;
 	//return 0;
 
+	/*#include "mkl.h"
+	std::complex<double> beta  = {0,0};
+	std::complex<double> alpha = {1,0};
+	size_t dim = 20000;//26*50*50/16;
+	size_t M = dim;
+	size_t N = dim-5000;
+	size_t K = dim;
+	size_t lda = dim;
+	size_t ldb = dim;
+	size_t ldc = dim;
+	cdouble* A_big = new cdouble [dim*dim];
+	cdouble* B_big = new cdouble [dim*dim];
+	cdouble* C_big = new cdouble [dim*dim];
+	for (int i=0; i<dim*dim; i++){
+		A_big[i] = 1.0*i/dim;
+		B_big[i] = 1.0*i/dim;
+		C_big[i] = 0;
+	}
+	cdouble* A = &A_big[0];
+	cdouble* B = &B_big[5000];
+	cdouble* C = &C_big[5000];
+	cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, &alpha, A, lda, B, ldb, &beta, C, ldc);
+	for (size_t r=0; r<M; r++){
+		for (size_t c=0; c<N; c++){
+			cdouble inner_product = 0;
+			for (size_t k=0; k<K; k++){
+				inner_product += alpha * A[r*lda + k] * B[k*ldb + c];
+			}
+			std::cout << "true r="<<r<<", c="<<c<< " " << inner_product.real() << " " << inner_product.imag() << std::endl;
+			std::cout << "calc r="<<r<<", c="<<c<< " " << C[r*ldc+c].real() << " " << C[r*ldc+c].imag() << std::endl;
+		}
+	}
+	return 0;*/
+
 	/* ------------------- Start main body of code here ------------------- */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
@@ -115,7 +149,8 @@ int main(int argc, char* argv[]){
 	int Nq_WP = run_parameters.Nq_WP;
 
 	bool default_Tlab_input = false;
-	double Tlab_max = 100;
+	double Tlab_min = 0;
+	double Tlab_max = 100;//500;
 
 	/* Current scattering energy */
 	size_t  num_T_lab	= 0;
@@ -404,6 +439,41 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
+	/* Start of code segment for storing kinematics of WP statespace */
+
+	double* Eq_WP_boundaries   = new double [Nq_WP+1];
+	double* Tlab_WP_boundaries = new double [Nq_WP+1];
+	for (size_t q_WP_idx=0; q_WP_idx<Nq_WP+1; q_WP_idx++){
+		Eq_WP_boundaries[q_WP_idx]   = com_q_momentum_to_com_energy(q_WP_array[q_WP_idx]);
+		Tlab_WP_boundaries[q_WP_idx] = com_momentum_to_lab_energy(q_WP_array[q_WP_idx], E_bound);
+	}
+	double* q_WP_midpoints     = new double [Nq_WP];
+	double* Eq_WP_midpoints    = new double [Nq_WP];
+	double* Tlab_WP_midpoints  = new double [Nq_WP];
+	for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
+		double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
+		double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
+		double E_com = 0.5*(Eq_upper + Eq_lower);
+		q_WP_midpoints[q_WP_idx]    = com_energy_to_com_q_momentum(E_com);
+		Eq_WP_midpoints[q_WP_idx]   = E_com;
+		Tlab_WP_midpoints[q_WP_idx] = com_momentum_to_lab_energy(q_WP_midpoints[q_WP_idx], E_bound);
+	}
+	printf("Storing kinematic values of WP statespace to txt-file ... \n");
+	std::string q_kinematics_filename = run_parameters.output_folder + "/" + "q_kinematics_Nq_" + to_string(Nq_WP) + ".txt";
+	store_q_WP_kinematics_txt(Nq_WP,
+							  q_WP_array,
+							  Eq_WP_boundaries,
+							  Tlab_WP_boundaries,
+							  q_WP_midpoints,
+							  Eq_WP_midpoints,
+							  Tlab_WP_midpoints,
+							  q_kinematics_filename);
+	printf(" - Done \n");
+
+	/* End of code segment for storing kinematics of WP statespace */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
 	/* Start of code segment for locating on-shell nucleon-deuteron states */
 	if (solve_faddeev){
 
@@ -415,6 +485,55 @@ int main(int argc, char* argv[]){
 				double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
 				double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
 				double E_com = 0.5*(Eq_upper + Eq_lower);
+				
+				//double q_l     = com_energy_to_com_q_momentum(Eq_lower);
+				//double q_u     = com_energy_to_com_q_momentum(Eq_upper);
+				//double q_m     = com_energy_to_com_q_momentum(E_com);
+				//double T_lab_l = com_momentum_to_lab_energy(  q_l, E_bound);
+				//double T_lab_u = com_momentum_to_lab_energy(  q_u, E_bound);
+				//double T_lab_m = com_momentum_to_lab_energy(  q_m, E_bound);
+				//std::vector<double> T_lab_input_list = {  3,   4,   5,       6,
+				//										  9,  10,  11,      12,
+				//										 13,  16,  22.7,    28,
+				//										 30,  35,  42,      47.5,
+				//										 50,  53,  65,      93.5,
+				//										146, 155, 180, 220, 240};
+				//for (size_t i=0; i<T_lab_input_list.size(); i++){
+				//	double Tlab_input = T_lab_input_list[i];
+				//	if (T_lab_l <= Tlab_input && Tlab_input <= T_lab_m){
+				//		if (num_T_lab==0 && q_WP_idx==0){
+				//			q_WP_idx_vec.push_back(q_WP_idx); num_T_lab += 1;
+				//		}
+				//		else if (num_T_lab==0 && q_WP_idx!=0){
+				//			q_WP_idx_vec.push_back(q_WP_idx-1); num_T_lab += 1;
+				//			q_WP_idx_vec.push_back(q_WP_idx);   num_T_lab += 1;
+				//		}
+				//		else if (q_WP_idx_vec[num_T_lab-1]==q_WP_idx-1){
+				//			q_WP_idx_vec.push_back(q_WP_idx); num_T_lab += 1;
+				//		}
+				//		else if (q_WP_idx_vec[num_T_lab-1]==q_WP_idx){
+				//			continue;
+				//		}
+				//		else{
+				//			q_WP_idx_vec.push_back(q_WP_idx-1); num_T_lab += 1;
+				//			q_WP_idx_vec.push_back(q_WP_idx);   num_T_lab += 1;
+				//		}
+				//	}
+				//	else if (T_lab_m <= Tlab_input && Tlab_input <= T_lab_u){
+				//		if (num_T_lab==0){
+				//			q_WP_idx_vec.push_back(q_WP_idx);   num_T_lab += 1;
+				//			q_WP_idx_vec.push_back(q_WP_idx+1); num_T_lab += 1;
+				//		}
+				//		else if (q_WP_idx_vec[num_T_lab-1]==q_WP_idx){
+				//			q_WP_idx_vec.push_back(q_WP_idx+1); num_T_lab += 1;
+				//		}
+				//		else{
+				//			q_WP_idx_vec.push_back(q_WP_idx);   num_T_lab += 1;
+				//			q_WP_idx_vec.push_back(q_WP_idx+1); num_T_lab += 1;
+				//		}
+				//	}
+				//}
+
 				if (E_com<1 && q_WP_idx%5!=0){
 					continue;
 				}
@@ -424,13 +543,10 @@ int main(int argc, char* argv[]){
 				else if (E_com>200){
 					continue;
 				}
-
-				//double q_upper_boundary = q_WP_array[q_WP_idx+1];
-				//double T_lab = com_momentum_to_lab_energy(q_upper_boundary, E_bound);
 				double q_com = com_energy_to_com_q_momentum(E_com);
 				double T_lab = com_momentum_to_lab_energy(q_com, E_bound);
-				if (T_lab>Tlab_max){
-					break;
+				if (T_lab<Tlab_min || Tlab_max<T_lab){
+					continue;
 				}
 				else{
 					q_WP_idx_vec.push_back(q_WP_idx);
@@ -448,6 +564,9 @@ int main(int argc, char* argv[]){
 				//printf("%.10e\n",E_com);
 				double q = com_energy_to_com_q_momentum(E_com);
 				double T_lab = com_momentum_to_lab_energy(q, E_bound);
+
+				std::cout << "Tlab " << T_lab << std::endl;
+				
 				T_lab_array[Tlab_idx] = T_lab;
 			}
 		}
@@ -600,7 +719,7 @@ int main(int argc, char* argv[]){
 									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";//_MF.h5";
-		//if (chn_3N==2 || chn_3N==2){}
+		//if (chn_3N==0 || chn_3N==2){}
 		//else{
 		//	continue;
 		//}
@@ -829,7 +948,7 @@ int main(int argc, char* argv[]){
 
 			//std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
 			std::string U_mat_filename = run_parameters.output_folder + "/" + "U_PW_elements_Np_" + std::to_string(Np_WP)
-																	        + "_Nq_"   + std::to_string(Np_WP)
+																	        + "_Nq_"   + std::to_string(Nq_WP)
 																	        + "_JP_"   + std::to_string(two_J_3N)
 																	        + "_"      + std::to_string(P_3N)
 																	        + "_Jmax_" + std::to_string(J_2N_max)
@@ -840,6 +959,27 @@ int main(int argc, char* argv[]){
 									    L_1N_subarray, 
 									    two_J_1N_subarray,
 									    U_mat_filename);
+			
+			std::string U_mat_filename_t = run_parameters.output_folder + "/" + "U_PW_elements_Np_" + std::to_string(Np_WP)
+																	        + "_Nq_"   + std::to_string(Nq_WP)
+																	        + "_JP_"   + std::to_string(two_J_3N)
+																	        + "_"      + std::to_string(P_3N)
+																	        + "_Jmax_" + std::to_string(J_2N_max)
+																	        + ".txt";
+			store_U_matrix_elements_txt(U_array,
+										run_parameters.potential_model,
+										two_J_3N,
+										P_3N,
+										Np_WP,
+										Nq_WP,
+										E_bound,
+										T_lab_array,
+										E_com_array,
+									    q_com_idx_array,    (size_t) num_T_lab,
+							  		    deuteron_idx_array, (size_t) num_deuteron_states,
+									    L_1N_subarray, 
+									    two_J_1N_subarray,
+									    U_mat_filename_t);
 
 			/* End of code segment for iterations of elastic Faddeev equations */
 			/* Start of code segment for storing on-shell U-matrix solutions */

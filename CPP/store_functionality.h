@@ -37,8 +37,30 @@
 
 void store_run_parameters(run_params run_parameters);
 
+void store_q_WP_kinematics_txt(size_t Nq_WP,
+							   double* q_WP_array,
+							   double* Eq_WP_array,
+							   double* Tlab_WP_array,
+							   double* q_WP_midpoint_array,
+							   double* Eq_WP_midpoint_array,
+							   double* Tlab_WP_midpoint_array,
+						       std::string filename);
 void store_q_WP_boundaries_csv(size_t Nq_WP, double* q_WP_array,
 						   	   std::string filename);
+void store_U_matrix_elements_txt(std::complex<double>*    U_array,
+								 std::string 			  potential_model,
+								 int					  two_J,
+								 int					  P_3N,
+								 int					  Np_WP,
+								 int					  Nq_WP,
+								 double					  E_bound,
+								 double*				  T_lab_array,
+								 double*				  E_com_array,
+							     int* q_com_idx_array,	  size_t num_q_com,
+					  		     int* deuteron_idx_array, size_t num_deuteron_states,
+							     int* L_1N_array, 
+							     int* two_J_1N_array,
+							     std::string filename);
 void store_U_matrix_elements_csv(std::complex<double>* U_array,
 							 	 int* q_com_idx_array,	  size_t num_q_com,
 					  		 	 int* deuteron_idx_array, size_t num_deuteron_states,

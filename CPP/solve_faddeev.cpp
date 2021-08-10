@@ -442,9 +442,9 @@ void pade_method_solve(cdouble*  U_array,
 					   size_t    P123_sparse_dim){
 
 	/* Print Pade-approximant convergences */
-	bool print_PA_convergences = false;
+	bool print_PA_convergences = true;
 	/* Print Neumann terms */
-	bool print_neumann_terms = false;
+	bool print_neumann_terms = true;
 	
 	/* Number of on-shell nucleon-deuteron channels (deuteron states can mix, hence ^2) */
 	size_t num_on_shell_A_rows = num_deuteron_states * num_q_com;
@@ -567,6 +567,28 @@ void pade_method_solve(cdouble*  U_array,
 			for (int i=0; i<3*num_threads; i++){
 				times_array[i] = 0;
 			}
+			
+			for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
+				for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+					size_t idx_row_NDOS = idx_d_row*num_q_com + idx_q_com;
+					/* We see if we need to multiply this row further or not */
+					bool unconverged_on_shell_element_exists = false;
+					for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
+						size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
+						/* Check if we've already reached convergence for this on-shell element */
+						if (pade_approximants_conv_array[idx_NDOS]==false){
+							unconverged_on_shell_element_exists = true;
+							break;
+						}
+					}
+					if (unconverged_on_shell_element_exists==false){
+						continue;
+					}
+					for (size_t idx=0; idx<dense_dim; idx++){
+						A_An_row_array_prev[idx_row_NDOS*dense_dim + idx] *= G_array[idx_q_com*dense_dim + idx];
+					}
+				}
+			}
 
 			printf("     - Calculating on-shell rows of A*K^n for n=%d. \n", n); fflush(stdout);
 			#pragma omp parallel //num_threads(1)
@@ -575,7 +597,7 @@ void pade_method_solve(cdouble*  U_array,
 			double*  CPVC_col_array  		= new double [dense_dim];
 			int*     CPVC_row_to_nnz_array  = new int    [dense_dim];
 			int*     CPVC_nnz_to_row_array  = new int    [dense_dim];
-			size_t   thread_idx = 0;
+			size_t   thread_idx = omp_get_thread_num();
 
 			#pragma omp for
 			for (size_t idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
@@ -646,7 +668,7 @@ void pade_method_solve(cdouble*  U_array,
 								int row_idx = 0;
 								for (size_t nnz_idx=0; nnz_idx<CPVC_num_nnz; nnz_idx++){
 									row_idx = CPVC_nnz_to_row_array[nnz_idx];
-									inner_product += A_An_row_array_prev[idx_row_NDOS*dense_dim + row_idx] * CPVC_col_array[nnz_idx] * G_array[idx_q_com*dense_dim + row_idx];
+									inner_product += A_An_row_array_prev[idx_row_NDOS*dense_dim + row_idx] * CPVC_col_array[nnz_idx];// * G_array[idx_q_com*dense_dim + row_idx];
 								}
 
 								A_An_row_array[idx_row_NDOS*dense_dim + idx_col] = inner_product;
@@ -680,16 +702,17 @@ void pade_method_solve(cdouble*  U_array,
 			printf("       - Total time:                    %.6f \n", time.count());
 			printf("       - Done \n"); fflush(stdout);
 
-			//size_t nnz_counts = 0;
-			//for (size_t i=0; i<100; i++){
-			//	nnz_counts += counter_array[i];
-			//}
-			//printf("NUMBER OF NNZ ELEMENTS IN A: %zu \n", nnz_counts);
-			//printf("NUMBER OF NNZ ELEMENTS IN P: %zu \n", P123_sparse_dim);
+			size_t nnz_counts = 0;
+			for (size_t i=0; i<100; i++){
+				nnz_counts += counter_array[i];
+			}
+			printf("NUMBER OF NNZ ELEMENTS IN A: %zu \n", nnz_counts);
+			printf("NUMBER OF NNZ ELEMENTS IN P: %zu \n", P123_sparse_dim);
 
 			/* Rewrite previous A_An with current A_An */
 			for (size_t i=0; i<num_on_shell_A_rows*dense_dim; i++){
 				A_An_row_array_prev[i] = A_An_row_array[i];
+				//if (n==27){std::cout << A_An_row_array_prev[i] << std::endl;}
 			}
 
 			printf("     - Extracting on-shell Neumann-series terms a_n=A*K^n for n=%d. \n", n); fflush(stdout);

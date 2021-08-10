@@ -1,9 +1,9 @@
 
 #include "set_run_parameters.h"
 
-void read_input_list_and_set_parameters(run_params& run_parameters){
+void read_input_list_and_set_parameters(run_params& run_parameters, std::string filename){
 	/* Define file with input */
-	std::ifstream infile("Input/input.txt");
+	std::ifstream infile(filename);
 	
 	std::string line;
 	
@@ -91,9 +91,9 @@ void show_usage(){
 			  << seperationLine
 			  << std::endl;
 
-	std::cout << "use_input_list:     Tell program to read Input/input.txt for run parameters. \n"
-			  << "Example:            use_input_list -> Program interprets input.txt.\n"
-			  << "Example:                              All other command-line options are ignored.\n"
+	std::cout << "<inputfile>.txt:    Tell program to read <inputfile>.txt for run parameters. \n"
+			  << "Example:            input.txt -> Program interprets input.txt.\n"
+			  << "Example:                         All other command-line options are ignored.\n"
 			  << seperationLine
 			  << std::endl;
 
@@ -189,11 +189,11 @@ void no_options_entered(){
 	std::cout << std::endl;
 }
 
-void use_input_list(run_params& run_parameters){
+void use_input_list(run_params& run_parameters, std::string filename){
 						
-	read_input_list_and_set_parameters(run_parameters);
+	read_input_list_and_set_parameters(run_parameters, filename);
 	
-	std::cout << "Using input.txt for run options." << std::endl;
+	std::cout << "Using input file " <<  filename << " for run options." << std::endl;
 	std::cout << std::endl;
 	std::cout << "Any unset options will be filled with default parameters." << std::endl;
 	std::cout << "All other command line input will be ignored." << std::endl;
@@ -252,6 +252,7 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 		for (int i = 1; i < argc; ++i) {
 			
 			arg = argv[i];
+			size_t arg_size = arg.size();
 			
 			if ((arg == "-h") || (arg == "--help")) {
 				show_usage();
@@ -260,13 +261,13 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 					exit(-1);
 				}
 			}
-			else if (arg == "use_input_list"){
+			else if (arg.substr(arg_size-4) == ".txt"){
 				/* Reset to default values.
 				 * Essentially we ignore all other
 				 * command line input. */
 				set_default_values(run_parameters);
 				
-				use_input_list(run_parameters);
+				use_input_list(run_parameters, arg);
 				break;
 			}
 			else if (arg.find(delimiter) != std::string::npos){

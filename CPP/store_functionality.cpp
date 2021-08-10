@@ -43,6 +43,17 @@ typedef struct Psparse_table{
 	double value_Ptable;
 } Psparse_table;
 
+template <typename T>
+std::string to_string_with_precision_and_sign(const T a_value, const int n = 6){
+	std::string sgn = "";
+	if (a_value>=0){sgn="+";}
+    std::ostringstream out;
+    out.precision(n);
+    out << sgn << std::scientific
+			   << a_value;
+    return out.str();
+}
+
 using namespace std;
 
 void open_file(std::ofstream &file,
@@ -87,8 +98,92 @@ void store_run_parameters(run_params run_parameters){
 	output_file.close();
 }
 
+void store_q_WP_kinematics_txt(size_t Nq_WP,
+							   double* q_WP_array,
+							   double* Eq_WP_array,
+							   double* Tlab_WP_array,
+							   double* q_WP_midpoint_array,
+							   double* Eq_WP_midpoint_array,
+							   double* Tlab_WP_midpoint_array,
+						       std::string filename){
+	/* Open file*/
+	std::ofstream result_file;
+	result_file.open(filename);
+
+	result_file << "# First table of numbers are bin boundaries. \n";
+	result_file << "# Second table of numbers are bin mid-points for energy WPs.\n";
+	result_file << "# This means Ecm in the 2nd table is the mid-point of the corresponding Ecm boundaries.\n";
+	result_file << "# \n";
+	result_file << "# BOUNDARIES: \n";
+	result_file << "# \n";
+	
+	std::string header1 = "# Index";
+	std::string header2 = "q [MeV]";
+	std::string header3 = "Ecm [MeV]";
+	std::string header4 = "Tlab [MeV]";
+	
+	/* Headers */
+	result_file << header1;
+	result_file << std::right << std::setw(10 + 15 - header2.length()) << " " << header2;
+	result_file << std::right << std::setw(10 + 15 - header3.length()) << " " << header3;
+	result_file << std::right << std::setw(10 + 15 - header4.length()) << " " << header4 << "\n";
+
+	/* Append array-values */
+	for (size_t i=0; i<Nq_WP+1; i++){
+		/* Fixes formatting of stored numbers */
+		result_file << std::showpos
+					<< std::right
+                	<< std::setw(header2.length());
+		/* Append vector element */
+        result_file << i;
+		/* Fixes formatting of stored numbers */
+		result_file << std::right
+					<< std::scientific
+					<< std::setprecision(8);
+		result_file << std::setw(10) << " " << q_WP_array[i];
+		result_file << std::setw(10) << " " << Eq_WP_array[i];
+		result_file << std::setw(10) << " " << Tlab_WP_array[i];
+		result_file << "\n";
+	}
+
+	result_file << "# \n";
+	result_file << "# BIN MID-POINTS: \n";
+	result_file << "# \n";
+
+	/* Headers */
+	result_file << header1;
+	result_file << std::right << std::setw(10 + 15 - header2.length()) << " " << header2;
+	result_file << std::right << std::setw(10 + 15 - header3.length()) << " " << header3;
+	result_file << std::right << std::setw(10 + 15 - header4.length()) << " " << header4 << "\n";
+
+	/* Append array-values */
+	for (size_t i=0; i<Nq_WP; i++){
+		/* Fixes formatting of stored numbers */
+		result_file << std::showpos
+					<< std::right
+                	<< std::setw(header2.length());
+		/* Append vector element */
+        result_file << i;
+		/* Fixes formatting of stored numbers */
+		result_file << std::right
+					<< std::scientific
+					<< std::setprecision(8);
+		result_file << std::setw(10) << " " << q_WP_midpoint_array[i];
+		result_file << std::setw(10) << " " << Eq_WP_midpoint_array[i];
+		result_file << std::setw(10) << " " << Tlab_WP_midpoint_array[i];
+		result_file << "\n";
+	}
+	
+	/* Close writing session */
+	result_file << std::endl;
+	
+	/* Close files */
+	result_file.close();
+}
+
 void store_q_WP_boundaries_csv(size_t Nq_WP, double* q_WP_array,
 						   	   std::string filename){
+	
 	/* Open file*/
 	std::ofstream result_file;
 	result_file.open(filename);
@@ -113,7 +208,150 @@ void store_q_WP_boundaries_csv(size_t Nq_WP, double* q_WP_array,
 	result_file.close();
 }
 
-void store_U_matrix_elements_csv(std::complex<double>* U_array,
+void store_U_matrix_elements_txt(std::complex<double>*    U_array,
+								 std::string 			  potential_model,
+								 int					  two_J,
+								 int					  P_3N,
+								 int					  Np_WP,
+								 int					  Nq_WP,
+								 double					  E_bound,
+								 double*				  T_lab_array,
+								 double*				  E_com_array,
+							     int* q_com_idx_array,	  size_t num_q_com,
+					  		     int* deuteron_idx_array, size_t num_deuteron_states,
+							     int* L_1N_array, 
+							     int* two_J_1N_array,
+							     std::string filename){
+	
+	/* Open file*/
+	std::ofstream result_file;
+	result_file.open(filename);
+
+	std::string parity_sgn = "";
+	if      (P_3N==+1){parity_sgn = "+";}
+	else if	(P_3N==-1){parity_sgn = "-";}
+	else			  {raise_error("Recieved illegal parity in store_U_matrix_elements_txt().");}
+
+	result_file << std::setprecision(8);
+
+	result_file << "# Elastic Nd-scattering U-matrix elements in a wave-packet, Jj-scheme representation. \n";
+	result_file << "# \n";
+	result_file << "# The calculations below were done for: \n";
+	result_file << "# JP:          " << two_J << "/2" << parity_sgn << "\n";
+	result_file << "# Potential:   " << potential_model << "\n";
+	result_file << "# Np:          " << Np_WP << " \n";
+	result_file << "# Nq:          " << Nq_WP << " \n";
+	result_file << "# Particles:   " << "nd-scattering" << "\n";
+	result_file << "# Deuteron BE: " << E_bound << " MeV \n";
+	result_file << "# \n";
+	result_file << "# Symbol definitions: \n";
+	result_file << "# Uij:   U-matrix element in MeV with row-idx i and col-idx j (NOTE in wave-packet representation!)  \n";
+	result_file << "# l:     Spectator nucleon orbital angular momentum  \n";
+	result_file << "# j:     Spectator nucleon total angular momentum  \n";
+	result_file << "# Tlab:  Laboratory scattering/kinetic energy  \n";
+	result_file << "# Ecm:   Centre-of-mass scattering/kinetic energy  \n";
+	result_file << "# q_idx: Index of on-shell q-momentum bin correponding to Tlab/Ecm  \n";
+	result_file << "# \n";
+	result_file << "# ################################################################################################### \n";
+	//result_file << "#     Name    row-idx    col-idx     l'   2*j'      l    2*j  \n";
+
+	result_file << std::right
+				<< std::scientific
+				<< std::setprecision(16);
+
+	/* Write headers for table 1 */
+	std::vector<std::string> headers1 = {"Name", "row-idx", "col-idx", "l'", "2*j'", "l", "2*j"};
+	result_file << "#";
+	for (size_t idx_header=0; idx_header<headers1.size(); idx_header++){
+		result_file << std::right << std::setw(10) << headers1[idx_header];
+	}
+	result_file << "\n";
+
+	/* Loop over deuteron row-indices ("dp"=deuteron prime) */
+	for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+		size_t idx_alpha_row = deuteron_idx_array[idx_d_row];
+		int l_row 	  = L_1N_array[idx_alpha_row];
+		int two_j_row = two_J_1N_array[idx_alpha_row];
+
+		/* Loop over deuteron column-indices ("d"=deuteron) */
+		for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
+			size_t idx_alpha_col = deuteron_idx_array[idx_d_col];
+			int l_col 	  = L_1N_array[idx_alpha_col];
+			int two_j_col = two_J_1N_array[idx_alpha_col];
+
+			std::string label = "U" + std::to_string(idx_d_row) + std::to_string(idx_d_col);
+
+			result_file << " ";
+			result_file << std::right << std::setw(10) << label;
+			result_file << std::right << std::setw(10) << idx_d_row;
+			result_file << std::right << std::setw(10) << idx_d_col;
+			result_file << std::right << std::setw(10) << l_row;
+			result_file << std::right << std::setw(10) << two_j_row;
+			result_file << std::right << std::setw(10) << l_col;
+			result_file << std::right << std::setw(10) << two_j_col;
+			result_file << "\n";
+		}
+	}
+	result_file << "# ################################################################################################### \n";
+
+	/* Write headers for table 2 */
+	std::vector<std::string> headers2 = {"Tlab [MeV]"  , "Ecm [MeV]"  , "q_idx"      ,
+										 "U00 [MeV]"   , "U01 [MeV]"  , "U02 [MeV]"  ,
+										 "U10 [MeV]"   , "U11 [MeV]"  , "U12 [MeV]"  ,
+										 "U20 [MeV]"   , "U21 [MeV]"  , "U22 [MeV]"   };
+	result_file << "#";
+	for (size_t idx_header=0; idx_header<headers2.size(); idx_header++){
+		if (idx_header<2){
+			result_file << std::right << std::setw(24) << headers2[idx_header];
+		}
+		else if (idx_header==2){
+			result_file << std::right << std::setw(10) << headers2[idx_header];
+		}
+		else{
+			result_file << std::right << std::setw(50) << headers2[idx_header];
+		}
+	}
+	result_file << "\n";
+
+	/* Loop over on-shell q-bins */
+	for (size_t q_idx=0; q_idx<num_q_com; q_idx++){
+		size_t q_WP_idx = q_com_idx_array[q_idx];
+
+		double T_lab = T_lab_array[q_idx];
+		double E_com = E_com_array[q_idx];
+
+		result_file << " ";
+		result_file << std::right << std::setw(24) << T_lab;
+		result_file << std::right << std::setw(24) << E_com;
+		result_file << std::right << std::setw(10) << q_WP_idx;
+
+		/* Loop over deuteron row-indices ("dp"=deuteron prime) */
+		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+			/* Loop over deuteron column-indices ("d"=deuteron) */
+			for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
+				size_t U_idx = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + q_idx;
+				
+				std::string U_string_real = to_string_with_precision_and_sign(U_array[U_idx].real(), 16);
+				std::string U_string_imag = to_string_with_precision_and_sign(U_array[U_idx].imag(), 16);
+				std::string U_string = U_string_real + U_string_imag + "j";
+				
+				/* Append U-array element in Python numpy-style complex format */
+    			result_file << std::right << std::setw(50) <<U_string;
+			}
+		}
+		result_file << "\n";
+	}
+
+	result_file << "# ################################################################################################### \n";
+
+	/* Close writing session */
+	result_file << std::endl;
+	
+	/* Close files */
+	result_file.close();
+}
+
+void store_U_matrix_elements_csv(std::complex<double>*    U_array,
 							     int* q_com_idx_array,	  size_t num_q_com,
 					  		     int* deuteron_idx_array, size_t num_deuteron_states,
 							     int* L_1N_array, 

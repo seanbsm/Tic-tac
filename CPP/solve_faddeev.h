@@ -6,6 +6,7 @@
 #include <math.h>
 #include <complex>
 #include <omp.h>
+#include "mkl.h"
 
 /* Time-keeping modules */
 #include <chrono>

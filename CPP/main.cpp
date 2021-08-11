@@ -23,7 +23,6 @@
 #include "make_swp_states.h"
 #include "make_resolvent.h"
 #include "solve_faddeev.h"
-#include "basis_transformations.h"
 #include "store_functionality.h"
 
 /*

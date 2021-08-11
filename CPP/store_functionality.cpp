@@ -78,13 +78,13 @@ void store_run_parameters(run_params run_parameters){
 	open_file(output_file, file_path, true);
 	
 	/* Append input */
-	output_file << "two_J_3N          = " << run_parameters.two_J_3N          << "\n";
-	output_file << "P_3N              = " << run_parameters.P_3N              << "\n";
+	output_file << "two_J_3N_max      = " << run_parameters.two_J_3N_max      << "\n";
 	output_file << "Np_WP             = " << run_parameters.Np_WP             << "\n";
 	output_file << "Nq_WP             = " << run_parameters.Nq_WP             << "\n";
 	output_file << "J_2N_max          = " << run_parameters.J_2N_max          << "\n";
 	output_file << "Nphi              = " << run_parameters.Nphi              << "\n";
 	output_file << "Nx                = " << run_parameters.Nx                << "\n";
+	output_file << "parallel_run      = " << run_parameters.parallel_run      << "\n";
 	output_file << "potential_model   = " << run_parameters.potential_model   << "\n";
 	output_file << "subfolder         = " << run_parameters.subfolder         << "\n";
 	output_file << "grid_type         = " << run_parameters.grid_type         << "\n";

@@ -79,19 +79,6 @@ A^3 =  A^2 C^t PV C = C^t PV C C^t PV C C^t PV C = C^t PVPVPV C
 using namespace std;
 
 int main(int argc, char* argv[]){
-	
-	/* Array-job information for simple parallellism on several nodes */
-	int  job_ID       = 0;
-	int  num_jobs     = 0;
-	bool job_array_on = false;
-	if (argc==3){
-		job_ID       = atoi(argv[1]);
-		num_jobs     = atoi(argv[2]);
-		job_array_on = true;
-		if (job_ID >= num_jobs){
-			raise_error("Job_ID is greater than or equal to the number of jobs");
-		}
-	}
 
 	auto program_start = chrono::system_clock::now();
 	
@@ -186,7 +173,7 @@ int main(int argc, char* argv[]){
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
 	int J_2N_max 	 = run_parameters.J_2N_max;
-	int two_J_3N_max = 3;
+	int two_J_3N_max = run_parameters.two_J_3N_max;
 	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
 		raise_error("Cannot have even two_J_3N_max");
 	}
@@ -661,23 +648,9 @@ int main(int argc, char* argv[]){
 
 	for (int chn_3N=0; chn_3N<N_chn_3N; chn_3N++){
 
-		/* Check channel distribution in case of parallell execution */
-		//if (job_array_on){
-		//	int num_chn_per_node = N_chn_3N/num_jobs;
-		//
-		//	int chn_lower = job_ID*num_chn_per_node;
-		//	int chn_upper = (job_ID+1)*num_chn_per_node;
-		//
-		//	/* Last job handles the last number of permutation matrices - NOT OPTIMAL*/
-		//	if (job_ID == num_jobs-1){
-		//		chn_upper = N_chn_3N;
-		//	}
-		//	
-		//	/* Skip to next chn-iteration if chn does not fit in current job_ID's domain */
-		//	if (chn_3N<chn_lower || chn_upper<=chn_3N){
-		//		continue;
-		//	}
-		//}
+		if (run_parameters.parallel_run==true && chn_3N!=run_parameters.channel_idx){
+			continue;
+		}
 
 		/* Start of 3N-channel setup */
 		/* Lower and upper limits on PW state space for channel */
@@ -689,10 +662,6 @@ int main(int argc, char* argv[]){
 		int two_J_3N = two_J_3N_array[idx_alpha_lower];
 		int two_T_3N = two_T_3N_array[idx_alpha_lower];
 		int P_3N 	 = P_3N_array    [idx_alpha_lower];
-
-		if (two_J_3N!=run_parameters.two_J_3N || P_3N!=run_parameters.P_3N){
-			continue;
-		}
 
 		/* Pointers to sub-arrays of PW state space corresponding to chn_3N */
 		int* L_2N_subarray 	   = &L_2N_array[idx_alpha_lower];

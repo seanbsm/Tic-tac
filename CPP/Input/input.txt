@@ -1,11 +1,11 @@
 # Run "-h" or "--help" to see meaning of arguments
-two_J_3N=1
-P_3N=1
+two_J_3N_max=1
 Np_WP=50
 Nq_WP=50
 J_2N_max=1
 Nphi=48
 Nx=15
+parallel_run=true
 potential_model=nijmegen
 grid_type=chebyshev
 parameter_walk=off

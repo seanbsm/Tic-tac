@@ -27,11 +27,8 @@ void read_input_list_and_set_parameters(run_params& run_parameters, std::string 
 			/* Remove whitespace from input string */
 			input.erase(std::remove_if(input.begin(), input.end(), ::isspace), input.end());
 			
-			if (option == "two_J_3N"){
-				run_parameters.two_J_3N = std::stoi(input);
-			}
-			else if (option == "P_3N"){
-				run_parameters.P_3N = std::stoi(input);
+			if (option == "two_J_3N_max"){
+				run_parameters.two_J_3N_max = std::stoi(input);
 			}
 			else if (option == "Np_WP"){
 				run_parameters.Np_WP = std::stoi(input);
@@ -47,6 +44,14 @@ void read_input_list_and_set_parameters(run_params& run_parameters, std::string 
 			}
 			else if (option == "Nx"){
 				run_parameters.Nx = std::stoi(input);
+			}
+			else if (option == "parallel_run"){
+				if (input=="true" || input=="false"){
+					run_parameters.parallel_run = (input=="true");
+				}
+				else{
+					raise_error("Invalid value for input parameter parallel_run!");
+				}
 			}
 			else if (option == "potential_model"){
 				run_parameters.potential_model = input;
@@ -97,13 +102,8 @@ void show_usage(){
 			  << seperationLine
 			  << std::endl;
 
-	std::cout << "two_J_3N:           Total angular momentum of three-nucleon system \n"
-			  << "Example:            two_J_3N=3 -> J_3N=3/2.\n"
-			  << seperationLine
-			  << std::endl;
-	
-	std::cout << "P_3N:               Parity of three-nucleon system.\n"
-			  << "Example:            P_3N=+1 -> positive parity \n"
+	std::cout << "two_J_3N_max:       Maximum total angular momentum of three-nucleon system state space \n"
+			  << "Example:            two_J_3N_max=3 -> J_3N=[1/2, 3/2].\n"
 			  << seperationLine
 			  << std::endl;
 			  
@@ -132,7 +132,18 @@ void show_usage(){
 			  << "Example:            Nx=20 -> 20 quadrature points.\n"
 			  << seperationLine
 			  << std::endl;
-			  
+
+	std::cout << "channel_idx:        Tells the program to calculate for a given channel index (0-based indexing!).\n"
+			  << "Example:            channel_idx=2 -> Program calculates U/P123 for channel 2.\n"
+			  << seperationLine
+			  << std::endl;
+
+	std::cout << "parallel_run:       Tells the program to run in parallel across 3N channels (one processor per channel).\n"
+			  << "                    Possible options are (true, false).\n"
+			  << "Example:            parallel_run=true -> Program assigns channels to processors given by channel_idx.\n"
+			  << seperationLine
+			  << std::endl;
+
 	std::cout << "potential_model:    Sets which two-bodu potential model is used.\n"
 			  << "                    Possible options are (LO_internal, N2LOopt, Idaho_N3LO, nijmegen, malfliet_tjon).\n"
 			  << "                    Note that LO_internal is an internally pre-written chiral leading-order potential.\n"
@@ -217,8 +228,7 @@ void only_show_usage(){
 void set_default_values(run_params& run_parameters){
 
 	/* Default parameters */
-	run_parameters.two_J_3N 		  = 1;
-	run_parameters.P_3N				  = +1;
+	run_parameters.two_J_3N_max 	  = 1;
 	run_parameters.Np_WP		 	  = 50;
 	run_parameters.Nq_WP		 	  = 50;
 	run_parameters.J_2N_max	  	  	  = 3;
@@ -226,6 +236,8 @@ void set_default_values(run_params& run_parameters){
 	run_parameters.Nx 			 	  = 15;
 	run_parameters.Np_per_WP	 	  = 8;
 	run_parameters.Nq_per_WP	 	  = 8;
+	run_parameters.channel_idx		  = -1;
+	run_parameters.parallel_run		  = false;
 	run_parameters.potential_model	  = "LO_internal";
 	run_parameters.subfolder	  	  = "Output";
 	run_parameters.grid_type 	  	  = "chebyshev";
@@ -261,14 +273,40 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 					exit(-1);
 				}
 			}
-			else if (arg.substr(arg_size-4) == ".txt"){
+			else if (arg.substr(arg_size-4) == ".txt" && run_parameters.parallel_run==false){
 				/* Reset to default values.
 				 * Essentially we ignore all other
 				 * command line input. */
 				set_default_values(run_parameters);
 				
 				use_input_list(run_parameters, arg);
-				break;
+				if (run_parameters.parallel_run==false){
+					break;
+				}
+				else{
+					for (int i = 1; i < argc; ++i) {
+						arg = argv[i];
+						size_t arg_size = arg.size();
+						if (arg.find(delimiter) != std::string::npos){
+				
+							option = arg.substr(0, arg.find(delimiter));
+							input  = arg.substr(arg.find(delimiter)+1,-1);
+
+							if (input==""){
+								continue;
+							}
+							else if (option=="channel_idx"){
+								run_parameters.channel_idx = std::stoi(input);
+							}
+						}
+					}
+					if (run_parameters.channel_idx==-1){
+						raise_error("Parallel run specified in input but no channel index given!");
+					}
+					else{
+						break;
+					}
+				}
 			}
 			else if (arg.find(delimiter) != std::string::npos){
 				
@@ -279,11 +317,9 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 					continue;
 				}
 				
-				if (option == "two_J_3N"){
-					run_parameters.two_J_3N = std::stoi(input);
-				}
-				else if (option == "P_3N"){
-					run_parameters.P_3N = std::stoi(input);
+				
+				if (option == "two_J_3N_max"){
+					run_parameters.two_J_3N_max= std::stoi(input);
 				}
 				else if (option == "Np_WP"){
 					run_parameters.Np_WP = std::stoi(input);
@@ -299,6 +335,14 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 				}
 				else if (option == "Nx"){
 					run_parameters.Nx = std::stoi(input);
+				}
+				else if (option == "parallel_run"){
+					if (input=="true" || input=="false"){
+						run_parameters.parallel_run = (input=="true");
+					}
+					else{
+						raise_error("Invalid value for input parameter parallel_run!");
+					}
 				}
 				else if (option == "potential_model"){
 					run_parameters.potential_model = input;
@@ -330,17 +374,20 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 			}
 		}
 	}
-	
+
 	/* Print system run parameters */
 	std::cout << std::endl;
 	std::cout << "Running program for:" << std::endl;
-	std::cout << "two_J_3N:                      " << run_parameters.two_J_3N        << std::endl;
-	std::cout << "P_3N:                          " << run_parameters.P_3N            << std::endl;
+	std::cout << "two_J_3N_max:                  " << run_parameters.two_J_3N_max    << std::endl;
 	std::cout << "Np_WP:                         " << run_parameters.Np_WP           << std::endl;
 	std::cout << "Nq_WP:                         " << run_parameters.Nq_WP           << std::endl;
 	std::cout << "J_2N_max:                      " << run_parameters.J_2N_max        << std::endl;
 	std::cout << "Nphi:                          " << run_parameters.Nphi            << std::endl;
 	std::cout << "Nx:                            " << run_parameters.Nx              << std::endl;
+	if(run_parameters.parallel_run==true){
+	std::cout << "Channel index:                 " << run_parameters.channel_idx     << std::endl;
+	}
+	std::cout << "Parallel run:                  " << run_parameters.parallel_run    << std::endl;
 	std::cout << "Potential model:               " << run_parameters.potential_model << std::endl;
 	std::cout << "Grid type:                     " << run_parameters.grid_type       << std::endl;
 	std::cout << "Parameter walk:                " << run_parameters.parameter_walk  << std::endl;

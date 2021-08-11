@@ -92,6 +92,14 @@ void construct_symmetric_pw_states(int    J_2N_max,
 		for (int two_T_3N=1; two_T_3N<2; two_T_3N+=2){
 			/* Parity loop: P_3N_remainder is the remainder of (l+L)/2 */
 			for (int P_3N_remainder=0; P_3N_remainder<2; P_3N_remainder++){
+				if (print_content){
+					if (P_3N_remainder==0){
+						printf ("Constructing channel %d with JP=%d/2- (T=%d/2): \n", N_chn_3N_temp+1, two_J_3N, two_T_3N);
+					}
+					else{
+						printf ("Constructing channel %d with JP=%d/2+ (T=%d/2): \n", N_chn_3N_temp+1, two_J_3N, two_T_3N);
+					}
+				}
 				/* Used to cound how many PW states are in current channel (J_3N, T_3N, P_3N) */
 				int Nalpha_in_current_chn = 0;
 				/* J_2N loop */

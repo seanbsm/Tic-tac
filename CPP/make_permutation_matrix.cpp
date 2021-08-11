@@ -149,9 +149,10 @@ std::string generate_subarray_file_name(int two_J_3N, int two_T_3N, int P_3N,
 										int Np_WP, int Nq_WP,
 										int J_2N_max,
 										int thread_idx,
-										int current_TFC){
+										int current_TFC,
+										std::string P123_folder){
 
-	std::string filename = "P123_subsparse_JTP_"
+	std::string filename = P123_folder + "/P123_subsparse_JTP_"
 						 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 						 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 						 + "_J2max_" + to_string(J_2N_max) + "_TFC_" + to_string(thread_idx)
@@ -181,7 +182,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 												 int*     two_J_1N_array,
 												 int      two_J_3N,
 												 int      two_T_3N,
-												 int      P_3N){
+												 int      P_3N,
+												 std::string P123_folder){
 	
 	bool print_content = true;
 
@@ -752,7 +754,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 																									  Np_WP, Nq_WP,
 																									  J_2N_max,
 																									  thread_idx,
-																									  current_TFC);
+																									  current_TFC,
+																									  P123_folder);
 											
 											/* Store array */
 											store_sparse_permutation_matrix_for_3N_channel_h5(P123_val_array_omp[thread_idx],
@@ -801,7 +804,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 																	  Np_WP, Nq_WP,
 																	  J_2N_max,
 																	  thread_idx,
-																	  current_TFC);
+																	  current_TFC,
+																	  P123_folder);
 
 			size_t num_elements_remaining = P123_dim_array_omp[thread_idx];
 
@@ -855,7 +859,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 																		  Np_WP, Nq_WP,
 																		  J_2N_max,
 																		  thread_idx,
-																		  current_TFC);
+																		  current_TFC,
+																		  P123_folder);
 				
 				/* Convert std::string filename to char */
 				char filename_char[300];
@@ -893,7 +898,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 																		  Np_WP, Nq_WP,
 																		  J_2N_max,
 																		  thread_idx,
-																		  current_TFC);
+																		  current_TFC,
+																		  P123_folder);
 				
 				/* Retrieve P123-elements in current file and write to temporary arrays*/
 				double* P123_sparse_val_subarray = NULL;
@@ -1017,7 +1023,8 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 														int*     two_J_1N_array,
 														int      two_J_3N,
 														int      two_T_3N,
-														int      P_3N){
+														int      P_3N,
+														std::string P123_folder){
 	
 	bool print_content = true;
 
@@ -1057,7 +1064,8 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 							  					two_J_1N_array,
 												two_J_3N,
 												two_T_3N,
-												P_3N);
+												P_3N,
+												P123_folder);
 
 	if (print_content){
 		printf("   - Calculation finished. \n");

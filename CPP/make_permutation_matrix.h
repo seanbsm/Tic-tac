@@ -56,7 +56,8 @@ void calculate_permutation_matrix_for_3N_channel(double** P123_val_dense_array,
 												 int*     two_J_1N_array,
 												 int      two_J_3N,
 												 int      two_T_3N,
-												 int      P_3N);
+												 int      P_3N,
+		 										 std::string P123_folder);
 
 void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val_array,
 														int**    P123_sparse_row_array,
@@ -77,6 +78,7 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 														int*     two_J_1N_array,
 														int      two_J_3N,
 														int      two_T_3N,
-												 		int      P_3N);
+												 		int      P_3N,
+														std::string P123_folder);
 
 #endif // PERMUTATION_OPERATORS_H

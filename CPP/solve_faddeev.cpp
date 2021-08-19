@@ -441,8 +441,8 @@ void pade_method_solve(cdouble*  U_array,
 					   size_t*   P123_sparse_col_array,
 					   size_t    P123_sparse_dim){
 
-	/* Print Pade-approximant convergences */
-	bool print_PA_convergences = true;
+	/* Print Pade-approximants */
+	bool print_PAs = true;
 	/* Print Neumann terms */
 	bool print_neumann_terms = true;
 	
@@ -758,11 +758,11 @@ void pade_method_solve(cdouble*  U_array,
 		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 			for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
 				for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
-					///* Nucleon-deuteron on-shell (NDOS) indices
-					// * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
-					//size_t idx_alpha_NDOS_row = deuteron_idx_array[idx_d_row];
-					//size_t idx_alpha_NDOS_col = deuteron_idx_array[idx_d_col];
-					//size_t idx_q_NDOS 	   	  = q_com_idx_array[idx_q_com];
+					/* Nucleon-deuteron on-shell (NDOS) indices
+					 * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
+					size_t idx_alpha_NDOS_row = deuteron_idx_array[idx_d_row];
+					size_t idx_alpha_NDOS_col = deuteron_idx_array[idx_d_col];
+					size_t idx_q_NDOS 	   	  = q_com_idx_array[idx_q_com];
 
 					size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
 
@@ -775,6 +775,10 @@ void pade_method_solve(cdouble*  U_array,
 					cdouble PA = pade_approximant(&a_coeff_array[idx_NDOS*num_neumann_terms], NM, NM, 1);
 
 					pade_approximants_array[idx_NDOS*(NM_max+1) + NM] = PA;
+
+					if (print_PAs){
+						printf("alpha'=%d, alpha=%d, q=%d: PA[%d,%d] = %.16e + %.16ei \n", idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, NM,NM,PA.real(), PA.imag());
+					}
 					
 					/* See if we've reached convergence with this iteration */
 					size_t idx_best_PA = 0;
@@ -809,10 +813,6 @@ void pade_method_solve(cdouble*  U_array,
 						pade_approximants_idx_array[idx_NDOS]  = idx_best_PA;
 						num_converged_elements += 1;
 					}
-
-					//if (print_PA_convergences){
-					//	printf("PA[%d,%d] = %.16e + %.16ei, PA_diff = %.16e \n", NM,NM,PA.real(), PA.imag(), PA_diff);
-					//}
 				}
 			}
 		}

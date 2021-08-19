@@ -273,11 +273,11 @@ int main(int argc, char* argv[]){
 	
 	printf("Constructing wave-packet (WP) p-momentum bin boundaries ... \n");
 	p_WP_array = new double [Np_WP+1];
-	make_p_bin_grid(Np_WP, p_WP_array);
+	make_p_bin_grid(Np_WP, p_WP_array, run_parameters);
 	printf(" - Done \n");
 	printf("Constructing wave-packet (WP) q-momentum bin boundaries ... \n");
 	q_WP_array = new double [Nq_WP+1];
-	make_q_bin_grid(Nq_WP, q_WP_array);
+	make_q_bin_grid(Nq_WP, q_WP_array, run_parameters);
 	printf(" - Done \n");
 
 	//for (int i=0; i<Nq_WP+1; i++){

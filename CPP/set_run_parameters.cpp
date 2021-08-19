@@ -45,6 +45,18 @@ void read_input_list_and_set_parameters(run_params& run_parameters, std::string 
 			else if (option == "Nx"){
 				run_parameters.Nx = std::stoi(input);
 			}
+			else if (option == "chebyshev_t"){
+				run_parameters.chebyshev_t = std::stoi(input);
+			}
+			else if (option == "chebyshev_s"){
+				run_parameters.chebyshev_s = std::stoi(input);
+			}
+			else if (option == "Np_per_WP"){
+				run_parameters.Np_per_WP = std::stoi(input);
+			}
+			else if (option == "Nq_per_WP"){
+				run_parameters.Nq_per_WP = std::stoi(input);
+			}
 			else if (option == "parallel_run"){
 				if (input=="true" || input=="false"){
 					run_parameters.parallel_run = (input=="true");
@@ -130,6 +142,26 @@ void show_usage(){
 	
 	std::cout << "Nx:                 Number of quadrature points in angular integral of geometric function in P123-calculation.\n"
 			  << "Example:            Nx=20 -> 20 quadrature points.\n"
+			  << seperationLine
+			  << std::endl;
+	
+	std::cout << "chebyshev_t:        Sparseness degree in Chebyshev distribution.\n"
+			  << "Example:            t=2 -> Use exponent 2 in Chebyshev boundary construction.\n"
+			  << seperationLine
+			  << std::endl;
+	
+	std::cout << "chebyshev_s:        Scale in Chebyshev distribution.\n"
+			  << "Example:            s=100 -> Scale Chebyshev boundaries by 100 MeV.\n"
+			  << seperationLine
+			  << std::endl;
+	
+	std::cout << "Np_per_WP:          Sets number of quadrature points in each p-momentum wave-packet. Used in NN potential matrix construction\n"
+			  << "Example:            Np_per_WP=8 -> 8 Gauss-Legendre points in each wave-packet in p-momentum.\n"
+			  << seperationLine
+			  << std::endl;
+		
+	std::cout << "Nq_per_WP:          Sets number of quadrature points in each q-momentum wave-packet.\n"
+			  << "Example:            Nq_per_WP=8 -> 8 Gauss-Legendre points in each wave-packet in q-momentum.\n"
 			  << seperationLine
 			  << std::endl;
 
@@ -234,6 +266,8 @@ void set_default_values(run_params& run_parameters){
 	run_parameters.J_2N_max	  	  	  = 3;
 	run_parameters.Nphi		 		  = 48;
 	run_parameters.Nx 			 	  = 15;
+	run_parameters.chebyshev_t		  = 1;
+	run_parameters.chebyshev_s		  = 100;
 	run_parameters.Np_per_WP	 	  = 8;
 	run_parameters.Nq_per_WP	 	  = 8;
 	run_parameters.channel_idx		  = -1;
@@ -336,6 +370,18 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 				else if (option == "Nx"){
 					run_parameters.Nx = std::stoi(input);
 				}
+				else if (option == "chebyshev_t"){
+					run_parameters.chebyshev_t = std::stoi(input);
+				}
+				else if (option == "chebyshev_s"){
+					run_parameters.chebyshev_s = std::stoi(input);
+				}
+				else if (option == "Np_per_WP"){
+					run_parameters.Np_per_WP = std::stoi(input);
+				}
+				else if (option == "Nq_per_WP"){
+					run_parameters.Nq_per_WP = std::stoi(input);
+				}
 				else if (option == "parallel_run"){
 					if (input=="true" || input=="false"){
 						run_parameters.parallel_run = (input=="true");
@@ -384,6 +430,10 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 	std::cout << "J_2N_max:                      " << run_parameters.J_2N_max        << std::endl;
 	std::cout << "Nphi:                          " << run_parameters.Nphi            << std::endl;
 	std::cout << "Nx:                            " << run_parameters.Nx              << std::endl;
+	std::cout << "chebyshev sparseness:          " << run_parameters.chebyshev_t     << std::endl;
+	std::cout << "chebyshev scale:               " << run_parameters.chebyshev_s     << std::endl;
+	std::cout << "Np_per_WP:                     " << run_parameters.Np_per_WP       << std::endl;
+	std::cout << "Nq_per_WP:                     " << run_parameters.Nq_per_WP       << std::endl;
 	if(run_parameters.parallel_run==true){
 	std::cout << "Channel index:                 " << run_parameters.channel_idx     << std::endl;
 	}

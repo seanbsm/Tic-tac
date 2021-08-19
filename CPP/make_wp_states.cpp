@@ -43,23 +43,23 @@ void make_chebyshev_distribution(int N_WP,
 	boundary_array[0] = 0.0;
 }
 
-void make_p_bin_grid(int Np_WP, double* p_WP_array){
+void make_p_bin_grid(int Np_WP, double* p_WP_array, run_params run_parameters){
 	//double min_boundary 	 = 1e-5;
 	//double max_boundary 	 = 100;
 	//double scale = 0.5*(max_boundary - min_boundary);
-	double scale = 100;
-	int    sparseness_degree = 1;
+	double scale = run_parameters.chebyshev_s;
+	int    sparseness_degree = run_parameters.chebyshev_t;
 
 	make_chebyshev_distribution(Np_WP, p_WP_array,
 								scale,
 								sparseness_degree);
 }
-void make_q_bin_grid(int Nq_WP, double* q_WP_array){
+void make_q_bin_grid(int Nq_WP, double* q_WP_array, run_params run_parameters){
 	//double min_boundary 	 = 1e-5;
 	//double max_boundary 	 = 100;
 	//double scale = 0.5*(max_boundary - min_boundary);
-	double scale = 100;
-	int    sparseness_degree = 1;
+	double scale = run_parameters.chebyshev_s;
+	int    sparseness_degree = run_parameters.chebyshev_t;
 
 	make_chebyshev_distribution(Nq_WP, q_WP_array,
 								scale,

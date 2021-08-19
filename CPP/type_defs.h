@@ -18,6 +18,8 @@ typedef struct run_params{
 	int         J_2N_max;
 	int         Nphi;
 	int         Nx;
+	int 		chebyshev_t;
+	int 		chebyshev_s;
 	int         Np_per_WP;
 	int         Nq_per_WP;
 	int			channel_idx;

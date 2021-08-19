@@ -20,8 +20,8 @@ void make_chebyshev_distribution(int N_WP,
 								 double scale,
 								 int 	sparseness_degree);
 
-void make_p_bin_grid(int Np_WP, double* p_WP_array);
-void make_q_bin_grid(int Nq_WP, double* q_WP_array);
+void make_p_bin_grid(int Np_WP, double* p_WP_array, run_params run_parameters);
+void make_q_bin_grid(int Nq_WP, double* q_WP_array, run_params run_parameters);
 
 void make_p_bin_quadrature_grids(int Np_WP, double* p_WP_array,
 								 int Np_per_WP, double* p_array, double* wp_array);

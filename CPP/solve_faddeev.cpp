@@ -442,7 +442,7 @@ void pade_method_solve(cdouble*  U_array,
 					   size_t    P123_sparse_dim){
 
 	/* Print Pade-approximants */
-	bool print_PAs = true;
+	bool print_PAs = false;
 	/* Print Neumann terms */
 	bool print_neumann_terms = true;
 	

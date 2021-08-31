@@ -18,7 +18,7 @@ double q_weight_function(double q);
 void make_chebyshev_distribution(int N_WP,
 								 double* boundary_array,
 								 double scale,
-								 int 	sparseness_degree);
+								 double	sparseness_degree);
 
 void make_p_bin_grid(int Np_WP, double* p_WP_array, run_params run_parameters);
 void make_q_bin_grid(int Nq_WP, double* q_WP_array, run_params run_parameters);

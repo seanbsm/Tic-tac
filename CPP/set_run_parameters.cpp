@@ -46,10 +46,10 @@ void read_input_list_and_set_parameters(run_params& run_parameters, std::string 
 				run_parameters.Nx = std::stoi(input);
 			}
 			else if (option == "chebyshev_t"){
-				run_parameters.chebyshev_t = std::stoi(input);
+				run_parameters.chebyshev_t = std::stod(input);
 			}
 			else if (option == "chebyshev_s"){
-				run_parameters.chebyshev_s = std::stoi(input);
+				run_parameters.chebyshev_s = std::stod(input);
 			}
 			else if (option == "Np_per_WP"){
 				run_parameters.Np_per_WP = std::stoi(input);
@@ -371,10 +371,10 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 					run_parameters.Nx = std::stoi(input);
 				}
 				else if (option == "chebyshev_t"){
-					run_parameters.chebyshev_t = std::stoi(input);
+					run_parameters.chebyshev_t = std::stod(input);
 				}
 				else if (option == "chebyshev_s"){
-					run_parameters.chebyshev_s = std::stoi(input);
+					run_parameters.chebyshev_s = std::stod(input);
 				}
 				else if (option == "Np_per_WP"){
 					run_parameters.Np_per_WP = std::stoi(input);

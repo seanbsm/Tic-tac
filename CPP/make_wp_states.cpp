@@ -26,7 +26,7 @@ double q_weight_function(double q){
 void make_chebyshev_distribution(int N_WP,
 								 double* boundary_array,
 								 double scale,
-								 int 	sparseness_degree){
+								 double	sparseness_degree){
 	double tan_term = 0;
 	double boundary = 0;
 	
@@ -48,7 +48,7 @@ void make_p_bin_grid(int Np_WP, double* p_WP_array, run_params run_parameters){
 	//double max_boundary 	 = 100;
 	//double scale = 0.5*(max_boundary - min_boundary);
 	double scale = run_parameters.chebyshev_s;
-	int    sparseness_degree = run_parameters.chebyshev_t;
+	double sparseness_degree = run_parameters.chebyshev_t;
 
 	make_chebyshev_distribution(Np_WP, p_WP_array,
 								scale,
@@ -59,7 +59,7 @@ void make_q_bin_grid(int Nq_WP, double* q_WP_array, run_params run_parameters){
 	//double max_boundary 	 = 100;
 	//double scale = 0.5*(max_boundary - min_boundary);
 	double scale = run_parameters.chebyshev_s;
-	int    sparseness_degree = run_parameters.chebyshev_t;
+	double sparseness_degree = run_parameters.chebyshev_t;
 
 	make_chebyshev_distribution(Nq_WP, q_WP_array,
 								scale,

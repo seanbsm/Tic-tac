@@ -26,7 +26,10 @@ typedef struct run_params{
 	bool        parallel_run;
 	std::string potential_model;
 	std::string subfolder;
-	std::string grid_type;
+	std::string p_grid_type;
+	std::string p_grid_filename;
+	std::string q_grid_type;
+	std::string q_grid_filename;
 	std::string parameter_walk;
 	std::string energy_input_file;
 	std::string average;

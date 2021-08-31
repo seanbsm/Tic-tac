@@ -33,6 +33,7 @@
 
 #include "type_defs.h"
 #include "error_management.h"
+#include "store_functionality.h"
 #include "General_functions/matrix_routines.h"
 
 void store_run_parameters(run_params run_parameters);
@@ -67,6 +68,10 @@ void store_U_matrix_elements_csv(std::complex<double>* U_array,
 							 	 int* L_1N_array, 
 							 	 int* two_J_1N_array,
 							 	 std::string filename);
+
+void read_WP_boundaries_from_txt(double* WP_boundaries,
+								 int N_WP,
+								 std::string filename);
 
 void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_array,
 													   int*    P123_sparse_row_array,

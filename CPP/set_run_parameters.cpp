@@ -71,8 +71,17 @@ void read_input_list_and_set_parameters(run_params& run_parameters, std::string 
 			else if (option == "subfolder"){
 				run_parameters.subfolder = input;
 			}
-			else if (option == "grid_type"){
-				run_parameters.grid_type = input;
+			else if (option == "p_grid_type"){
+				run_parameters.p_grid_type = input;
+			}
+			else if (option == "p_grid_filename"){
+				run_parameters.p_grid_filename = input;
+			}
+			else if (option == "q_grid_type"){
+				run_parameters.q_grid_type = input;
+			}
+			else if (option == "q_grid_filename"){
+				run_parameters.q_grid_filename = input;
 			}
 			else if (option == "parameter_walk"){
 				run_parameters.parameter_walk = input;
@@ -274,7 +283,10 @@ void set_default_values(run_params& run_parameters){
 	run_parameters.parallel_run		  = false;
 	run_parameters.potential_model	  = "LO_internal";
 	run_parameters.subfolder	  	  = "Output";
-	run_parameters.grid_type 	  	  = "chebyshev";
+	run_parameters.p_grid_type 	  	  = "chebyshev";
+	run_parameters.p_grid_filename 	  = "";
+	run_parameters.q_grid_type 	  	  = "chebyshev";
+	run_parameters.q_grid_filename 	  = "";
 	run_parameters.parameter_walk 	  = "off";
 	run_parameters.energy_input_file  = "lab_energies";
 	run_parameters.average  	  	  = "off";
@@ -393,8 +405,17 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 				else if (option == "potential_model"){
 					run_parameters.potential_model = input;
 				}
-				else if (option == "grid_type"){
-					run_parameters.grid_type = input;
+				else if (option == "p_grid_type"){
+					run_parameters.p_grid_type = input;
+				}
+				else if (option == "p_grid_filename"){
+					run_parameters.p_grid_filename = input;
+				}
+				else if (option == "q_grid_type"){
+					run_parameters.q_grid_type = input;
+				}
+				else if (option == "q_grid_filename"){
+					run_parameters.q_grid_filename = input;
 				}
 				else if (option == "parameter_walk"){
 					run_parameters.parameter_walk = input;
@@ -439,7 +460,10 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 	}
 	std::cout << "Parallel run:                  " << run_parameters.parallel_run    << std::endl;
 	std::cout << "Potential model:               " << run_parameters.potential_model << std::endl;
-	std::cout << "Grid type:                     " << run_parameters.grid_type       << std::endl;
+	std::cout << "p-momentum grid type:          " << run_parameters.p_grid_type     << std::endl;
+	std::cout << "p-momentum grid input file:    " << run_parameters.p_grid_filename << std::endl;
+	std::cout << "q-momentum grid type:          " << run_parameters.q_grid_type     << std::endl;
+	std::cout << "q-momentum grid input file:    " << run_parameters.q_grid_filename << std::endl;
 	std::cout << "Parameter walk:                " << run_parameters.parameter_walk  << std::endl;
 	std::cout << "Bin averaging:                 " << run_parameters.average         << std::endl;
 	std::cout << "Output folder:                 " << run_parameters.output_folder   << std::endl;

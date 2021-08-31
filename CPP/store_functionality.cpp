@@ -87,7 +87,10 @@ void store_run_parameters(run_params run_parameters){
 	output_file << "parallel_run      = " << run_parameters.parallel_run      << "\n";
 	output_file << "potential_model   = " << run_parameters.potential_model   << "\n";
 	output_file << "subfolder         = " << run_parameters.subfolder         << "\n";
-	output_file << "grid_type         = " << run_parameters.grid_type         << "\n";
+	output_file << "p_grid_type       = " << run_parameters.p_grid_type       << "\n";
+	output_file << "p_grid_filename   = " << run_parameters.p_grid_filename   << "\n";
+	output_file << "q_grid_type       = " << run_parameters.q_grid_type       << "\n";
+	output_file << "q_grid_filename   = " << run_parameters.q_grid_filename   << "\n";
 	output_file << "parameter_walk    = " << run_parameters.parameter_walk    << "\n";
 	output_file << "energy_input_file = " << run_parameters.energy_input_file << "\n";
 	output_file << "average           = " << run_parameters.average           << "\n";
@@ -408,6 +411,25 @@ void store_U_matrix_elements_csv(std::complex<double>*    U_array,
 	
 	/* Close files */
 	result_file.close();
+}
+
+void read_WP_boundaries_from_txt(double* WP_boundaries, int N_WP, std::string filename){
+	std::ifstream infile(filename);
+    std::string line;
+
+    size_t idx_counter = 0;
+    while (std::getline(infile, line)){
+        std::istringstream iss(line);
+        double val;
+        if (!(iss >> val)){
+			raise_error("Unknown format in input WP-boundary file:" + filename);
+		}
+        WP_boundaries[idx_counter] = val;
+        idx_counter += 1;
+    }
+	if (idx_counter!=N_WP+1){
+		raise_error("Program mismatch with number of wave-packets in input WP-boundaries file");
+	}
 }
 
 void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_array,

@@ -6,6 +6,7 @@
 
 #include "constants.h"
 #include "error_management.h"
+#include "store_functionality.h"
 #include "General_functions/kinetic_conversion.h"
 #include "General_functions/gauss_legendre.h"
 

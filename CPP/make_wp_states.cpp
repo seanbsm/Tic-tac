@@ -44,26 +44,34 @@ void make_chebyshev_distribution(int N_WP,
 }
 
 void make_p_bin_grid(int Np_WP, double* p_WP_array, run_params run_parameters){
-	//double min_boundary 	 = 1e-5;
-	//double max_boundary 	 = 100;
-	//double scale = 0.5*(max_boundary - min_boundary);
-	double scale = run_parameters.chebyshev_s;
-	double sparseness_degree = run_parameters.chebyshev_t;
-
-	make_chebyshev_distribution(Np_WP, p_WP_array,
-								scale,
-								sparseness_degree);
+	if (run_parameters.p_grid_type=="chebyshev"){
+		double scale 			 = run_parameters.chebyshev_s;
+		double sparseness_degree = run_parameters.chebyshev_t;
+		make_chebyshev_distribution(Np_WP, p_WP_array,
+									scale,
+									sparseness_degree);
+	}
+	else if (run_parameters.p_grid_type=="custom"){
+		read_WP_boundaries_from_txt(p_WP_array, Np_WP, run_parameters.p_grid_filename);
+	}
+	else{
+		raise_error("Unknown p-momentum gridtype specified.");
+	}
 }
 void make_q_bin_grid(int Nq_WP, double* q_WP_array, run_params run_parameters){
-	//double min_boundary 	 = 1e-5;
-	//double max_boundary 	 = 100;
-	//double scale = 0.5*(max_boundary - min_boundary);
-	double scale = run_parameters.chebyshev_s;
-	double sparseness_degree = run_parameters.chebyshev_t;
-
-	make_chebyshev_distribution(Nq_WP, q_WP_array,
-								scale,
-								sparseness_degree);
+	if (run_parameters.q_grid_type=="chebyshev"){
+		double scale 			 = run_parameters.chebyshev_s;
+		double sparseness_degree = run_parameters.chebyshev_t;
+		make_chebyshev_distribution(Nq_WP, q_WP_array,
+									scale,
+									sparseness_degree);
+	}
+	else if (run_parameters.p_grid_type=="custom"){
+		read_WP_boundaries_from_txt(q_WP_array, Nq_WP, run_parameters.q_grid_filename);
+	}
+	else{
+		raise_error("Unknown q-momentum gridtype specified.");
+	}
 }
 
 void make_p_bin_quadrature_grids(int Np_WP, double* p_WP_array,

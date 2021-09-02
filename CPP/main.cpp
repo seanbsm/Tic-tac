@@ -160,7 +160,7 @@ int main(int argc, char* argv[]){
 	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
-	bool calculate_and_store_P123 = false;
+	bool calculate_and_store_P123 = true;
 	
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
@@ -718,6 +718,7 @@ int main(int argc, char* argv[]){
 														 	   two_J_3N,
 														 	   two_T_3N,
 															   P_3N,
+															   run_parameters,
 															   run_parameters.P123_folder);
 			auto timestamp_P123_calc_end = chrono::system_clock::now();
 			chrono::duration<double> time_P123_calc = timestamp_P123_calc_end - timestamp_P123_calc_start;

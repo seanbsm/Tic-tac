@@ -23,7 +23,10 @@ typedef struct run_params{
 	int         Np_per_WP;
 	int         Nq_per_WP;
 	int			channel_idx;
+	int			P123_omp_num_threads;
+	int			max_TFC;
 	bool        parallel_run;
+	bool		P123_recovery;
 	std::string potential_model;
 	std::string subfolder;
 	std::string p_grid_type;

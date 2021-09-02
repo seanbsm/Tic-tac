@@ -1,17 +1,20 @@
 # Run "-h" or "--help" to see meaning of arguments
-two_J_3N_max=1
-Np_WP=100
-Nq_WP=100
+two_J_3N_max=3
+Np_WP=40
+Nq_WP=10
 J_2N_max=1
 Nphi=48
 Nx=15
 chebyshev_s=75
 chebyshev_t=0.9
-p_grid_type=custom
+p_grid_type=chebyshev
 p_grid_filename=Input/NWP-100-splitnorm.txt
-q_grid_type=custom
+q_grid_type=chebyshev
 q_grid_filename=Input/NWP-100-splitnorm.txt
+P123_omp_num_threads=4
+max_TFC=2
 parallel_run=true
+P123_recovery=true
 potential_model=nijmegen
 grid_type=chebyshev
 parameter_walk=off

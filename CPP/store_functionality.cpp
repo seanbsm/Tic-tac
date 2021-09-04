@@ -69,6 +69,53 @@ void open_file(std::ofstream &file,
 	}
 }
 
+//void store_neumann_terms(cdouble* neumann_array,
+//                         size_t num_OS_rows,
+//						 size_t num_cols,
+//						 size_t steplength,
+//						 std::string file_path,
+//						 bool rewrite_file){
+//    /* Open file*/
+//	std::ofstream output_file;
+//	open_file(output_file, file_path, rewrite_file);
+//}
+
+void store_complex_matrix(cdouble* matrix_array,
+                          size_t num_rows,
+						  size_t num_cols,
+						  size_t steplength,
+						  std::string file_path,
+						  bool rewrite_file,
+						  std::string array_seperator_text){
+	/* Open file*/
+	std::ofstream output_file;
+	open_file(output_file, file_path, rewrite_file);
+	
+	/* Fixes formatting of stored numbers */
+	output_file << std::fixed
+				<< std::showpos
+				<< std::scientific
+				//~ << std::right
+				//~ << std::setw(14)
+				<< std::setprecision(17);
+			
+	output_file << "# " << array_seperator_text << "\n";
+	
+	/* Append array-values */
+	for (size_t r=0; r<num_rows; r++){
+		for (size_t c=0; c<num_cols; c++){
+			/* Append vector element */
+			output_file << matrix_array[r*steplength+c].real() << " " << matrix_array[r*steplength+c].imag() << "\n";
+		}
+	}
+	
+	/* Close writing session */
+	output_file << std::endl;
+	
+	/* Close files */
+	output_file.close();
+}
+
 void store_run_parameters(run_params run_parameters){
 	
 	std::string file_path = run_parameters.output_folder + "/" + "run_parameters.txt";

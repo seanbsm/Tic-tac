@@ -427,19 +427,21 @@ void faddeev_dense_solver(cdouble*  U_array,
 	delete [] CPVC_nnz_to_row_array;
 }
 
-void pade_method_solve(cdouble*  U_array,
-					   cdouble*  G_array,
-					   int*		 q_com_idx_array,	 size_t num_q_com,
-					   int*      deuteron_idx_array, size_t num_deuteron_states,
-					   size_t    Nalpha,
-					   size_t 	 Nq_WP,
-					   size_t 	 Np_WP,
-					   double**  CT_RM_array,
-					   double**  VC_CM_array,
-					   double*   P123_sparse_val_array,
-					   int*      P123_sparse_row_array,
-					   size_t*   P123_sparse_col_array,
-					   size_t    P123_sparse_dim){
+void pade_method_solve(cdouble*   U_array,
+					   cdouble*   G_array,
+					   int*		  q_com_idx_array,	 size_t num_q_com,
+					   int*       deuteron_idx_array, size_t num_deuteron_states,
+					   size_t     Nalpha,
+					   size_t 	  Nq_WP,
+					   size_t 	  Np_WP,
+					   double**   CT_RM_array,
+					   double**   VC_CM_array,
+					   double*    P123_sparse_val_array,
+					   int*       P123_sparse_row_array,
+					   size_t*    P123_sparse_col_array,
+					   size_t     P123_sparse_dim,
+					   run_params run_parameters,
+					   std::string file_identification){
 
 	/* Print Pade-approximants */
 	bool print_PAs = false;
@@ -465,6 +467,10 @@ void pade_method_solve(cdouble*  U_array,
 	/* Allocate row-arrays for A*A^n, where A=(C^T)(P)(VC) */
 	cdouble* A_An_row_array 	 = new cdouble [dense_dim * num_on_shell_A_rows];
 	cdouble* A_An_row_array_prev = new cdouble [dense_dim * num_on_shell_A_rows];
+
+	/* File-paths for storing A_An_row_array and on-shell neumann terms */
+	std::string A_An_row_filename      = run_parameters.output_folder + "/An_rows" + file_identification + ".txt";
+	std::string neumann_terms_filename = run_parameters.output_folder + "/neumann_terms" + file_identification + ".txt";
 
 	/* Set A_An-arrays to zero */
 	for (size_t i=0; i<dense_dim*num_on_shell_A_rows; i++){
@@ -522,6 +528,25 @@ void pade_method_solve(cdouble*  U_array,
 		}
 	}
 	printf("       - Done \n"); fflush(stdout);
+	printf("     - Storing matrix A*K^n for n=%d to output-folder. \n", 0); fflush(stdout);
+	std::string array_seperator_text = "n = " + std::to_string(0);
+	store_complex_matrix(A_An_row_array_prev,
+                         num_on_shell_A_rows,
+					     dense_dim,
+					     dense_dim,
+					     A_An_row_filename,
+					     true,
+						 array_seperator_text);
+	printf("       - Done \n");
+	//printf("     - Storing on-shell Neumann-series terms a_n=A*K^n for n=%d to output-folder. \n", 0); fflush(stdout);
+	//store_complex_matrix(a_coeff_array,
+    //                     num_deuteron_states*num_deuteron_states*num_q_com,
+	//	    			 num_neumann_terms,
+	//	    			 num_neumann_terms,
+	//	    			 neumann_terms_filename,
+	//	    			 true,
+	//					 array_seperator_text);
+	//printf("       - Done \n");
 	
 	/* Arrays to store Pade-approximants (PA) for each on-shelle elements */
 	cdouble* pade_approximants_array      = new cdouble [num_on_shell_A_vals * (NM_max+1)];
@@ -750,6 +775,26 @@ void pade_method_solve(cdouble*  U_array,
 				}
 			}
 			printf("       - Done \n");
+			
+			printf("     - Storing matrix A*K^n for n=%d to output-folder. \n", n); fflush(stdout);
+			std::string array_seperator_text = "n = " + std::to_string(n);
+		    store_complex_matrix(A_An_row_array,
+                                 num_on_shell_A_rows,
+		    				     dense_dim,
+		    				     dense_dim,
+		    				     A_An_row_filename,
+		    				     false,
+								 array_seperator_text);
+			printf("       - Done \n");
+			//printf("     - Storing on-shell Neumann-series terms a_n=A*K^n for n=%d to output-folder. \n", n); fflush(stdout);
+			//store_complex_matrix(a_coeff_array,
+            //                     num_deuteron_states*num_deuteron_states*num_q_com,
+		    //				     num_neumann_terms,
+		    //				     num_neumann_terms,
+		    //				     neumann_terms_filename,
+		    //				     false,
+			//					 array_seperator_text);
+			//printf("       - Done \n");
 		}
 		delete [] times_array;
 
@@ -841,6 +886,16 @@ void pade_method_solve(cdouble*  U_array,
 	}
 	printf("     - Done \n"); fflush(stdout);
 
+    printf("     - Storing on-shell Neumann-series terms a_n=A*K^n for all n to output-folder. \n"); fflush(stdout);
+	store_complex_matrix(a_coeff_array,
+                         num_deuteron_states*num_deuteron_states*num_q_com,
+					     num_neumann_terms,
+					     num_neumann_terms,
+					     neumann_terms_filename,
+					     true,
+						 "Neumann terms");
+	printf("       - Done \n");
+
 	delete [] A_An_row_array;
 	delete [] A_An_row_array_prev;
 	delete [] a_coeff_array;
@@ -868,7 +923,9 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 int*      T_2N_array,
 							 int*      L_1N_array, 
 							 int*      two_J_1N_array,
-							 bool 	   tensor_force_true){
+							 bool 	   tensor_force_true,
+							 std::string file_identification,
+					         run_params run_parameters){
 	
 	/* Test PVC- and CPVC-column multiplication routines with brute-force routines
 	 * WARNING: VERY SLOW TEST, ONLY FOR BENCHMARKING */
@@ -992,7 +1049,9 @@ void solve_faddeev_equations(cdouble*  U_array,
 						  P123_sparse_val_array,
 						  P123_sparse_row_array,
 						  P123_sparse_col_array_csc,
-						  P123_sparse_dim);
+						  P123_sparse_dim,
+					      run_parameters,
+						  file_identification);
 	}
 	else{
 		printf("   - Solving Faddeev equation using a dense direct solver (WARNING: CAN TAKE LONG) ... \n");

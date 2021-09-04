@@ -19,5 +19,5 @@ potential_model=nijmegen
 grid_type=chebyshev
 parameter_walk=off
 average=off
-output_folder=../../Data/Faddeev_code/U_matrix_elements
+output_folder=Output
 P123_folder=../../../Data/permutation_matrices

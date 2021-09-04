@@ -36,6 +36,14 @@
 #include "store_functionality.h"
 #include "General_functions/matrix_routines.h"
 
+void store_complex_matrix(cdouble* matrix_array,
+                          size_t num_rows,
+						  size_t num_cols,
+						  size_t steplength,
+						  std::string file_path,
+						  bool rewrite_file,
+						  std::string array_seperator_text);
+
 void store_run_parameters(run_params run_parameters);
 
 void store_q_WP_kinematics_txt(size_t Nq_WP,

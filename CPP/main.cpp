@@ -890,6 +890,12 @@ int main(int argc, char* argv[]){
 			
 			cdouble* U_array = new cdouble [num_T_lab * num_deuteron_states * num_deuteron_states];
 
+            std::string file_identification =   "_Np_" + std::to_string(Np_WP)
+									          + "_Nq_"   + std::to_string(Nq_WP)
+									          + "_JP_"   + std::to_string(two_J_3N)
+									          + "_"      + std::to_string(P_3N)
+									          + "_Jmax_" + std::to_string(J_2N_max);
+
 			printf("Solving Faddeev equations ... \n");
 			solve_faddeev_equations(U_array,
 									G_array,
@@ -913,15 +919,14 @@ int main(int argc, char* argv[]){
 									T_2N_subarray,
 									L_1N_subarray, 
 									two_J_1N_subarray,
-									tensor_force_true);
+									tensor_force_true,
+									file_identification,
+					                run_parameters);
 			printf(" - Done \n");
 
 			//std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
-			std::string U_mat_filename = run_parameters.output_folder + "/" + "U_PW_elements_Np_" + std::to_string(Np_WP)
-																	        + "_Nq_"   + std::to_string(Nq_WP)
-																	        + "_JP_"   + std::to_string(two_J_3N)
-																	        + "_"      + std::to_string(P_3N)
-																	        + "_Jmax_" + std::to_string(J_2N_max)
+			std::string U_mat_filename = run_parameters.output_folder + "/" + "U_PW_elements"
+			                                                                + file_identification
 																	        + ".csv";
 			store_U_matrix_elements_csv(U_array,
 									    q_com_idx_array,    (size_t) num_T_lab,
@@ -930,12 +935,9 @@ int main(int argc, char* argv[]){
 									    two_J_1N_subarray,
 									    U_mat_filename);
 			
-			std::string U_mat_filename_t = run_parameters.output_folder + "/" + "U_PW_elements_Np_" + std::to_string(Np_WP)
-																	        + "_Nq_"   + std::to_string(Nq_WP)
-																	        + "_JP_"   + std::to_string(two_J_3N)
-																	        + "_"      + std::to_string(P_3N)
-																	        + "_Jmax_" + std::to_string(J_2N_max)
-																	        + ".txt";
+			std::string U_mat_filename_t = run_parameters.output_folder + "/" + "U_PW_elements"
+			                                                                  + file_identification
+																	          + ".txt";
 			store_U_matrix_elements_txt(U_array,
 										run_parameters.potential_model,
 										two_J_3N,

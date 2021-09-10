@@ -542,7 +542,7 @@ void pade_method_solve(cdouble*  U_array,
 	}
 	printf("       - Done \n"); fflush(stdout);
 
-	if (store_neumann_terms){
+	if (store_An_arrays){
 		printf("     - Storing matrix A*K^n for n=%d to output-folder. \n", 0); fflush(stdout);
 		std::string array_seperator_text = "n = " + std::to_string(0);
 		store_sep_complex_matrix(re_A_An_row_array_prev,
@@ -555,7 +555,7 @@ void pade_method_solve(cdouble*  U_array,
 							     array_seperator_text);
 		printf("       - Done \n");
 	}
-	if (store_An_arrays){
+	if (store_neumann_terms){
 		printf("     - Storing on-shell Neumann-series terms a_n=A*K^n for n=%d to output-folder. \n", 0); fflush(stdout);
 		std::string array_seperator_text = "n = " + std::to_string(0);
 		store_complex_matrix(a_coeff_array,
@@ -809,7 +809,7 @@ void pade_method_solve(cdouble*  U_array,
 			}
 			printf("       - Done \n");
 
-			if (store_neumann_terms){
+			if (store_An_arrays){
 			printf("     - Storing matrix A*K^n for n=%d to output-folder. \n", n); fflush(stdout);
 			std::string array_seperator_text = "n = " + std::to_string(n);
 		    store_sep_complex_matrix(re_A_An_row_array,
@@ -822,7 +822,7 @@ void pade_method_solve(cdouble*  U_array,
 								     array_seperator_text);
 			printf("       - Done \n");
 			}
-			if (store_An_arrays){
+			if (store_neumann_terms){
 				printf("     - Storing on-shell Neumann-series terms a_n=A*K^n for n=%d to output-folder. \n", n); fflush(stdout);
 				std::string array_seperator_text = "n = " + std::to_string(n);
 				store_complex_matrix(a_coeff_array,

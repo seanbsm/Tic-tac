@@ -463,8 +463,6 @@ void pade_method_solve(cdouble*  U_array,
 	size_t num_on_shell_A_vals = num_deuteron_states * num_deuteron_states * num_q_com;
 	
 	/* Upper limit on polynomial approximation of Faddeev eq. */
-	//size_t N_pade = 14;
-	//size_t M_pade = 14;
 	size_t NM_max = 14;
 	size_t num_neumann_terms = 2*NM_max+1;
 
@@ -576,11 +574,7 @@ void pade_method_solve(cdouble*  U_array,
 	bool*    pade_approximants_conv_array = new bool    [num_on_shell_A_vals];
 	size_t	 num_converged_elements		  = 0;
 
-	/* For now I'm telling the program to allocate 6 GB to use per chunk of CPVC */
-	//size_t    max_num_cols_in_mem = (6 * std::pow(2,30) / sizeof(cdouble)) / dense_dim;
-	//size_t	  num_col_chunks	  = dense_dim / max_num_cols_in_mem + 1;
-	//cdouble*  CPVC_cols_array     = new cdouble [dense_dim * max_num_cols_in_mem];
-	/* Taken from verified test-script, same notation */
+	/* Define CPVC-chunks size */
 	size_t num_bytes_per_chunk   = 0.5 * std::pow(1024,3);
     size_t num_bytes_in_CPVC_col = (sizeof(cdouble) * dense_dim);
     size_t num_cols_per_chunk    = num_bytes_per_chunk / num_bytes_in_CPVC_col;
@@ -616,12 +610,7 @@ void pade_method_solve(cdouble*  U_array,
 		for (size_t i=0; i<100; i++){
 			counter_array[i] = 0;
 		}
-		/* Iterate through columns of A */
 
-		//std::cout << P123_sparse_row_array[4183204] << std::endl;
-		//exit(0);
-		
-		
 		/* Time-keeper array for parallel environment */
 		double*  times_array = new double [3*num_threads];
 		
@@ -630,9 +619,6 @@ void pade_method_solve(cdouble*  U_array,
 			if (n<=0){
 				continue;
 			}
-			//if (n>2){
-			//	exit(0);
-			//}
 
 			auto timestamp_start = std::chrono::system_clock::now();
 
@@ -642,34 +628,11 @@ void pade_method_solve(cdouble*  U_array,
 			}
 
 			printf("     - Calculating on-shell rows of A*K^n for n=%d. \n", n); fflush(stdout);
-			//#pragma omp parallel //num_threads(1)
-			//{
-			/* Allocate row- and column-arrays for (C^T)(P)(VC) */
-			//double*  CPVC_col_array  		= new double [dense_dim];
-			//int*     CPVC_row_to_nnz_array  = new int    [dense_dim];
-			//int*     CPVC_nnz_to_row_array  = new int    [dense_dim];
-			
-			//size_t   thread_idx = 0;
-			//size_t   thread_idx = omp_get_thread_num();
 
 			/* Calculate all a-coefficients for calculated CPVC-column */
 			for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
 				for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 					size_t idx_row_NDOS = idx_d_row*num_q_com + idx_q_com;
-
-					///* We see if we need to multiply this row further or not */
-					//bool unconverged_on_shell_element_exists = false;
-					//for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
-					//	size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
-					//	/* Check if we've already reached convergence for this on-shell element */
-					//	if (pade_approximants_conv_array[idx_NDOS]==false){
-					//		unconverged_on_shell_element_exists = true;
-					//		break;
-					//	}
-					//}
-					//if (unconverged_on_shell_element_exists==false){
-					//	continue;
-					//}
 
 					/* Multiply An by G */
 					for (size_t idx=0; idx<dense_dim; idx++){
@@ -706,32 +669,19 @@ void pade_method_solve(cdouble*  U_array,
 				int*    CPVC_row_to_nnz_array  = &omp_CPVC_row_to_nnz_array [thread_idx*dense_dim];
 				int*    CPVC_nnz_to_row_array  = &omp_CPVC_nnz_to_row_array [thread_idx*dense_dim];
 
-				//printf(" -  Working on chunk %d of %d \n", idx_col_chunk, num_col_chunks);
-				//fflush(stdout);
 				#pragma omp for
 				for (size_t idx_col=idx_col_start; idx_col<idx_col_end; idx_col++){
 					size_t idx_alpha_c = idx_col / (Np_WP*Nq_WP);
 					size_t idx_q_c     = (idx_col % (Np_WP*Nq_WP)) /  Np_WP;
 					size_t idx_p_c     = idx_col %  Np_WP;
 
-					//printf("  - Working on col  %d of %d \n", idx_col, idx_col_end);
-					//fflush(stdout);
-			//#pragma omp for
-			//for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
-			//	for (size_t idx_q_c=0; idx_q_c<Nq_WP; idx_q_c++){
-			//		for (size_t idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
-			//			size_t idx_col = idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP + idx_p_c;
-			//			size_t idx_col_chunk = idx_col/max_num_cols_in_mem;
-
-						//printf("\r Working on col %d of %d", idx_col, Nalpha*Np_WP*Nq_WP);
-
 						double timestamp_0 = omp_get_wtime();
 						/* Reset CPVC-column array */
-						for (size_t row_idx=0; row_idx<dense_dim; row_idx++){
-							//CPVC_col_array[row_idx]        =  0;
-							CPVC_row_to_nnz_array[row_idx] = -1;
-							CPVC_nnz_to_row_array[row_idx] = -1;
-						}
+						//for (size_t row_idx=0; row_idx<dense_dim; row_idx++){
+						//	CPVC_col_array[row_idx]        =  0;
+						//	CPVC_row_to_nnz_array[row_idx] = -1;
+						//	CPVC_nnz_to_row_array[row_idx] = -1;
+						//}
 
 						double timestamp_1 = omp_get_wtime();
 						double time1 = timestamp_1 - timestamp_0;
@@ -739,7 +689,6 @@ void pade_method_solve(cdouble*  U_array,
 
 						/* Calculate CPVC-column */
 						size_t CPVC_num_nnz = 0;
-						//std::cout << P123_sparse_row_array[4183204] << std::endl;
 						size_t CPVC_col_idx = idx_col - idx_col_start;
 						calculate_CPVC_col(&CPVC_cols_array[CPVC_col_idx*dense_dim],//CPVC_col_array,
 										   CPVC_row_to_nnz_array,
@@ -755,75 +704,14 @@ void pade_method_solve(cdouble*  U_array,
 										   P123_sparse_dim);
 						counter_array[thread_idx] += CPVC_num_nnz;
 
-						/* Copy and typecast from CPVC column to CPVC-submatrix
-						 * NOTE: SIGNIFICANT OPTIMISATION POSSIBLE I THINK
-						 * (Perhaps std "copy" or "transform" can optimise this if necessary) */
-						//size_t CPVC_col_idx = idx_col - idx_col_start;
-						//for (size_t nnz_idx=0; nnz_idx<CPVC_num_nnz; nnz_idx++){
-						//	size_t row_idx = CPVC_nnz_to_row_array[nnz_idx];
-						//	CPVC_cols_array[row_idx*max_num_cols_in_mem + CPVC_col_idx] = CPVC_col_array[nnz_idx];
-						//}
-
 						double timestamp_2 = omp_get_wtime();
 						double time2 = timestamp_2 - timestamp_1;
 						times_array[3*thread_idx + 1] += time2;
-
-						///* Calculate all a-coefficients for calculated CPVC-column */
-						//for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
-						//	for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
-						//		size_t idx_row_NDOS = idx_d_row*num_q_com + idx_q_com;
-						//
-						//		/* We see if we need to multiply this row further or not */
-						//		bool unconverged_on_shell_element_exists = false;
-						//		for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
-						//			size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
-						//			/* Check if we've already reached convergence for this on-shell element */
-						//			if (pade_approximants_conv_array[idx_NDOS]==false){
-						//				unconverged_on_shell_element_exists = true;
-						//				break;
-						//			}
-						//		}
-						//		if (unconverged_on_shell_element_exists==false){
-						//			continue;
-						//		}
-						//
-						//		///* Dot product (An*G)*A */
-						//		//cdouble inner_product = cdot_VV(&A_An_row_array_prev[idx_row_NDOS*dense_dim], CPVCG_col_array, dense_dim, 1, 1);
-						//
-						//		cdouble inner_product = 0;
-						//		int row_idx = 0;
-						//		for (size_t nnz_idx=0; nnz_idx<CPVC_num_nnz; nnz_idx++){
-						//			row_idx = CPVC_nnz_to_row_array[nnz_idx];
-						//			inner_product += A_An_row_array_prev[idx_row_NDOS*dense_dim + row_idx] * CPVC_col_array[nnz_idx] * G_array[idx_q_com*dense_dim + row_idx];
-						//		}
-						//		A_An_row_array[idx_row_NDOS*dense_dim + idx_col] = inner_product;
-						//	}
-						//}
-						//double timestamp_3 = omp_get_wtime();
-						//double time3 = timestamp_3 - timestamp_2;
-						//times_array[3*thread_idx + 2] += time3;
 				}
-				//delete [] CPVC_col_array;
-				//delete [] CPVC_row_to_nnz_array;
-				//delete [] CPVC_nnz_to_row_array;
 				}
-				//printf(" -  Done with chunk of An");
-				//fflush(stdout);
-
-				//printf(" -  Multiplying An by G");
-				//fflush(stdout);
 
 				double timestamp_3 = omp_get_wtime();
-				
-				//printf(" -  Done");
-				//fflush(stdout);
 
-				/* Dot product (An*G)*A */
-				//printf(" -  Multiplying An*G by A-chunk");
-				//fflush(stdout);
-				//if ( (idx_col%max_num_cols_in_mem)==max_num_cols_in_mem-1 ){
-				//std::complex<double> beta  = {0,0};
-				//std::complex<double> alpha = {1,0};
 				double beta  = 0;
 				double alpha = 1;
 				MKL_INT M   = num_on_shell_A_rows;
@@ -838,60 +726,15 @@ void pade_method_solve(cdouble*  U_array,
 				double* re_C = &re_A_An_row_array[idx_col_start];
 				double* im_C = &im_A_An_row_array[idx_col_start];
 				
-				//if (num_col_chunks==1 and n==7){
-				//	//for (size_t r=0; r<M; r++){
-				//	//	for (size_t c=0; c<10; c++){
-                //	//		printf("Value for A[%d,%d]: %.16e + %.16ei \n", r, c, A[r*lda + c].real(), A[r*lda + c].imag() );
-				//	//	}
-				//	//}
-				//	//for (size_t r=0; r<10; r++){
-	    		//	//	for (size_t c=0; c<10; c++){
-        		//	//		printf("Value for B[%d,%d]: %.16e + %.16ei \n", r, c, B[r*ldb + c].real(), B[r*ldb + c].imag() );
-	    		//	//	}
-	    		//	//}
-				//	store_mat_array(A, M, K, lda, "A_array.txt");
-				//	store_mat_array(B, K, N, ldb, "B_array.txt");
-				//}
 				cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, re_A, lda, B, ldb, beta, re_C, ldc);	// real multiplication
 				cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, im_A, lda, B, ldb, beta, im_C, ldc);	// imag multiplication
-				//cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, &alpha, A, lda, B, ldb, &beta, C, ldc);
-				//cblas_zgemm3m(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, &alpha, A, lda, B, ldb, &beta, C, ldc);
-				//for (size_t r=0; r<M; r++){
-				//	//for (size_t c=0; c<N; c++){
-				//		for (size_t c=0; c<N; c++){
-				//		cdouble inner_product = 0;//beta*C[r*ldc + c];
-				//		//if (r<10 and c<10){
-                //		//    printf("Value for [%d,%d]: %.16e + %.16ei \n", r, c, C[r*ldc + c].real(), C[r*ldc + c].imag() );
-                //		//}
-				//		for (size_t k=0; k<K; k++){
-				//			inner_product += alpha * A[r*lda + k] * B[k*ldb + c];
-				//		}
-				//		//cdouble diff = inner_product - C[r*ldc + c];
-				//		//if (abs(diff)>1e-16){
-				//		//	printf("Diff: %.16e + %.16ei \n",diff.real(), diff.imag() );
-				//		//}
-				//		C[r*ldc + c] = alpha*inner_product + beta*C[r*ldc + c];
-				//		//printf("Value for  C[%d,%d]: %.16e + %.16ei \n", r, c, C[r*ldc + c].real(), C[r*ldc + c].imag() );
-				//	}
-				//}
-				//if (num_col_chunks==1 and n==7){
-				//	exit(0);
-				//}
-				//mkl_verbose(1);
-				//}
+				
 				double timestamp_4 = omp_get_wtime();
 				double time4 = timestamp_4 - timestamp_3;
-				times_array[3*0 + 2] += time4;//*num_threads;
-				//printf(" -  Done");
-				//fflush(stdout);
+				times_array[3*0 + 2] += time4;
+				
 			}
-			//		}
-			//	}
-			//}
-			//delete [] CPVC_col_array;
-			//delete [] CPVC_row_to_nnz_array;
-			//delete [] CPVC_nnz_to_row_array;
-			//}
+			
 			auto timestamp_end = std::chrono::system_clock::now();
 			std::chrono::duration<double> time = timestamp_end - timestamp_start;
 
@@ -908,9 +751,6 @@ void pade_method_solve(cdouble*  U_array,
 				if (times_array[3*thread_idx+2]>time_An_CPVC_multiply){
 					time_An_CPVC_multiply = times_array[3*thread_idx+2];
 				}
-				//time_resetting_arrays += times_array[3*thread_idx];
-				//time_CPVC_cols 		  += times_array[3*thread_idx+1];
-				//time_An_CPVC_multiply += times_array[3*thread_idx+2];
 			}
 			printf("       - Time resetting arrays:         %.6f \n", time_resetting_arrays);
 			printf("       - Time generating CPVC-cols:     %.6f \n", time_CPVC_cols);

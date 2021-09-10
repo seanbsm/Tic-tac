@@ -160,7 +160,7 @@ int main(int argc, char* argv[]){
 	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
-	bool calculate_and_store_P123 = true;
+	bool calculate_and_store_P123 = false;
 	
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
@@ -466,80 +466,75 @@ int main(int argc, char* argv[]){
 		/* Use q-momentum bin ENERGY mid-points as on-shell energies if no default input is given */
 		if (default_Tlab_input==false){
 			std::vector<size_t> q_WP_idx_vec;
+
+			/* Special condition to reduce number of on-shell calculations */
+			double Eq_lower = 0;
+			double Eq_upper = 0;
+			double E_com    = 0;
+			double q_m		= 0;
+			std::vector<bool>   midpoint_idx_vector   (Nq_WP-1, false);
+			std::vector<double> T_lab_midpoint_vector (Nq_WP, false);
 			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
-				/* Special condition to reduce number of on-shell calculations */
-				double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
-				double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
-				double E_com = 0.5*(Eq_upper + Eq_lower);
-				
-				double q_l     = com_energy_to_com_q_momentum(Eq_lower);
-				double q_u     = com_energy_to_com_q_momentum(Eq_upper);
-				double q_m     = com_energy_to_com_q_momentum(E_com);
-				double T_lab_l = com_momentum_to_lab_energy(  q_l, E_bound);
-				double T_lab_u = com_momentum_to_lab_energy(  q_u, E_bound);
-				double T_lab_m = com_momentum_to_lab_energy(  q_m, E_bound);
-				std::vector<double> T_lab_input_list = {1,2,3,4,5,9,10,13,22.7,35,53};
-				//std::vector<double> T_lab_input_list = {  3,   4,   5,       6,
-				//										  9,  10,  11,      12,
-				//										 13,  16,  22.7,    28,
-				//										 30,  35,  42,      47.5,
-				//										 50,  53,  65,      93.5,
-				//										146, 155, 180, 220, 240};
+				Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
+				Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
+				E_com	 = 0.5*(Eq_upper + Eq_lower);
+				q_m      = com_energy_to_com_q_momentum(E_com);
+				T_lab_midpoint_vector[q_WP_idx] = com_momentum_to_lab_energy(q_m, E_bound);
+			}
+			std::vector<double> T_lab_input_list = {1,2,3,4,5,9,10,13,22.7,35,53};
+			//std::vector<double> T_lab_input_list = {  3,   4,   5,       6,
+			//										  9,  10,  11,      12,
+			//										 13,  16,  22.7,    28,
+			//										 30,  35,  42,      47.5,
+			//										 50,  53,  65,      93.5,
+			//										146, 155, 180, 220, 240};
+			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP-1; q_WP_idx++){
+				double T_lab_lower = T_lab_midpoint_vector[q_WP_idx];
+				double T_lab_upper = T_lab_midpoint_vector[q_WP_idx+1];
 				for (size_t i=0; i<T_lab_input_list.size(); i++){
-					double Tlab_input = T_lab_input_list[i];
-					if (T_lab_l <= Tlab_input && Tlab_input <= T_lab_m){
-						if (num_T_lab==0 && q_WP_idx==0){
-							q_WP_idx_vec.push_back(q_WP_idx); num_T_lab += 1;
-						}
-						else if (num_T_lab==0 && q_WP_idx!=0){
-							q_WP_idx_vec.push_back(q_WP_idx-1); num_T_lab += 1;
-							q_WP_idx_vec.push_back(q_WP_idx);   num_T_lab += 1;
-						}
-						else if (q_WP_idx_vec[num_T_lab-1]==q_WP_idx-1){
-							q_WP_idx_vec.push_back(q_WP_idx); num_T_lab += 1;
-						}
-						else if (q_WP_idx_vec[num_T_lab-1]==q_WP_idx){
-							continue;
-						}
-						else{
-							q_WP_idx_vec.push_back(q_WP_idx-1); num_T_lab += 1;
-							q_WP_idx_vec.push_back(q_WP_idx);   num_T_lab += 1;
-						}
-					}
-					else if (T_lab_m <= Tlab_input && Tlab_input <= T_lab_u){
-						if (num_T_lab==0){
-							q_WP_idx_vec.push_back(q_WP_idx);   num_T_lab += 1;
-							q_WP_idx_vec.push_back(q_WP_idx+1); num_T_lab += 1;
-						}
-						else if (q_WP_idx_vec[num_T_lab-1]==q_WP_idx){
-							q_WP_idx_vec.push_back(q_WP_idx+1); num_T_lab += 1;
-						}
-						else{
-							q_WP_idx_vec.push_back(q_WP_idx);   num_T_lab += 1;
-							q_WP_idx_vec.push_back(q_WP_idx+1); num_T_lab += 1;
-						}
+					double T_lab_input = T_lab_input_list[i];
+					/* See if input energy lies between two bin mid-points */
+					if (T_lab_lower<=T_lab_input && T_lab_input<=T_lab_upper){
+						midpoint_idx_vector[q_WP_idx] = true;
 					}
 				}
-
-				//if (E_com<1 && q_WP_idx%5!=0){
-				//	continue;
-				//}
-				//else if (E_com<10 && q_WP_idx%2!=0){
-				//	continue;
-				//}
-				//else if (E_com>200){
-				//	continue;
-				//}
-				//double q_com = com_energy_to_com_q_momentum(E_com);
-				//double T_lab = com_momentum_to_lab_energy(q_com, E_bound);
-				//if (T_lab<Tlab_min || Tlab_max<T_lab){
-				//	continue;
-				//}
-				//else{
-				//	q_WP_idx_vec.push_back(q_WP_idx);
-				//	num_T_lab += 1;
-				//}
 			}
+			/* Use on-shell midpoints to set on-shell bins */
+			std::vector<bool>   bin_idx_vector   (Nq_WP, false);
+			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP-1; q_WP_idx++){
+				if (midpoint_idx_vector[q_WP_idx]==true){
+					bin_idx_vector[q_WP_idx]   = true;
+					bin_idx_vector[q_WP_idx+1] = true;
+				}
+			}
+			/* Append on-shell bin indices to q_WP_idx_vec */
+			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
+				if (bin_idx_vector[q_WP_idx]==true){
+					q_WP_idx_vec.push_back(q_WP_idx);
+				}
+			}
+			num_T_lab = q_WP_idx_vec.size();
+
+			//for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
+			//	if (E_com<1 && q_WP_idx%5!=0){
+			//		continue;
+			//	}
+			//	else if (E_com<10 && q_WP_idx%2!=0){
+			//		continue;
+			//	}
+			//	else if (E_com>200){
+			//		continue;
+			//	}
+			//	double q_com = com_energy_to_com_q_momentum(E_com);
+			//	double T_lab = com_momentum_to_lab_energy(q_com, E_bound);
+			//	if (T_lab<Tlab_min || Tlab_max<T_lab){
+			//		continue;
+			//	}
+			//	else{
+			//		q_WP_idx_vec.push_back(q_WP_idx);
+			//		num_T_lab += 1;
+			//	}
+			//}
 
 			T_lab_array = new double [num_T_lab];
 

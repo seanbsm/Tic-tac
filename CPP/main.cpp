@@ -516,6 +516,9 @@ int main(int argc, char* argv[]){
 			num_T_lab = q_WP_idx_vec.size();
 
 			//for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
+			//	double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
+			//	double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
+			//	double E_com	 = 0.5*(Eq_upper + Eq_lower);
 			//	if (E_com<1 && q_WP_idx%5!=0){
 			//		continue;
 			//	}

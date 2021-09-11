@@ -1,8 +1,8 @@
 # Run "-h" or "--help" to see meaning of arguments
 two_J_3N_max=21
-Np_WP=40
-Nq_WP=10
-J_2N_max=1
+Np_WP=100
+Nq_WP=100
+J_2N_max=3
 Nphi=48
 Nx=48
 chebyshev_s=100

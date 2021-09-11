@@ -349,7 +349,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	
 	printf("   - Precalculating momentum conservations \n");
 	fflush(stdout);
-	if (true){
+	if (false){
 	#pragma omp parallel
 	{
 		#pragma omp for
@@ -527,11 +527,13 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	/* Precalculate Legendre polynomials in geometric function */
 	printf("   - Precalculating Legendre polynomials \n");
 	fflush(stdout);
-	int len_Plm_array_L = gsl_sf_legendre_array_n(max_L12);
-	int len_Plm_array_l = gsl_sf_legendre_array_n(max_l3);
+	size_t len_Plm_array_L = gsl_sf_legendre_array_n(max_L12);
+	size_t len_Plm_array_l = gsl_sf_legendre_array_n(max_l3);
+	printf("     - L12-array requires %zu doubles per (phi,x). \n", len_Plm_array_L);
+	printf("     - l3-array  requires %zu doubles per (phi,x). \n", len_Plm_array_l);
 
 	size_t tot_size_needed = (len_Plm_array_L+len_Plm_array_l)*Np_WP*Nq_WP*Nphi*Nx+len_Plm_array_l*Nx;
-	printf("     - Requires %d doubles. Allocating arrays \n", tot_size_needed);
+	printf("     - Total prestore requirement is %zu doubles. Allocating arrays \n", tot_size_needed);
 	fflush(stdout);
 
 	double* gsl_Plm_1_array = new double [len_Plm_array_l * Nx];

@@ -947,7 +947,20 @@ double Gtilde_new (double p, double q, double x, int alpha, int alphaprime, int 
 
 }
 
-double Gtilde_subarray_new (double p, double q, double x, int L12, int L12prime, int l3, int l3prime, double *A_store_alpha_alphaprime_subarray, int two_Jtotal, double* ClebschGordan_data, int two_jmax_Clebsch){
+double Gtilde_subarray_new (double p,
+							double q,
+							double x,
+							int L12, int L12prime, int max_L12,
+							int l3,  int l3prime,  int max_l3,
+							double *A_store_alpha_alphaprime_subarray,
+							int two_Jtotal,
+							double* ClebschGordan_data,
+							double* gsl_Plm_1_subarray,
+							double* gsl_Plm_2_subarray,
+							double* gsl_Plm_3_subarray,
+                            double* prefac_L_array,
+                            double* prefac_l_array,
+							int two_jmax_Clebsch){
 
 	double ret = 0.0;
 
@@ -981,26 +994,55 @@ double Gtilde_subarray_new (double p, double q, double x, int L12, int L12prime,
 		if (fac1!=0){
 			for (int Mtotal = -min(l3, Ltotal); Mtotal <= min(l3, Ltotal); Mtotal++){
 
+				int idx_gsl_1 = gsl_sf_legendre_array_index(l3, std::abs(Mtotal));
+				double Plm_1  = gsl_Plm_1_subarray[idx_gsl_1];
+				
+				if (Mtotal<0 && Mtotal%2==1){
+					Plm_1 *= -1;//gsl_sf_pow_int(-1.0, Mtotal);//prefac_l_array[idx_gsl_1];
+				}
+
+				//if ( std::abs(Plm(l3, Mtotal, x)- Plm_1)>1e-8){
+				//	std::cout << std::endl;
+				//	std::cout << "Me:  " << Plm_1  << " " << gsl_Plm_1_subarray[idx_gsl_1] << " " << prefac_l_array[idx_gsl_1]<< std::endl;
+				//	std::cout << "Kai: " << Plm(l3, Mtotal, x) << std::endl;
+				//	std::cout << "l:   " << l3 << std::endl;
+				//	std::cout << "m:   " << Mtotal << std::endl;
+				//	exit(0);
+				//}
+
 				fac2 = ClebschGordan_array(two_jmax_Clebsch, ClebschGordan_data, 2 * L12, 2 * l3, 2 * Ltotal, 0, 2 * Mtotal)//ClebschGordan(2 * L12, 2 * l3, 2 * Ltotal, 0, 2 * Mtotal, 2 * Mtotal)
 					   //* sqrt((2.0 * L12 + 1) / (4 * M_PI))
 					   * gsl_sf_pow_int(-1, Mtotal)
-					   * Plm(l3, Mtotal, x); // -1^M phase since azimutal angles of p' and q' = pi
+					   * Plm_1;//(l3, Mtotal, x); // -1^M phase since azimutal angles of p' and q' = pi
 				
 				if (fac2!=0){
 					for (int M12primesum = -L12prime; M12primesum <= L12prime; M12primesum++){
 						if (abs(Mtotal - M12primesum) <= l3prime){
+
+							int idx_gsl_2 = gsl_sf_legendre_array_index(L12prime, std::abs(M12primesum));
+							double Plm_2  = gsl_Plm_2_subarray[idx_gsl_2];
+							if (M12primesum<0 && M12primesum%2==1){
+								Plm_2 *= -1;//gsl_sf_pow_int(-1.0, M12primesum);//prefac_l_array[idx_gsl_1];
+							}
+							int M_diff = Mtotal - M12primesum;
+							int idx_gsl_3 = gsl_sf_legendre_array_index(l3prime, std::abs(M_diff));
+							double Plm_3  = gsl_Plm_3_subarray[idx_gsl_3];
+							if (M_diff<0 && M_diff%2==1){
+								Plm_3 *= -1;//gsl_sf_pow_int(-1.0, M_diff);//prefac_l_array[idx_gsl_1];
+							}
+
 							ret +=   fac1
 								   * fac2
 								   * ClebschGordan_array(two_jmax_Clebsch, ClebschGordan_data, 2 * L12prime, 2 * l3prime, 2 * Ltotal, 2 * M12primesum, 2 * Mtotal - 2 * M12primesum)//ClebschGordan(2 * L12prime, 2 * l3prime, 2 * Ltotal, 2 * M12primesum, 2 * Mtotal - 2 * M12primesum, 2 * Mtotal)
-								   * Plm(L12prime, M12primesum, costheta1)
-								   * Plm(l3prime, Mtotal - M12primesum, costheta2);
+								   * Plm_2//(L12prime, M12primesum, costheta1)
+								   * Plm_3;//(l3prime, Mtotal - M12primesum, costheta2);
 						}
 					}
 				}
 			}
 		}
 	}
-//ClebschGordan_array (int two_jmax, double *data_array, int two_j1, int two_j2, int two_j3, int two_m1, int two_m2)
+	//ClebschGordan_array (int two_jmax, double *data_array, int two_j1, int two_j2, int two_j3, int two_m1, int two_m2)
 	ret *= sqrt((2.0 * L12 + 1) / (4 * M_PI));
 
 	return ret;

@@ -1,17 +1,16 @@
 # Run "-h" or "--help" to see meaning of arguments
 two_J_3N_max=21
 Np_WP=40
-Nq_WP=20
-J_2N_max=3
+Nq_WP=10
+J_2N_max=1
 Nphi=48
-Nx=15
+Nx=48
 chebyshev_s=100
 chebyshev_t=1
 p_grid_type=chebyshev
 p_grid_filename=Input/NWP-100-splitnorm.txt
 q_grid_type=chebyshev
 q_grid_filename=Input/NWP-100-splitnorm.txt
-P123_omp_num_threads=4
 max_TFC=2
 parallel_run=true
 P123_recovery=false
@@ -20,4 +19,4 @@ grid_type=chebyshev
 parameter_walk=off
 average=off
 output_folder=Output
-P123_folder=../../../Data/permutation_matrices
+P123_folder=../../Data/permutation_matrices

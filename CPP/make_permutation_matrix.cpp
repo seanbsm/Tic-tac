@@ -23,6 +23,13 @@ std::vector<size_t> sort_indexes(const std::vector<T> &v) {
 void precalculate_Wigner_6j_symbols(){
 }
 
+int factorial(int n){
+    if(n > 1)
+        return n * factorial(n - 1);
+    else
+        return 1;
+}
+
 void calculate_Gtilde_array(double* Gtilde_array,
 							double* Atilde_array,
 							int  Nx, double* x_array,
@@ -110,10 +117,15 @@ void calculate_Gtilde_subarray_polar(double* Gtilde_subarray,
 								     int  Nphi,
 								     double* sin_phi_subarray,
 								     double* cos_phi_subarray,
-								     int  L_2N, int L_2N_prime,
-								     int  L_1N, int L_1N_prime,
+								     int  L_2N, int L_2N_prime, int max_L_2N,
+								     int  L_1N, int L_1N_prime, int max_L_1N,
 								     int  two_J_3N,
 									 double* ClebschGordan_data,
+									 double* gsl_Plm_1_subarray, size_t gsl_Plm_1_stplen,
+									 double* gsl_Plm_2_subarray, size_t gsl_Plm_2_stplen,
+									 double* gsl_Plm_3_subarray, size_t gsl_Plm_3_stplen,
+									 double* prefac_L_array,
+									 double* prefac_l_array,
 									 int two_jmax_Clebsch){
 
 	bool print_Gtilde_progress = false;
@@ -128,11 +140,16 @@ void calculate_Gtilde_subarray_polar(double* Gtilde_subarray,
 				= Gtilde_subarray_new (sin_phi_subarray[phi_idx],
 									   cos_phi_subarray[phi_idx],
 									   x_array[x_idx],
-									   L_2N, L_2N_prime,
-									   L_1N, L_1N_prime,
+									   L_2N, L_2N_prime, max_L_2N,
+									   L_1N, L_1N_prime, max_L_1N,
 									   Atilde_subarray,
 									   two_J_3N,
 									   ClebschGordan_data,
+									   &gsl_Plm_1_subarray[x_idx*gsl_Plm_1_stplen],
+									   &gsl_Plm_2_subarray[(phi_idx*Nx + x_idx)*gsl_Plm_2_stplen],
+									   &gsl_Plm_3_subarray[(phi_idx*Nx + x_idx)*gsl_Plm_3_stplen],
+									   prefac_L_array,
+									   prefac_l_array,
 									   two_jmax_Clebsch);
 
 			counter += 1;
@@ -506,6 +523,78 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 		cos_phi_array[idx] = cos(phi_array[idx]);
 	}
 
+
+	/* Precalculate Legendre polynomials in geometric function */
+	printf("   - Precalculating Legendre polynomials \n");
+	fflush(stdout);
+	int len_Plm_array_L = gsl_sf_legendre_array_n(max_L12);
+	int len_Plm_array_l = gsl_sf_legendre_array_n(max_l3);
+
+	size_t tot_size_needed = (len_Plm_array_L+len_Plm_array_l)*Np_WP*Nq_WP*Nphi*Nx+len_Plm_array_l*Nx;
+	printf("     - Requires %d doubles. Allocating arrays \n", tot_size_needed);
+	fflush(stdout);
+
+	double* gsl_Plm_1_array = new double [len_Plm_array_l * Nx];
+	double* gsl_Plm_2_array = new double [len_Plm_array_L * Np_WP * Nq_WP * Nphi * Nx];
+	double* gsl_Plm_3_array = new double [len_Plm_array_l * Np_WP * Nq_WP * Nphi * Nx];
+
+	size_t gsl_Plm_1_stplen = len_Plm_array_l;
+	size_t gsl_Plm_2_stplen = len_Plm_array_L;
+	size_t gsl_Plm_3_stplen = len_Plm_array_l;
+
+	/* Calculate all Plm needed for given input angles using gsl.
+	 * The 1st argument is set to GSL_SF_LEGENDRE_NONE, meaning we calculate the "unnormalized associated Legendre polynomials Plm"
+	 * The 4th argument is set to -1, which means we use the Condon-Shortley phase factor (-1)^m */
+	printf("     - Calculating polynomials \n", tot_size_needed);
+	fflush(stdout);
+	for (int x_idx=0; x_idx<Nx; x_idx++){
+		double x = x_array[x_idx];
+		size_t idx_subarray_1 = x_idx;
+		gsl_sf_legendre_array_e(GSL_SF_LEGENDRE_SPHARM, max_l3, x, -1, &gsl_Plm_1_array[idx_subarray_1 * gsl_Plm_1_stplen]);
+	}
+	for (size_t qp_idx_WP=0; qp_idx_WP<Nq_WP; qp_idx_WP++){
+		for (size_t pp_idx_WP=0; pp_idx_WP<Np_WP; pp_idx_WP++){
+			for (size_t phi_idx=0; phi_idx<Nphi; phi_idx++){
+				double phi = phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi + phi_idx];
+				double sin_phi = std::sin(phi);
+				double cos_phi = std::cos(phi);
+				for (int x_idx=0; x_idx<Nx; x_idx++){
+					double x = x_array[x_idx];
+					double p = sin_phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi + phi_idx];
+					double q = cos_phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi + phi_idx];
+					double pi1 = pi1_tilde(p, q, x);
+					double pi2 = pi2_tilde(p, q, x);
+					double costheta1 = -(0.5 * p + 0.75 * q * x) / pi1;
+					double costheta2 = (p - 0.5 * q * x) / pi2;
+					size_t idx_subarray_2 = qp_idx_WP*Np_WP*Nphi*Nx + pp_idx_WP*Nphi*Nx + phi_idx*Nx + x_idx;
+					size_t idx_subarray_3 = qp_idx_WP*Np_WP*Nphi*Nx + pp_idx_WP*Nphi*Nx + phi_idx*Nx + x_idx;
+					gsl_sf_legendre_array_e(GSL_SF_LEGENDRE_SPHARM, max_L12, costheta1, -1, &gsl_Plm_2_array[idx_subarray_2 * gsl_Plm_2_stplen]);
+					gsl_sf_legendre_array_e(GSL_SF_LEGENDRE_SPHARM, max_l3,  costheta2, -1, &gsl_Plm_3_array[idx_subarray_3 * gsl_Plm_3_stplen]);
+				}
+			}
+		}
+	}
+	printf("     - Done \n");
+	fflush(stdout);
+
+	/* Arrays to hold prefactors to calculate Plm when m<0 (not calculated automatically by gsl)
+	 * Use same indexing as gsl Plm-arrays */
+	double* prefac_L_array  = new double [len_Plm_array_L];
+	double* prefac_l_array  = new double [len_Plm_array_l];
+	for (int L=0; L<max_L12+1; L++){
+		for (int m=0; m<L+1; m++){
+			int gsl_idx = gsl_sf_legendre_array_index(L, m);
+			prefac_L_array[gsl_idx] = gsl_sf_pow_int(-1.0, m);//*(double)factorial(L-m)/factorial(L+m);
+		}
+	}
+	for (int l=0; l<max_l3+1; l++){
+		for (int m=0; m<l+1; m++){
+			int gsl_idx = gsl_sf_legendre_array_index(l, m);
+			prefac_l_array[gsl_idx] = gsl_sf_pow_int(-1.0, m);//*(double)factorial(l-m)/factorial(l+m);
+		}
+	}
+
+
 	/* Preallocate array if we use dense format. Otherwise (i.e. sparse) start with
 	 * some reasonable guess (usually less than a percent), and expand if required. */
 	size_t P123_dense_dim    = Np_WP * Nq_WP * Nalpha;
@@ -516,7 +605,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	 * finds on most computers today (the number of cores usually is equal to, or smaller than, the memory in GB) */
 	size_t tread_buffer_size = std::pow(2,30)/(sizeof(double) + 2* sizeof(int));
 	
-	int P123_omp_num_threads = omp_get_max_threads();
+	int P123_omp_num_threads = run_parameters.P123_omp_num_threads;
 	if (P123_omp_num_threads>Nq_WP){
 		P123_omp_num_threads = Nq_WP;
 	}
@@ -673,10 +762,15 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 								   					    Nphi,
 								   					    &sin_phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
 								   					    &cos_phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
-								   					    L_2N, L_2N_prime,
-												  	    L_1N, L_1N_prime,
+								   					    L_2N, L_2N_prime, max_L12,
+												  	    L_1N, L_1N_prime, max_l3,
 												  	    two_J_3N,
 														ClebschGordan_data,
+														 gsl_Plm_1_array, gsl_Plm_1_stplen,
+														&gsl_Plm_2_array[(qp_idx_WP*Np_WP*Nphi*Nx + pp_idx_WP*Nphi*Nx)*gsl_Plm_2_stplen], gsl_Plm_2_stplen,
+														&gsl_Plm_3_array[(qp_idx_WP*Np_WP*Nphi*Nx + pp_idx_WP*Nphi*Nx)*gsl_Plm_3_stplen], gsl_Plm_3_stplen,
+														prefac_L_array,
+														prefac_l_array,
 														two_jmax_Clebsch);
 					}
 	

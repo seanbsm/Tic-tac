@@ -149,9 +149,20 @@ double Atilde (int alpha, int alphaprime, int Ltotal, int Jj_dim, int *L12_Jj, i
 double Gtilde_new (double p, double q, double x, int alpha, int alphaprime, int N_alpha,
                    int Lmax, int *L12_Jj, int *l3_Jj, double *A_store, int two_Jtotal);
 
-double Gtilde_subarray_new (double p, double q, double x, int L12, int L12prime, int l3, int l3prime,
-                            double *A_store_alpha_alphaprime_subarray, int two_Jtotal,
-                            double* ClebschGordan_data, int two_jmax_Clebsch);
+double Gtilde_subarray_new (double p,
+							double q,
+							double x,
+							int L12, int L12prime, int max_L12,
+							int l3,  int l3prime,  int max_l3,
+							double *A_store_alpha_alphaprime_subarray,
+							int two_Jtotal,
+							double* ClebschGordan_data,
+							double* gsl_Plm_1_subarray,
+							double* gsl_Plm_2_subarray,
+							double* gsl_Plm_3_subarray,
+                            double* prefac_L_array,
+                            double* prefac_l_array,
+							int two_jmax_Clebsch);
 
 
 

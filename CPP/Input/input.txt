@@ -1,10 +1,10 @@
 # Run "-h" or "--help" to see meaning of arguments
 two_J_3N_max=21
-Np_WP=100
-Nq_WP=100
+Np_WP=50
+Nq_WP=50
 J_2N_max=3
 Nphi=48
-Nx=48
+Nx=15
 chebyshev_s=100
 chebyshev_t=1
 p_grid_type=chebyshev

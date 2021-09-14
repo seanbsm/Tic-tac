@@ -615,21 +615,29 @@ void pade_method_solve(cdouble*  U_array,
 		double*  times_array = new double [3*num_threads];
 		
 		for (int n=2*NM-1; n<2*NM+1; n++){
+			printf("     - Working on Neumann-terms for n=%d. \n", n); fflush(stdout);
 			/* We've already done n=0 above */
 			if (n<=0){
 				continue;
 			}
+			
+			/* Initialise time-profile variables */
+			double time_resolvent        = 0;
+			double time_CPVC_cols        = 0;
+			double time_An_CPVC_multiply = 0;
+			double time_neumann          = 0;
 
-			auto timestamp_start = std::chrono::system_clock::now();
+			double timestamp_neumann_start = omp_get_wtime();
 
-			/* Reset time-keeper array */
-			for (int i=0; i<3*num_threads; i++){
-				times_array[i] = 0;
-			}
-
-			printf("     - Calculating on-shell rows of A*K^n for n=%d. \n", n); fflush(stdout);
+			///* Reset time-keeper array */
+			//auto timestamp_start = std::chrono::system_clock::now();
+			//for (int i=0; i<3*num_threads; i++){
+			//	times_array[i] = 0;
+			//}
 
 			/* Calculate all a-coefficients for calculated CPVC-column */
+			double timestamp_resolvent_start = omp_get_wtime();
+			printf("     - Multiplying in resolvent with An. \n"); fflush(stdout);
 			for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
 				for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 					size_t idx_row_NDOS = idx_d_row*num_q_com + idx_q_com;
@@ -645,8 +653,14 @@ void pade_method_solve(cdouble*  U_array,
 					}
 				}
 			}
-
+			double timestamp_resolvent_end    = omp_get_wtime();
+			time_resolvent = timestamp_resolvent_end - timestamp_resolvent_start;
+			
+			printf("     - Calculating on-shell rows of A*K^n for n=%d. \n", n); fflush(stdout);
 			for (size_t idx_col_chunk=0; idx_col_chunk<num_col_chunks; idx_col_chunk++){
+
+				double timestamp_CPVC_chunk_start = omp_get_wtime();
+
 				size_t idx_col_start =  idx_col_chunk    * max_num_cols_in_mem;
 				size_t idx_col_end   = (idx_col_chunk+1) * max_num_cols_in_mem;
 
@@ -675,7 +689,7 @@ void pade_method_solve(cdouble*  U_array,
 					size_t idx_q_c     = (idx_col % (Np_WP*Nq_WP)) /  Np_WP;
 					size_t idx_p_c     = idx_col %  Np_WP;
 
-						double timestamp_0 = omp_get_wtime();
+						//double timestamp_0 = omp_get_wtime();
 						/* Reset CPVC-column array */
 						//for (size_t row_idx=0; row_idx<dense_dim; row_idx++){
 						//	CPVC_col_array[row_idx]        =  0;
@@ -683,9 +697,9 @@ void pade_method_solve(cdouble*  U_array,
 						//	CPVC_nnz_to_row_array[row_idx] = -1;
 						//}
 
-						double timestamp_1 = omp_get_wtime();
-						double time1 = timestamp_1 - timestamp_0;
-						times_array[3*thread_idx] += time1;
+						//double timestamp_1 = omp_get_wtime();
+						//double time1 = timestamp_1 - timestamp_0;
+						//times_array[3*thread_idx] += time1;
 
 						/* Calculate CPVC-column */
 						size_t CPVC_num_nnz = 0;
@@ -704,13 +718,13 @@ void pade_method_solve(cdouble*  U_array,
 										   P123_sparse_dim);
 						counter_array[thread_idx] += CPVC_num_nnz;
 
-						double timestamp_2 = omp_get_wtime();
-						double time2 = timestamp_2 - timestamp_1;
-						times_array[3*thread_idx + 1] += time2;
+						//ouble timestamp_2 = omp_get_wtime();
+						//ouble time2 = timestamp_2 - timestamp_1;
+						//imes_array[3*thread_idx + 1] += time2;
 				}
 				}
-
-				double timestamp_3 = omp_get_wtime();
+				double timestamp_CPVC_chunk_end   = omp_get_wtime();
+				time_CPVC_cols += timestamp_CPVC_chunk_end - timestamp_CPVC_chunk_start;
 
 				double beta  = 0;
 				double alpha = 1;
@@ -726,37 +740,47 @@ void pade_method_solve(cdouble*  U_array,
 				double* re_C = &re_A_An_row_array[idx_col_start];
 				double* im_C = &im_A_An_row_array[idx_col_start];
 				
+				double timestamp_gemm_start = omp_get_wtime();
 				cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, re_A, lda, B, ldb, beta, re_C, ldc);	// real multiplication
 				cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, im_A, lda, B, ldb, beta, im_C, ldc);	// imag multiplication
+				double timestamp_gemm_end   = omp_get_wtime();
+				time_An_CPVC_multiply += timestamp_gemm_end - timestamp_gemm_start;
 				
-				double timestamp_4 = omp_get_wtime();
-				double time4 = timestamp_4 - timestamp_3;
-				times_array[3*0 + 2] += time4;
+				//double timestamp_4 = omp_get_wtime();
+				//double time4 = timestamp_4 - timestamp_3;
+				//times_array[3*0 + 2] += time4;
 				
 			}
-			
-			auto timestamp_end = std::chrono::system_clock::now();
-			std::chrono::duration<double> time = timestamp_end - timestamp_start;
+			//auto timestamp_end = std::chrono::system_clock::now();
+			//std::chrono::duration<double> time = timestamp_end - timestamp_start;
+			double timestamp_neumann_end = omp_get_wtime();
+			time_neumann = timestamp_neumann_end - timestamp_neumann_start;
 
-			double time_resetting_arrays = 0;
-			double time_CPVC_cols = 0;
-			double time_An_CPVC_multiply = 0;
-			for (int thread_idx=0; thread_idx<num_threads; thread_idx++){
-				if (times_array[3*thread_idx]>time_resetting_arrays){
-					time_resetting_arrays = times_array[3*thread_idx];
-				}
-				if (times_array[3*thread_idx+1]>time_CPVC_cols){
-					time_CPVC_cols = times_array[3*thread_idx+1];
-				}
-				if (times_array[3*thread_idx+2]>time_An_CPVC_multiply){
-					time_An_CPVC_multiply = times_array[3*thread_idx+2];
-				}
-			}
-			printf("       - Time resetting arrays:         %.6f \n", time_resetting_arrays);
-			printf("       - Time generating CPVC-cols:     %.6f \n", time_CPVC_cols);
-			printf("       - Time multiplying with An-rows: %.6f \n", time_An_CPVC_multiply);
-			printf("       - Total time:                    %.6f \n", time.count());
+			printf("       - Time multiplying An with G:    %.6f s \n", time_resolvent);
+			printf("       - Time generating CPVC-cols:     %.6f s \n", time_CPVC_cols);
+			printf("       - Time multiplying An with CPVC: %.6f s \n", time_An_CPVC_multiply);
+			printf("       - Total time:                    %.6f s \n", time_neumann);
 			printf("       - Done \n"); fflush(stdout);
+
+			//double time_resetting_arrays = 0;
+			//double time_CPVC_cols = 0;
+			//double time_An_CPVC_multiply = 0;
+			//for (int thread_idx=0; thread_idx<num_threads; thread_idx++){
+			//	if (times_array[3*thread_idx]>time_resetting_arrays){
+			//		time_resetting_arrays = times_array[3*thread_idx];
+			//	}
+			//	if (times_array[3*thread_idx+1]>time_CPVC_cols){
+			//		time_CPVC_cols = times_array[3*thread_idx+1];
+			//	}
+			//	if (times_array[3*thread_idx+2]>time_An_CPVC_multiply){
+			//		time_An_CPVC_multiply = times_array[3*thread_idx+2];
+			//	}
+			//}
+			//printf("       - Time resetting arrays:         %.6f \n", time_resetting_arrays);
+			//printf("       - Time generating CPVC-cols:     %.6f \n", time_CPVC_cols);
+			//printf("       - Time multiplying with An-rows: %.6f \n", time_An_CPVC_multiply);
+			//printf("       - Total time:                    %.6f \n", time.count());
+			//printf("       - Done \n"); fflush(stdout);
 
 			size_t nnz_counts = 0;
 			for (size_t i=0; i<100; i++){

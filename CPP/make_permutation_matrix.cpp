@@ -234,11 +234,11 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 
 	// for F_local_matrix prestorage and F_interpolate
 	int lmax = GSL_MAX_INT(max_l3, max_L12) + 3; // for C4 it is possible to couple l=lmax with THREE Y_{1}^{mu}
-	int l_interpolate_max = l_interpolate_max = 2 * (lmax - 3) + 3;
-
-	if (print_content){
-		std::cout << "   - lmax = " << lmax << ", l_interpolate_max = " << l_interpolate_max << "\n";
-	}
+	
+	//int l_interpolate_max = l_interpolate_max = 2 * (lmax - 3) + 3;
+	//if (print_content){
+	//	std::cout << "   - lmax = " << lmax << ", l_interpolate_max = " << l_interpolate_max << "\n";
+	//}
 
 	int Lmax = max_L12 + max_l3;
 	int two_jmax_SixJ = 2 * lmax; // do we need to prestore 6j??
@@ -254,15 +254,18 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	if (print_content){std::cout << "   - Nq_WP     = " <<  Nq_WP << std::endl;}
 	if (print_content){std::cout << "   - Nphi      = " <<  Nphi << std::endl;}
 	if (print_content){std::cout << "   - Nx        = " <<  Nx_Gtilde << std::endl;}
+	if (print_content){std::cout << "   - lmax      = " <<  lmax << std::endl;}
 
 	if (print_content){
-		std::cout << "   - prestore SixJ...\n";
+		printf("   - Precalculating Wigner 6j-symbols \n");
 	}
 	int SixJ_size = (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1) * (two_jmax_SixJ + 1);
-	double *SixJ_array = new double [SixJ_size];
 	if (SixJ_size < 0){
 		raise_error("SixJ_array in make_permutation_matrix had negative size, likely an integer overflow. Check your dimensions.");
 	}
+	printf("     - Total prestore requirement is %zu doubles. Allocating arrays ... \n", SixJ_size);
+	double *SixJ_array = new double [SixJ_size];
+	printf("     - Success. Calculating ... \n");
 	#pragma omp parallel for collapse(3)
 	for (int two_l1 = 0; two_l1 <= two_jmax_SixJ; two_l1++){
 		for (int two_l2 = 0; two_l2 <= two_jmax_SixJ; two_l2++){
@@ -286,12 +289,15 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 			}
 		}
 	}
+	printf("     - Done \n");
 
 	if (print_content){
-		std::cout << "   - Started working on Atilde\n";
+		printf("   - Precalculating Atilde \n");
 	}
 	MKL_INT64 Atilde_N = Jj_dim * Jj_dim * (Lmax + 1);
+	printf("     - Total prestore requirement is %zu doubles. Allocating arrays ... \n", Atilde_N);
 	double *Atilde_store = new double[Atilde_N];
+	printf("     - Success. Calculating ... \n");
 	for (MKL_INT64 i=0; i<Atilde_N; i++){
 		Atilde_store[i] = 0.0;
 	}
@@ -303,7 +309,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 		}
 	}
 	if (print_content){
-		std::cout << "   - Finished working on Atilde\n";
+		printf("     - Done \n");
 	}
 
 	/* Precalculate Clebsch-Gordan coefficients in geometric function */
@@ -311,9 +317,11 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
     int jmax_Clebsch = lmax;
 
     // prestore Clebsch Gordan coefficients
-    cout << "prestore ClebschGordan...\n";
-    double* ClebschGordan_data = new double [(size_t)(two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (2 * two_jmax_Clebsch + 1)];
-
+    printf("   - Precalculating Clebsch-Gordan coefficients \n");
+	size_t  ClebschGordan_size = (two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (two_jmax_Clebsch + 1) * (2 * two_jmax_Clebsch + 1);
+    printf("     - Total prestore requirement is %zu doubles. Allocating arrays ... \n", ClebschGordan_size);
+	double* ClebschGordan_data = new double [ClebschGordan_size];
+	printf("     - Success. Calculating ... \n");
     #pragma omp parallel
     {
         #pragma omp for collapse(3)
@@ -338,6 +346,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
             }
         }
     }
+	printf("     - Done \n");
 
 	/* END OF OLD CODE SEGMENT WITH OLD VARIABLE-NOTATION */
 
@@ -514,7 +523,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 		}
 	}
 	double P123_sparsity = (double) counter/num_WP_cells;
-	printf("   - %.3f%% of P123-matrix violates momentum-conservation \n", 100*P123_sparsity );
+	printf("     - %.3f%% of P123-matrix violates momentum-conservation \n", 100*P123_sparsity );
 
 	double*  sin_phi_array = new double [Nq_WP*Np_WP*Nphi];
 	double*  cos_phi_array = new double [Nq_WP*Np_WP*Nphi];
@@ -678,6 +687,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 		tot_calculation_time[thread_idx] = 0;
 	}
 	
+	omp_set_num_threads(P123_omp_num_threads);
 	#pragma omp parallel
 	{
 	int thread_idx = omp_get_thread_num();
@@ -882,6 +892,8 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 		}
 	}
 	}
+	omp_set_num_threads(omp_get_max_threads());
+
 	if (use_dense_format==false){
 		/* Write remaining elements to file */
 		for (int thread_idx=0; thread_idx<P123_omp_num_threads; thread_idx++){

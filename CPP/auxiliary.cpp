@@ -997,7 +997,7 @@ double Gtilde_subarray_new (double p,
 				int idx_gsl_1 = gsl_sf_legendre_array_index(l3, std::abs(Mtotal));
 				double Plm_1  = gsl_Plm_1_subarray[idx_gsl_1];
 				
-				if (Mtotal<0 && Mtotal%2==1){
+				if (Mtotal<0 && Mtotal%2==-1){
 					Plm_1 *= -1;//gsl_sf_pow_int(-1.0, Mtotal);//prefac_l_array[idx_gsl_1];
 				}
 
@@ -1013,7 +1013,8 @@ double Gtilde_subarray_new (double p,
 				fac2 = ClebschGordan_array(two_jmax_Clebsch, ClebschGordan_data, 2 * L12, 2 * l3, 2 * Ltotal, 0, 2 * Mtotal)//ClebschGordan(2 * L12, 2 * l3, 2 * Ltotal, 0, 2 * Mtotal, 2 * Mtotal)
 					   //* sqrt((2.0 * L12 + 1) / (4 * M_PI))
 					   * gsl_sf_pow_int(-1, Mtotal)
-					   * Plm_1;//(l3, Mtotal, x); // -1^M phase since azimutal angles of p' and q' = pi
+					   * Plm_1;
+					   //* Plm(l3, Mtotal, x); // -1^M phase since azimutal angles of p' and q' = pi
 				
 				if (fac2!=0){
 					for (int M12primesum = -L12prime; M12primesum <= L12prime; M12primesum++){
@@ -1021,21 +1022,37 @@ double Gtilde_subarray_new (double p,
 
 							int idx_gsl_2 = gsl_sf_legendre_array_index(L12prime, std::abs(M12primesum));
 							double Plm_2  = gsl_Plm_2_subarray[idx_gsl_2];
-							if (M12primesum<0 && M12primesum%2==1){
+							if (M12primesum<0 && M12primesum%2==-1){
 								Plm_2 *= -1;//gsl_sf_pow_int(-1.0, M12primesum);//prefac_l_array[idx_gsl_1];
 							}
 							int M_diff = Mtotal - M12primesum;
 							int idx_gsl_3 = gsl_sf_legendre_array_index(l3prime, std::abs(M_diff));
 							double Plm_3  = gsl_Plm_3_subarray[idx_gsl_3];
-							if (M_diff<0 && M_diff%2==1){
+							if (M_diff<0 && M_diff%2==-1){
 								Plm_3 *= -1;//gsl_sf_pow_int(-1.0, M_diff);//prefac_l_array[idx_gsl_1];
 							}
 
 							ret +=   fac1
 								   * fac2
 								   * ClebschGordan_array(two_jmax_Clebsch, ClebschGordan_data, 2 * L12prime, 2 * l3prime, 2 * Ltotal, 2 * M12primesum, 2 * Mtotal - 2 * M12primesum)//ClebschGordan(2 * L12prime, 2 * l3prime, 2 * Ltotal, 2 * M12primesum, 2 * Mtotal - 2 * M12primesum, 2 * Mtotal)
-								   * Plm_2//(L12prime, M12primesum, costheta1)
-								   * Plm_3;//(l3prime, Mtotal - M12primesum, costheta2);
+								   * Plm_2
+								   * Plm_3;
+								   //* Plm(L12prime, M12primesum, costheta1)
+								   //* Plm(l3prime, Mtotal - M12primesum, costheta2);
+
+							//if ( std::abs(Plm(l3, Mtotal, x)- Plm_1)>1e-8 || std::abs(Plm(L12prime, M12primesum, costheta1)- Plm_2)>1e-8 || std::abs(Plm(l3prime, Mtotal - M12primesum, costheta2)- Plm_3)>1e-8){
+							//	std::cout << std::endl;
+							//	std::cout << "Me  Plm1:  " << Plm_1  << " " << gsl_Plm_1_subarray[idx_gsl_1] << std::endl;
+							//	std::cout << "Me  Plm2:  " << Plm_2  << " " << gsl_Plm_2_subarray[idx_gsl_2] << std::endl;
+							//	std::cout << "Me  Plm3:  " << Plm_3  << " " << gsl_Plm_3_subarray[idx_gsl_3] << std::endl;
+							//	std::cout << "Kai Plm1: " << Plm(l3, Mtotal, x) << std::endl;
+							//	std::cout << "Kai Plm2: " << Plm(L12prime, M12primesum, costheta1) << std::endl;
+							//	std::cout << "Kai Plm3: " << Plm(l3prime, Mtotal - M12primesum, costheta2) << std::endl;
+							//	std::cout << "l1, m1: " << l3  << " " << Mtotal << std::endl;
+							//	std::cout << "l2, m2: " << L12prime  << " " << M12primesum << std::endl;
+							//	std::cout << "l3, m3: " << l3prime  << " " << Mtotal - M12primesum << std::endl;
+							//	exit(0);
+							//}
 						}
 					}
 				}

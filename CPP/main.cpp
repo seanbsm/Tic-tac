@@ -165,7 +165,7 @@ int main(int argc, char* argv[]){
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
 	 * and solve Faddeev in a single run */
-	bool solve_faddeev		      = true;
+	bool solve_faddeev		      = false;
 
 	/* Setting to do realistic, or fast toy-model, calculations for P123 */
 	bool production_run			  = true;

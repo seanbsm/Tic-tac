@@ -2,7 +2,7 @@
 two_J_3N_max=21
 Np_WP=50
 Nq_WP=50
-J_2N_max=3
+J_2N_max=1
 Nphi=48
 Nx=15
 chebyshev_s=100
@@ -11,6 +11,7 @@ p_grid_type=chebyshev
 p_grid_filename=Input/NWP-100-splitnorm.txt
 q_grid_type=chebyshev
 q_grid_filename=Input/NWP-100-splitnorm.txt
+P123_omp_num_threads=4
 max_TFC=2
 parallel_run=true
 P123_recovery=false

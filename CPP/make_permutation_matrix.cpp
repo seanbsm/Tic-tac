@@ -894,6 +894,21 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	}
 	omp_set_num_threads(omp_get_max_threads());
 
+	/* Delete all temporary arrays and free memory */
+	delete [] pq_WP_overlap_array;
+	delete [] Atilde_store;
+	delete [] SixJ_array;
+	delete [] ClebschGordan_data;
+	delete [] prefac_L_array;
+	delete [] prefac_l_array;
+	delete [] gsl_Plm_1_array;
+	delete [] gsl_Plm_2_array;
+	delete [] gsl_Plm_3_array;
+	delete [] sin_phi_array;
+	delete [] cos_phi_array;
+  	delete [] phi_array;
+  	delete [] wphi_array;
+
 	if (use_dense_format==false){
 		/* Write remaining elements to file */
 		for (int thread_idx=0; thread_idx<P123_omp_num_threads; thread_idx++){
@@ -944,11 +959,6 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	chrono::duration<double> time_P123_tot = timestamp_P123_tot_end - timestamp_P123_tot_start;
 	double P123_tot_time = time_P123_tot.count();
 	printf("\n     - Done. Tot. time used: %.1f h \n", P123_tot_time/3600.); fflush(stdout);
-
-	/* Delete all temporary arrays */
-	delete [] pq_WP_overlap_array;
-	delete [] Atilde_store;
-	delete [] SixJ_array;
 }
 
 void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,

@@ -6,6 +6,7 @@
 #include <fstream>
 
 #include "error_management.h"
+#include "type_defs.h"
 
 int unique_2N_idx(int L_2N, int S_2N, int J_2N, int T_2N, bool tensor_force_true, bool coupled);
 
@@ -22,6 +23,7 @@ void construct_symmetric_pw_states(int    J_2N_max,
 								   int**  two_J_1N_array_ptr,
 								   int**  two_J_3N_array_ptr,
 								   int**  two_T_3N_array_ptr,
-								   int**  P_3N_array_ptr);
+								   int**  P_3N_array_ptr,
+								   pw_3N_statespace& pw_states);
 
 #endif // MAKE_PW_SYMM_STATES_H

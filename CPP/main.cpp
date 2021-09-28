@@ -209,6 +209,7 @@ int main(int argc, char* argv[]){
 	int* two_J_3N_array = NULL; 	// three-nucleon state total angular momentum x2
 	int* two_T_3N_array = NULL; 	// three-nucleon state total isospin x2
 	int* P_3N_array 	= NULL; 	// three-nucleon state parity
+	pw_3N_statespace pw_states;		// struct to hold all 3N partial-wave quantum numbers
 
 	/* Three-nucleon channel indexing (a 3N channel is defined by a set {two_J_3N, two_T_3N, P_3N}) */
 	int  N_chn_3N 		  = 0;
@@ -246,7 +247,8 @@ int main(int argc, char* argv[]){
 								  &two_J_1N_array,
 								  &two_J_3N_array,
 								  &two_T_3N_array,
-								  &P_3N_array);
+								  &P_3N_array,
+								  pw_states);
 	printf(" - There are %d 3N-channels \n", N_chn_3N);
 
 	/* Allocate deuteron-channel index-lookup arrays */

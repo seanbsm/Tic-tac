@@ -106,13 +106,11 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array,
 			int S_c = S_2N_array[idx_alpha_c];
 			int J_c = J_2N_array[idx_alpha_c];
 			int T_c = T_2N_array[idx_alpha_c];
-			
 
 			bool check_T = T_r==T_c;
 			bool check_J = J_r==J_c;
 			bool check_S = S_r==S_c;
 			bool check_L = ( (tensor_force_true && abs(L_r-L_c)<=2) || L_r==L_c);
-
 
 			/* Check if possible channel through interaction */
 			if (check_T && check_J && check_S && check_L){

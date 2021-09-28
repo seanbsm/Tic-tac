@@ -11,6 +11,20 @@ typedef double floatType;
 typedef std::complex<floatType> cfloatType;
 typedef std::complex<double> cdouble;
 
+typedef struct pw_3N_statespace{
+	int  dim;
+	int  J_2N_max;
+	int* L_2N_array;
+	int* S_2N_array;
+	int* J_2N_array;
+	int* T_2N_array;
+	int* L_1N_array;
+	int* two_J_1N_array;
+	int* two_J_3N_array;
+	int* two_T_3N_array;
+	int* P_3N_array;
+} pw_3N_statespace;
+
 typedef struct run_params{
 	int         two_J_3N_max;
 	int         Np_WP;

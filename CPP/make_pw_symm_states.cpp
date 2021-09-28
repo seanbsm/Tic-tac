@@ -36,7 +36,8 @@ void construct_symmetric_pw_states(int    J_2N_max,
 								   int**  two_J_1N_array_ptr,
 								   int**  two_J_3N_array_ptr,
 								   int**  two_T_3N_array_ptr,
-								   int**  P_3N_array_ptr){
+								   int**  P_3N_array_ptr,
+								   pw_3N_statespace& pw_states){
 
 	bool print_content = true;
 	char print_table_format_words[] = "%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s\n";
@@ -88,20 +89,20 @@ void construct_symmetric_pw_states(int    J_2N_max,
 	int  P_3N             = 0;
 	/* two_J_3N loop */
 	for (int two_J_3N=1; two_J_3N<two_J_3N_max+1; two_J_3N+=2){
-		/* two_T_3N loop */
-		for (int two_T_3N=1; two_T_3N<2; two_T_3N+=2){
-			/* Parity loop: P_3N_remainder is the remainder of (l+L)/2 */
-			for (int P_3N_remainder=0; P_3N_remainder<2; P_3N_remainder++){
-				if (print_content){
-					if (P_3N_remainder==0){
-						printf ("Constructing channel %d with JP=%d/2- (T=%d/2): \n", N_chn_3N_temp+1, two_J_3N, two_T_3N);
-					}
-					else{
-						printf ("Constructing channel %d with JP=%d/2+ (T=%d/2): \n", N_chn_3N_temp+1, two_J_3N, two_T_3N);
-					}
+		/* Parity loop: P_3N_remainder is the remainder of (l+L)/2 */
+		for (int P_3N_remainder=0; P_3N_remainder<2; P_3N_remainder++){
+			if (print_content){
+				if (P_3N_remainder==0){
+					printf ("Constructing channel %d with JP=%d/2-: \n", N_chn_3N_temp+1, two_J_3N);
 				}
-				/* Used to cound how many PW states are in current channel (J_3N, T_3N, P_3N) */
-				int Nalpha_in_current_chn = 0;
+				else{
+					printf ("Constructing channel %d with JP=%d/2+: \n", N_chn_3N_temp+1, two_J_3N);
+				}
+			}
+			/* Used to cound how many PW states are in current channel (J_3N, P_3N) */
+			int Nalpha_in_current_chn = 0;
+			/* two_T_3N loop */
+			for (int two_T_3N=1; two_T_3N<4; two_T_3N+=2){
 				/* J_2N loop */
 				for (int J_2N=0; J_2N<J_2N_max+1; J_2N++){
 					/* S_2N loop */
@@ -135,11 +136,11 @@ void construct_symmetric_pw_states(int    J_2N_max,
 											/* Check 3N-system total parity given by P_3N */
 											if ( ((L_2N+L_1N)%2)==P_3N_remainder){
 
-												//if (two_T_3N==3){
-												//    if ( (S_2N==0 && L_2N==0 && J_2N==0)==false ){
-												//        continue;
-												//    }
-												//}
+												if (two_T_3N==3){
+												    if ( (S_2N==0 && L_2N==0 && J_2N==0)==false ){
+												        continue;
+												    }
+												}
 
 												/* Quartet channel for Malfliet-Tjon debugging */
 												//if (L_2N!=0 ||
@@ -180,16 +181,15 @@ void construct_symmetric_pw_states(int    J_2N_max,
 						}
 					}
 				}
-
-				/* Append 3N channel if there exists states in the given channel (J_3N, T_3N, P_3N)
-				 * Using Nalpha_temp_prev rather than Nalpha_temp means we get the starting index
-				 * for the current channel. It makes for simpler indexing throughout the code. */
-				if (Nalpha_in_current_chn!=0){
-					N_chn_3N_temp += 1;
-					chn_idx_temp.push_back(Nalpha_temp_prev);
-				}
-				Nalpha_temp_prev = Nalpha_temp;
 			}
+			/* Append 3N channel if there exists states in the given channel (J_3N, T_3N, P_3N)
+			 * Using Nalpha_temp_prev rather than Nalpha_temp means we get the starting index
+			 * for the current channel. It makes for simpler indexing throughout the code. */
+			if (Nalpha_in_current_chn!=0){
+				N_chn_3N_temp += 1;
+				chn_idx_temp.push_back(Nalpha_temp_prev);
+			}
+			Nalpha_temp_prev = Nalpha_temp;
 		}
 	}
 
@@ -227,4 +227,16 @@ void construct_symmetric_pw_states(int    J_2N_max,
 	std::copy( P_3N_temp.begin(), P_3N_temp.end(), *P_3N_array_ptr );
 
 	std::copy( chn_idx_temp.begin(), chn_idx_temp.end(), *chn_3N_idx_array_ptr );
+
+	pw_states.dim				=  Nalpha;
+	pw_states.J_2N_max			=  J_2N_max;
+	pw_states.L_2N_array		= *L_2N_array_ptr;
+	pw_states.S_2N_array		= *S_2N_array_ptr;
+	pw_states.J_2N_array		= *J_2N_array_ptr;
+	pw_states.T_2N_array		= *T_2N_array_ptr;
+	pw_states.L_1N_array		= *L_1N_array_ptr;
+	pw_states.two_J_1N_array	= *two_J_1N_array_ptr;
+	pw_states.two_J_3N_array	= *two_J_3N_array_ptr;
+	pw_states.two_T_3N_array	= *two_T_3N_array_ptr;
+	pw_states.P_3N_array		= *P_3N_array_ptr;
 }

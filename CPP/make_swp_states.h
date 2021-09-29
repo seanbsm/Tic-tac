@@ -45,10 +45,11 @@ void make_swp_states(double* e_SWP_unco_array,
 					 double* C_WP_coup_array,
 					 double* V_WP_unco_array,
 					 double* V_WP_coup_array,
-					 bool 	 tensor_force_true,
+					 int num_2N_unco_states,
+					 int num_2N_coup_states,
 					 double& E_bound,
 					 int Np_WP, double* p_WP_array,
-					 int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array,
-					 int J_2N_max);
+					 int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* two_T_3N_array,
+					 run_params run_parameters);
 
 #endif // MAKE_SWP_STATES_H

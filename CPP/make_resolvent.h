@@ -35,13 +35,14 @@ cdouble resolvent_continuum_continuum(double E, double Eb,
 
 void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 											double   E,
-											bool 	 tensor_force_true,
 											int      Np_WP, double* e_SWP_unco_array, double* e_SWP_coup_array,
 											int      Nq_WP, double* q_WP_array,
 											int      Nalpha,
 											int*     L_2N_array,
 											int*     S_2N_array,
 											int*     J_2N_array,
-											int*     T_2N_array);
+											int*     T_2N_array,
+											int*	 two_T_3N_array,
+											run_params run_parameters);
 
 #endif // MAKE_RESOLVENT_H

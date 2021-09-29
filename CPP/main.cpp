@@ -234,9 +234,7 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* Start of code segment for state space construction */
 	printf("Constructing 3N partial-wave basis ... \n");
-	construct_symmetric_pw_states(J_2N_max,
-								  two_J_3N_max,
-								  N_chn_3N,
+	construct_symmetric_pw_states(N_chn_3N,
 								  &chn_3N_idx_array,
 								  Nalpha,
 								  &L_2N_array,
@@ -248,7 +246,8 @@ int main(int argc, char* argv[]){
 								  &two_J_3N_array,
 								  &two_T_3N_array,
 								  &P_3N_array,
-								  pw_states);
+								  pw_states,
+								  run_parameters);
 	printf(" - There are %d 3N-channels \n", N_chn_3N);
 
 	/* Allocate deuteron-channel index-lookup arrays */
@@ -314,12 +313,20 @@ int main(int argc, char* argv[]){
 
 	int num_2N_unco_states = 0;
 	int num_2N_coup_states = 0;
-	if (tensor_force_true){
+	if (run_parameters.tensor_force==true){
 		num_2N_unco_states = 2*(J_2N_max+1);
 		num_2N_coup_states =    J_2N_max;
+		if (run_parameters.isospin_breaking_1S0==true){
+			num_2N_unco_states -= 1;
+			num_2N_coup_states += 1;
+		}
 	}
 	else{
 		num_2N_unco_states = 4*J_2N_max + 2;
+		if (run_parameters.isospin_breaking_1S0==true){
+			num_2N_unco_states -= 1;
+			num_2N_coup_states  = 1;
+		}
 	}
 
 	int V_unco_array_size = 0;
@@ -364,13 +371,13 @@ int main(int argc, char* argv[]){
 		//return 0;
 
 		printf("Constructing 2N-potential matrices in WP basis ... \n");
-		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array,
-													   V_WP_coup_array,
+		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array, num_2N_unco_states,
+													   V_WP_coup_array, num_2N_coup_states,
 													   tensor_force_true,
 													   mid_point_approximation,
 													   Np_WP, p_WP_array,
 													   Np_per_WP, p_array, wp_array,
-													   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
+													   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, two_T_3N_array,
 													   J_2N_max,
 													   pot_ptr_nn,
 													   pot_ptr_np);
@@ -398,11 +405,12 @@ int main(int argc, char* argv[]){
 						C_WP_coup_array,
 						V_WP_unco_array,
 						V_WP_coup_array,
-						tensor_force_true,
+						num_2N_unco_states,
+						num_2N_coup_states,
 						E_bound,
 						Np_WP, p_WP_array,
-						Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array,
-						J_2N_max);
+						Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, two_T_3N_array,
+						run_parameters);
 		printf(" - Using E_bound = %.5f MeV \n", E_bound);
 		printf(" - Done \n");
 
@@ -853,7 +861,6 @@ int main(int argc, char* argv[]){
 				double E = E_com + E_bound;
 				calculate_resolvent_array_in_SWP_basis(&G_array[j*Nalpha_in_3N_chn*Np_WP*Nq_WP],
 													   E,
-													   tensor_force_true,
 													   Np_WP,
 													   e_SWP_unco_array,
 													   e_SWP_coup_array,
@@ -862,7 +869,9 @@ int main(int argc, char* argv[]){
 													   L_2N_subarray,
 													   S_2N_subarray,
 													   J_2N_subarray,
-													   T_2N_subarray);
+													   T_2N_subarray,
+													   two_T_3N_array,
+													   run_parameters);
 				////printf("%.10f\n\n",com_energy_to_com_q_momentum(3.8306227657971945-1.9624153103111233, -1.9624153103111233));
 				//double q_com = com_energy_to_com_q_momentum(E_com);
 				//printf("E = %.15f MeV | Ecm = %.15f MeV | q = %.15f MeV:\n", E, E_com, q_com);

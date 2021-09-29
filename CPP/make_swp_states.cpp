@@ -185,22 +185,19 @@ void make_swp_states(double* e_SWP_unco_array,
 					 double* C_WP_coup_array,
 					 double* V_WP_unco_array,
                      double* V_WP_coup_array,
-					 bool 	 tensor_force_true,
+					 int num_2N_unco_states,
+					 int num_2N_coup_states,
 					 double& E_bound,
 					 int Np_WP, double* p_WP_array,
-					 int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array,
-					 int J_2N_max){
+					 int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* two_T_3N_array,
+					 run_params run_parameters){
 	
+	/* This test will be reused several times */
+	bool tensor_force_true = (run_parameters.tensor_force==true);
+
 	/* Number of uncoupled and coupled 2N-channels */
-	int num_unco_chns = 0;
-	int num_coup_chns = 0;
-	if (tensor_force_true){
-		num_unco_chns = 2*(J_2N_max+1);
-		num_coup_chns =    J_2N_max;
-	}
-	else{
-		num_unco_chns = 4*J_2N_max + 2;
-	}
+	int num_unco_chns = num_2N_unco_states;
+	int num_coup_chns = num_2N_coup_states;
 
 	/* Check-lists to keep track of which 2N Hamiltonian diagonalizations have been done.
 	 * This removes excessive work due to distinct 3N channels containing equal
@@ -269,6 +266,8 @@ void make_swp_states(double* e_SWP_unco_array,
         int S_r = S_2N_array[idx_alpha_r];
         int J_r = J_2N_array[idx_alpha_r];
         int T_r = T_2N_array[idx_alpha_r];
+
+		int two_T_3N_r = two_T_3N_array[idx_alpha_r];
         
         /* Column state */
         for (int idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
@@ -277,21 +276,30 @@ void make_swp_states(double* e_SWP_unco_array,
             int J_c = J_2N_array[idx_alpha_c];
             int T_c = T_2N_array[idx_alpha_c];
 
+			int two_T_3N_c = two_T_3N_array[idx_alpha_c];
+
             /* Check if possible channel through interaction */
             if (T_r==T_c and J_r==J_c and S_r==S_c and abs(L_r-L_c)<=2){
-
-                /* Detemine if this is a coupled channel */
-	            bool coupled_matrix = false;
-	            if (tensor_force_true && (L_r!=L_c or (L_r==L_c and L_r!=J_r and J_r!=0)) ){    // This counts 3P0 as uncoupled; used in matrix structure
+				
+                /* Detemine if this is a coupled channel.
+				 * !!! With isospin symmetry-breaking we count 1S0 as a coupled matrix via T_3N-coupling !!! */
+				bool coupled_matrix = false;
+				bool state_1S0 = (S_r==0 && J_r==0 && L_r==0);
+				bool coupled_via_L_2N = (tensor_force_true && (L_r!=L_c or (L_r==L_c && L_r!=J_r && J_r!=0)));
+				bool coupled_via_T_3N = (state_1S0==true && run_parameters.isospin_breaking_1S0==true);
+				if (coupled_via_L_2N && coupled_via_T_3N){
+					raise_error("Warning! Code has not been written to handle isospin-breaking in coupled channels!");
+				}
+				if (coupled_via_L_2N || coupled_via_T_3N){ // This counts 3P0 as uncoupled; used in matrix structure
 					coupled_matrix  = true;
 				}
 
-                /* Skip redundant calculations by only doing the coupled calculation when L_r==L_c */
-                if (coupled_matrix){
-                    if ( (L_r==L_c)==false ){
-                        continue;
-                    }
-                }
+                ///* Skip redundant calculations by only doing the coupled calculation when L_r==L_c */
+                //if (coupled_matrix){
+                //    if ( (L_r==L_c)==false ){
+                //        continue;
+                //    }
+                //}
 
 				/* Hamiltonian matrix pointer and dimension
                  * Indexing format of Hamitonian arrays: (channel index)*(num rows)*(num columns) + (row index)*(row length) + (column index) */
@@ -303,8 +311,8 @@ void make_swp_states(double* e_SWP_unco_array,
 				double* mat_ptr_C 		= NULL;
 				double* e_SWP_array_ptr = NULL;
                 if (coupled_matrix){
-					mat_dim   		= 2*Np_WP;
-					chn_idx   		= unique_2N_idx(L_r, S_r, J_r, T_r, tensor_force_true, coupled_matrix);
+					mat_dim = 2*Np_WP;
+					chn_idx = unique_2N_idx(L_r, S_r, J_r, T_r, coupled_matrix, run_parameters);
 
 					/* Check if 2N channels diagonalization has already
 					 * been performed in previous loop-iterations,
@@ -324,8 +332,8 @@ void make_swp_states(double* e_SWP_unco_array,
 					mat_ptr_H0 		= H0_WP_coup_array;
                 }
 			    else{
-					mat_dim   		= Np_WP;
-					chn_idx   		= unique_2N_idx(L_r, S_r, J_r, T_r, tensor_force_true, coupled_matrix);
+					mat_dim = Np_WP;
+					chn_idx = unique_2N_idx(L_r, S_r, J_r, T_r, coupled_matrix, run_parameters);
 
 					/* Check if 2N channels diagonalization has already
 					 * been performed in previous loop-iterations,

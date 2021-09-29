@@ -81,14 +81,18 @@ cdouble resolvent_continuum_continuum(double E, double Eb,
 
 void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 											double   E,
-											bool 	 tensor_force_true,
 											int      Np_WP, double* e_SWP_unco_array, double* e_SWP_coup_array,
 											int      Nq_WP, double* q_WP_array,
 											int      Nalpha,
 											int*     L_2N_array,
 											int*     S_2N_array,
 											int*     J_2N_array,
-											int*     T_2N_array){
+											int*     T_2N_array,
+											int*	 two_T_3N_array,
+											run_params run_parameters){
+	
+	/* This test will be reused several times */
+	bool tensor_force_true = (run_parameters.tensor_force==true);
 
 	/* Pointer to either p_SWP_unco_array or p_SWP_coup_array,
 	 * which is determined by whether the channel is coupled or not */
@@ -102,18 +106,45 @@ void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 		int J = J_2N_array[idx_alpha];
 		int T = T_2N_array[idx_alpha];
 
-		/* Detemine if this is a coupled channel */
-		if (tensor_force_true && L!=J && J!=0){ // This counts 3P0 as uncoupled (which is intended)
-			int chn_2N_idx = unique_2N_idx(L, S, J, T, tensor_force_true, true);
-			if (L<J){
-				e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1)];
+		int two_T_3N = two_T_3N_array[idx_alpha];
+
+		/* Detemine if this is a coupled channel.
+		 * !!! With isospin symmetry-breaking we count 1S0 as a coupled matrix via T_3N-coupling !!! */
+		bool coupled_channel = false;
+		bool state_1S0 = (S==0 && J==0 && L==0);
+		bool coupled_via_L_2N = (tensor_force_true && L!=J && J!=0);
+		bool coupled_via_T_3N = (state_1S0==true && run_parameters.isospin_breaking_1S0==true);
+		if (coupled_via_L_2N && coupled_via_T_3N){
+			raise_error("Warning! Code has not been written to handle isospin-breaking in coupled channels!");
+		}
+		if (coupled_via_L_2N || coupled_via_T_3N){ // This counts 3P0 as uncoupled; used in matrix structure
+			coupled_channel  = true;
+		}
+
+		if (coupled_channel){
+			int chn_2N_idx = unique_2N_idx(L, S, J, T, coupled_channel, run_parameters);
+			if (coupled_via_L_2N){
+				if (L<J){
+					e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1)];
+				}
+				else{
+					e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1) + Np_WP+1];
+				}
+			}
+			else if (coupled_via_T_3N){
+				if (two_T_3N==1){
+					e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1)];
+				}
+				else{
+					e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1) + Np_WP+1];
+				}
 			}
 			else{
-				e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1) + Np_WP+1];
+				raise_error("Unknown coupling encountered in resolvent-calculation!")
 			}
 		}
 		else{
-			int chn_2N_idx = unique_2N_idx(L, S, J, T, tensor_force_true, false);
+			int chn_2N_idx = unique_2N_idx(L, S, J, T, coupled_channel, run_parameters);
 			e_SWP_array_ptr = &e_SWP_unco_array[chn_2N_idx * (Np_WP+1)];
 		}
 

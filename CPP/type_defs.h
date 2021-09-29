@@ -41,6 +41,9 @@ typedef struct run_params{
 	int			max_TFC;
 	bool        parallel_run;
 	bool		P123_recovery;
+	bool 		tensor_force;
+	bool		isospin_breaking_1S0;
+	bool 		mid_point_approximation;
 	std::string potential_model;
 	std::string subfolder;
 	std::string p_grid_type;

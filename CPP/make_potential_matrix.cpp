@@ -53,13 +53,14 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 													int Np_WP, double* p_WP_array,
 													int Np_per_WP, double* p_array, double* wp_array,
 													int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* two_T_3N_array,
-													int J_2N_max,
 													potential_model* pot_ptr_nn,
 													potential_model* pot_ptr_np,
 													run_params run_parameters){
 	
 	/* This test will be reused several times */
 	bool tensor_force_true = (run_parameters.tensor_force==true);
+
+	int J_2N_max = run_parameters.J_2N_max;
 
 	/* Potential-model input arrays */
 	double V_WP_elements [6];	// Isoscalar wave-packet potential elements (WP)
@@ -143,7 +144,7 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 				 * !!! With isospin symmetry-breaking we count 1S0 as a coupled matrix via T_3N-coupling !!! */
 				bool coupled_matrix = false;
 				bool coupled_model  = false;
-				bool coupled_via_L_2N = (tensor_force_true && (L_r!=L_c or (L_r==L_c && L_r!=J_r && J_r!=0)));
+				bool coupled_via_L_2N = (tensor_force_true && (L_r!=L_c || (L_r==L_c && L_r!=J_r && J_r!=0)));
 				bool coupled_via_T_3N = (state_1S0==true && run_parameters.isospin_breaking_1S0==true);
 				if (coupled_via_L_2N && coupled_via_T_3N){
 					raise_error("Warning! Code has not been written to handle isospin-breaking in coupled channels!");
@@ -151,7 +152,7 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 				if (coupled_via_L_2N || coupled_via_T_3N){ // This counts 3P0 as uncoupled; used in matrix structure
 					coupled_matrix  = true;
 				}
-				if (L_r!=L_c or (L_r==L_c && L_r!=J_r)){   // This counts 3P0 as coupled; used in potential models
+				if (L_r!=L_c || (L_r==L_c && L_r!=J_r)){   // This counts 3P0 as coupled; used in potential models
 					coupled_model   = true;
 				}
 
@@ -185,11 +186,11 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 				}
 
 				printf("   - Working on matrix <L'=%d|V(S=%d, J=%d, T=%d)|L=%d> ", L_r, S_r, J_r, T_r, L_c);
-				if (coupled_matrix){
-					printf("(coupled matrix -> calculation includes all couplings of L' and L.)");
+				if (coupled_via_L_2N){
+					printf("(coupled matrix via L_2N -> calculation includes all couplings of L' and L.)");
 				}
-				if (isoscalar_type==2 || isoscalar_type==3){
-					printf("(isospin-breaking)");
+				if (coupled_via_T_3N){
+					printf("(coupled matrix via T_3N -> isospin-breaking.)");
 				}
 				printf("\n");
 

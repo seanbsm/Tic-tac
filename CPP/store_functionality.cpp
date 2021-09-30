@@ -529,8 +529,8 @@ void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_a
 													   int*    T_2N_array,
 													   int*    L_1N_array, 
 													   int*    two_J_1N_array,
+													   int*    two_T_3N_array,
 													   int     two_J_3N,
-													   int     two_T_3N,
 													   int     P_3N,
 													   std::string filename_in,
 													   bool print_content){
@@ -583,8 +583,8 @@ void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_a
 							  T_2N_array,
 							  L_1N_array, 
 							  two_J_1N_array,
+							  two_T_3N_array,
 							  two_J_3N,
-							  two_T_3N,
 							  P_3N,
 							  file_id);
 	
@@ -614,8 +614,8 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 													   int*    T_2N_array,
 													   int*    L_1N_array, 
 													   int*    two_J_1N_array,
+													   int*    two_T_3N_array,
 													   int     two_J_3N,
-													   int     two_T_3N,
 													   int     P_3N,
 													   std::string filename_in,
 													   bool    print_content){
@@ -677,8 +677,8 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 	int T_2N_array_file     [Nalpha];
 	int L_1N_array_file     [Nalpha];
 	int two_J_1N_array_file [Nalpha];
-	int two_J_3N_array_file [Nalpha];
 	int two_T_3N_array_file [Nalpha];
+	int two_J_3N_array_file [Nalpha];
 	int P_3N_array_file     [Nalpha];
 	read_PW_statespace_to_h5(Nalpha,
 							 L_2N_array_file,
@@ -687,8 +687,8 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 							 T_2N_array_file,
 							 L_1N_array_file, 
 							 two_J_1N_array_file,
-							 two_J_3N_array_file,
 							 two_T_3N_array_file,
+							 two_J_3N_array_file,
 							 P_3N_array_file,
 							 filename);
 	/* Verify PW statespace match current program run, exit if not */
@@ -699,8 +699,8 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 			T_2N_array_file[i]     != T_2N_array[i] ||
 			L_1N_array_file[i]     != L_1N_array[i] ||
 			two_J_1N_array_file[i] != two_J_1N_array[i] ||
+			two_T_3N_array_file[i] != two_T_3N_array[i] ||
 			two_J_3N_array_file[i] != two_J_3N ||
-			two_T_3N_array_file[i] != two_T_3N ||
 			P_3N_array_file[i]     != P_3N){
 			raise_error("File-read P123 PW state-space mismatch.");
 		}
@@ -917,8 +917,8 @@ void write_PW_statespace_to_h5(int   Nalpha,
 							   int*  T_2N_array,
 							   int*  L_1N_array, 
 							   int*  two_J_1N_array,
+							   int*  two_T_3N_array,
 							   int   two_J_3N,
-							   int   two_T_3N,
 							   int   P_3N,
 							   hid_t file_id){
 	
@@ -932,9 +932,9 @@ void write_PW_statespace_to_h5(int   Nalpha,
 								 HOFFSET( pw_table, T_pwtable ),
 								 HOFFSET( pw_table, l_pwtable ),
 								 HOFFSET( pw_table, twoj_pwtable ),
+								 HOFFSET( pw_table, twoTtotal_pwtable ),
 								 HOFFSET( pw_table, twoJtotal_pwtable ),
 								 HOFFSET( pw_table, PARtotal_pwtable ),
-								 HOFFSET( pw_table, twoTtotal_pwtable ),
 							   };
 							   
 	/* Assign values to data structure */
@@ -947,13 +947,13 @@ void write_PW_statespace_to_h5(int   Nalpha,
 		pw_data[i].T_pwtable         = T_2N_array[i];
 		pw_data[i].l_pwtable         = L_1N_array[i];
 		pw_data[i].twoj_pwtable      = two_J_1N_array[i];
+		pw_data[i].twoTtotal_pwtable = two_T_3N_array[i];
 		pw_data[i].twoJtotal_pwtable = two_J_3N;
 		pw_data[i].PARtotal_pwtable  = P_3N;
-		pw_data[i].twoTtotal_pwtable = two_T_3N;
 	}
 	
 	/* Define field information */
-	const char *pw_field_names[10]  = { "index", "L_12", "S_12", "J_12", "T_12", "l_3", "2*j_3", "2*J_total", "PAR_total", "2*T_total" };
+	const char *pw_field_names[10]  = { "index", "L_12", "S_12", "J_12", "T_12", "l_3", "2*j_3", "2*T_total", "2*J_total", "PAR_total" };
 
 	hid_t pw_field_type[10];
 	pw_field_type[0] = H5T_NATIVE_INT;
@@ -990,8 +990,8 @@ void read_PW_statespace_to_h5(int  Nalpha,
 							  int* T_2N_array,
 							  int* L_1N_array, 
 							  int* two_J_1N_array,
-							  int* two_J_3N_array,
 							  int* two_T_3N_array,
+							  int* two_J_3N_array,
 							  int* P_3N_array,
 							  char* filename){
 	hid_t  file_id;
@@ -1011,9 +1011,9 @@ void read_PW_statespace_to_h5(int  Nalpha,
 								 HOFFSET( pw_table, T_pwtable ),
 								 HOFFSET( pw_table, l_pwtable ),
 								 HOFFSET( pw_table, twoj_pwtable ),
+								 HOFFSET( pw_table, twoTtotal_pwtable ),
 								 HOFFSET( pw_table, twoJtotal_pwtable ),
-								 HOFFSET( pw_table, PARtotal_pwtable ),
-								 HOFFSET( pw_table, twoTtotal_pwtable )
+								 HOFFSET( pw_table, PARtotal_pwtable )
 								};
 
 	size_t pw_dst_sizes[10] = { sizeof( pw_h5[0].alpha_pwtable ),
@@ -1023,9 +1023,9 @@ void read_PW_statespace_to_h5(int  Nalpha,
 								sizeof( pw_h5[0].T_pwtable ),
 								sizeof( pw_h5[0].l_pwtable ),
 								sizeof( pw_h5[0].twoj_pwtable ),
+								sizeof( pw_h5[0].twoTtotal_pwtable ),
 								sizeof( pw_h5[0].twoJtotal_pwtable ),
-								sizeof( pw_h5[0].PARtotal_pwtable ),
-								sizeof( pw_h5[0].twoTtotal_pwtable )
+								sizeof( pw_h5[0].PARtotal_pwtable )
 							   };
 
 	status = H5TBread_table(file_id,
@@ -1043,9 +1043,9 @@ void read_PW_statespace_to_h5(int  Nalpha,
 		T_2N_array[i]     = pw_h5[i].T_pwtable;
 		L_1N_array[i]     = pw_h5[i].l_pwtable;
 		two_J_1N_array[i] = pw_h5[i].twoj_pwtable;
+		two_T_3N_array[i] = pw_h5[i].twoTtotal_pwtable;
 		two_J_3N_array[i] = pw_h5[i].twoJtotal_pwtable;
 		P_3N_array[i]     = pw_h5[i].PARtotal_pwtable;
-		two_T_3N_array[i] = pw_h5[i].twoTtotal_pwtable;
 	}
 
 	/* Close file */

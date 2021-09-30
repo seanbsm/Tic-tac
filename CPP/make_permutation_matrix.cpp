@@ -162,7 +162,7 @@ void calculate_Gtilde_subarray_polar(double* Gtilde_subarray,
 	}
 }
 
-std::string generate_subarray_file_name(int two_J_3N, int two_T_3N, int P_3N,
+std::string generate_subarray_file_name(int two_J_3N, int P_3N,
 										int Np_WP, int Nq_WP,
 										int J_2N_max,
 										int thread_idx,
@@ -170,7 +170,7 @@ std::string generate_subarray_file_name(int two_J_3N, int two_T_3N, int P_3N,
 										std::string P123_folder){
 
 	std::string filename = P123_folder + "/P123_subsparse_JTP_"
-						 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
+						 + to_string(two_J_3N) + "_" + to_string(P_3N)
 						 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 						 + "_J2max_" + to_string(J_2N_max) + "_TFC_" + to_string(thread_idx)
 						 + "_" + to_string(current_TFC) + ".h5";
@@ -194,8 +194,8 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 												   int*     T_2N_array,
 												   int*     L_1N_array,
 												   int*     two_J_1N_array,
+												   int*     two_T_3N_array,
 												   int      two_J_3N,
-												   int      two_T_3N,
 												   int      P_3N,
 												   run_params run_parameters,
 												   std::string P123_folder){
@@ -204,7 +204,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 
 	/* Notation change */
 	int two_J = two_J_3N;
-	int two_T = two_T_3N;
+	//int two_T = two_T_3N;
 	
 	int Nx_Gtilde = Nx;
 	int Jj_dim = Nalpha;
@@ -302,9 +302,14 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 		Atilde_store[i] = 0.0;
 	}
 	for (int alpha = 0; alpha <= Jj_dim - 1; alpha++){
+		int two_T_3N_alpha = two_T_3N_array[alpha];
 		for (int alphaprime = 0; alphaprime <= Jj_dim - 1; alphaprime++){
-			for (int Ltotal = 0; Ltotal <= Lmax; Ltotal++){
-				Atilde_store[alpha * Jj_dim * (Lmax + 1) + alphaprime * (Lmax + 1) + Ltotal] = Atilde (alpha, alphaprime, Ltotal, Jj_dim, L12_Jj, l3_Jj, J12_Jj, two_j3_Jj, S12_Jj, T12_Jj, two_J, two_T, SixJ_array, two_jmax_SixJ);
+			int two_T_3N_alphaprime = two_T_3N_array[alphaprime];
+			if (two_T_3N_alpha==two_T_3N_alphaprime){
+				int two_T = two_T_3N_alpha;
+				for (int Ltotal = 0; Ltotal <= Lmax; Ltotal++){
+					Atilde_store[alpha * Jj_dim * (Lmax + 1) + alphaprime * (Lmax + 1) + Ltotal] = Atilde (alpha, alphaprime, Ltotal, Jj_dim, L12_Jj, l3_Jj, J12_Jj, two_j3_Jj, S12_Jj, T12_Jj, two_J, two_T, SixJ_array, two_jmax_SixJ);
+				}
 			}
 		}
 	}
@@ -847,7 +852,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 										int current_TFC = max_TFC_array[thread_idx];
 										if ( P123_dim_omp>=tread_buffer_size ){
 
-											std::string thread_filename = generate_subarray_file_name(two_J_3N, two_T_3N, P_3N,
+											std::string thread_filename = generate_subarray_file_name(two_J_3N, P_3N,
 																									  Np_WP, Nq_WP,
 																									  J_2N_max,
 																									  thread_idx,
@@ -868,8 +873,8 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 															  								  T_2N_array,
 															  								  L_1N_array,
 															  								  two_J_1N_array,
+															  								  two_T_3N_array,
 															  								  two_J_3N,
-															  								  two_T_3N,
 															  								  P_3N,
 													   		  								  thread_filename,
 																							  false);
@@ -914,7 +919,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 		for (int thread_idx=0; thread_idx<P123_omp_num_threads; thread_idx++){
 			int current_TFC = max_TFC_array[thread_idx];
 
-			std::string thread_filename = generate_subarray_file_name(two_J_3N, two_T_3N, P_3N,
+			std::string thread_filename = generate_subarray_file_name(two_J_3N, P_3N,
 																	  Np_WP, Nq_WP,
 																	  J_2N_max,
 																	  thread_idx,
@@ -937,8 +942,8 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 							  								  T_2N_array,
 							  								  L_1N_array,
 							  								  two_J_1N_array,
+															  two_T_3N_array,
 							  								  two_J_3N,
-							  								  two_T_3N,
 							  								  P_3N,
 					   		  								  thread_filename,
 															  false);
@@ -979,8 +984,8 @@ void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,
 												 int*     T_2N_array,
 												 int*     L_1N_array,
 												 int*     two_J_1N_array,
+												 int*     two_T_3N_array,
 												 int      two_J_3N,
-												 int      two_T_3N,
 												 int      P_3N,
 												 std::string P123_folder){
 
@@ -994,7 +999,7 @@ void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,
 		int TFC_max = max_TFC_array[thread_idx];
 		for (int current_TFC=0; current_TFC<TFC_max; current_TFC++){
 			/* Generate filename for current thread_idx and TFC */
-			std::string thread_filename = generate_subarray_file_name(two_J_3N, two_T_3N, P_3N,
+			std::string thread_filename = generate_subarray_file_name(two_J_3N, P_3N,
 																	  Np_WP, Nq_WP,
 																	  J_2N_max,
 																	  thread_idx,
@@ -1064,8 +1069,8 @@ void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,
 													     T_2N_array,
 													     L_1N_array,
 													     two_J_1N_array,
+														 two_T_3N_array,
 													     two_J_3N,
-													     two_T_3N,
 													     P_3N,
 											   		     thread_filename,
 														 false);
@@ -1159,8 +1164,8 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 														int*     T_2N_array,
 														int*     L_1N_array,
 														int*     two_J_1N_array,
+														int*     two_T_3N_array,
 														int      two_J_3N,
-														int      two_T_3N,
 														int      P_3N,
 														run_params run_parameters,
 														std::string P123_folder){
@@ -1211,8 +1216,8 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 								  					  T_2N_array,
 								  					  L_1N_array,
 								  					  two_J_1N_array,
+													  two_T_3N_array,
 													  two_J_3N,
-													  two_T_3N,
 													  P_3N,
 													  run_parameters,
 													  P123_folder);
@@ -1250,8 +1255,8 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 								  				T_2N_array,
 								  				L_1N_array,
 								  				two_J_1N_array,
+												two_T_3N_array,
 												two_J_3N,
-												two_T_3N,
 												P_3N,
 												P123_folder);
 	if (print_content){

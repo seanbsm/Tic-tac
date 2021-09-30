@@ -285,7 +285,7 @@ void make_swp_states(double* e_SWP_unco_array,
 				 * !!! With isospin symmetry-breaking we count 1S0 as a coupled matrix via T_3N-coupling !!! */
 				bool coupled_matrix = false;
 				bool state_1S0 = (S_r==0 && J_r==0 && L_r==0);
-				bool coupled_via_L_2N = (tensor_force_true && (L_r!=L_c or (L_r==L_c && L_r!=J_r && J_r!=0)));
+				bool coupled_via_L_2N = (tensor_force_true && (L_r!=L_c || (L_r==L_c && L_r!=J_r && J_r!=0)));
 				bool coupled_via_T_3N = (state_1S0==true && run_parameters.isospin_breaking_1S0==true);
 				if (coupled_via_L_2N && coupled_via_T_3N){
 					raise_error("Warning! Code has not been written to handle isospin-breaking in coupled channels!");

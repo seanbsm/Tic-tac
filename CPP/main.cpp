@@ -373,14 +373,12 @@ int main(int argc, char* argv[]){
 		printf("Constructing 2N-potential matrices in WP basis ... \n");
 		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array, num_2N_unco_states,
 													   V_WP_coup_array, num_2N_coup_states,
-													   tensor_force_true,
-													   mid_point_approximation,
 													   Np_WP, p_WP_array,
 													   Np_per_WP, p_array, wp_array,
 													   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, two_T_3N_array,
-													   J_2N_max,
 													   pot_ptr_nn,
-													   pot_ptr_np);
+													   pot_ptr_np,
+													   run_parameters);
 		printf(" - Done \n");
 	}
 
@@ -629,9 +627,9 @@ int main(int argc, char* argv[]){
 
 			/* Find indices of deuteron-channels */
 			for (int idx_alpha=0; idx_alpha<Nalpha_in_3N_chn; idx_alpha++){
-				if (deuteron_L==L_2N_subarray[idx_alpha] &
-				    deuteron_S==S_2N_subarray[idx_alpha] &
-					deuteron_J==J_2N_subarray[idx_alpha] &
+				if (deuteron_L==L_2N_subarray[idx_alpha] &&
+				    deuteron_S==S_2N_subarray[idx_alpha] &&
+					deuteron_J==J_2N_subarray[idx_alpha] &&
 					deuteron_T==T_2N_subarray[idx_alpha]){
 					deuteron_chn_indices.push_back(idx_alpha);
 				}
@@ -669,7 +667,6 @@ int main(int argc, char* argv[]){
 
 		/* Channel conserved 3N quantum numbers using first element in channel */
 		int two_J_3N = two_J_3N_array[idx_alpha_lower];
-		int two_T_3N = two_T_3N_array[idx_alpha_lower];
 		int P_3N 	 = P_3N_array    [idx_alpha_lower];
 
 		/* Pointers to sub-arrays of PW state space corresponding to chn_3N */
@@ -679,8 +676,9 @@ int main(int argc, char* argv[]){
 		int* T_2N_subarray 	   = &T_2N_array[idx_alpha_lower];
 		int* L_1N_subarray 	   = &L_1N_array[idx_alpha_lower];
 		int* two_J_1N_subarray = &two_J_1N_array[idx_alpha_lower];
+		int* two_T_3N_subarray = &two_T_3N_array[idx_alpha_lower];
 
-		printf("Working on 3N-channel J_3N=%.d/2, T_3N=%.d/2, PAR=%.d (channel %.d of %.d) with %.d partial-wave states \n", two_J_3N, two_T_3N, P_3N, chn_3N+1, N_chn_3N, Nalpha_in_3N_chn);
+		printf("Working on 3N-channel J_3N=%.d/2, PAR=%.d (channel %.d of %.d) with %.d partial-wave states \n", two_J_3N, P_3N, chn_3N+1, N_chn_3N, Nalpha_in_3N_chn);
 
 		/* End of 3N-channel setup */
 		/* Start of code segment for permutation matrix construction */
@@ -692,8 +690,8 @@ int main(int argc, char* argv[]){
 		/* Default filename for current chn_3N - used for storage and reading P123 */
 		
 		//std::string permutation_matrices_folder = "../../Data/permutation_matrices/";
-		std::string P123_filename =    run_parameters.P123_folder + "/" + "P123_sparse_JTP_"
-									 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
+		std::string P123_filename =    run_parameters.P123_folder + "/" + "P123_sparse_JP_"
+									 + to_string(two_J_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 									 + "_J2max_" + to_string(J_2N_max) + ".h5";//_MF.h5";
 		//if (chn_3N==0 || chn_3N==2){}
@@ -724,8 +722,8 @@ int main(int argc, char* argv[]){
 							  								   T_2N_subarray,
 							  								   L_1N_subarray,
 							  								   two_J_1N_subarray,
+															   two_T_3N_subarray,
 														 	   two_J_3N,
-														 	   two_T_3N,
 															   P_3N,
 															   run_parameters,
 															   run_parameters.P123_folder);
@@ -748,8 +746,8 @@ int main(int argc, char* argv[]){
 															  T_2N_subarray,
 															  L_1N_subarray,
 															  two_J_1N_subarray,
+															  two_T_3N_subarray,
 															  two_J_3N,
-															  two_T_3N,
 															  P_3N,
 													   		  P123_filename,
 															  true);
@@ -783,8 +781,8 @@ int main(int argc, char* argv[]){
 															  T_2N_subarray,
 															  L_1N_subarray,
 															  two_J_1N_subarray,
+															  two_T_3N_subarray,
 															  two_J_3N,
-															  two_T_3N,
 															  P_3N,
 													   		  P123_filename,
 															  true);
@@ -917,9 +915,10 @@ int main(int argc, char* argv[]){
 									C_WP_coup_array,
 									V_WP_unco_array,
 									V_WP_coup_array,
+									num_2N_unco_states,
+									num_2N_coup_states,
 									q_com_idx_array, num_T_lab,
 									deuteron_idx_array, num_deuteron_states,
-									J_2N_max,
 									Nq_WP,
 									Np_WP,
 									Nalpha_in_3N_chn,
@@ -929,7 +928,7 @@ int main(int argc, char* argv[]){
 									T_2N_subarray,
 									L_1N_subarray, 
 									two_J_1N_subarray,
-									tensor_force_true,
+									two_T_3N_subarray,
 									file_identification,
 					                run_parameters);
 			printf(" - Done \n");

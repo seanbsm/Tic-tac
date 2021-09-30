@@ -980,9 +980,10 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 double*   C_WP_coup_array,
 							 double*   V_WP_unco_array,
 							 double*   V_WP_coup_array,
+							 int  	   num_2N_unco_states,
+							 int  	   num_2N_coup_states,
 							 int*	   q_com_idx_array,	   size_t num_q_com,
 					   		 int*      deuteron_idx_array, size_t num_deuteron_states,
-							 int       J_2N_max,
 							 size_t    Nq_WP,
 							 size_t    Np_WP,
 							 size_t    Nalpha,
@@ -992,7 +993,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 							 int*      T_2N_array,
 							 int*      L_1N_array, 
 							 int*      two_J_1N_array,
-							 bool 	   tensor_force_true,
+							 int*      two_T_3N_array,
 							 std::string file_identification,
 					         run_params run_parameters){
 	
@@ -1010,16 +1011,18 @@ void solve_faddeev_equations(cdouble*  U_array,
 	create_CT_row_maj_3N_pointer_array(CT_RM_array,
 									   C_WP_unco_array,
 									   C_WP_coup_array,
-									   tensor_force_true,
+									   num_2N_unco_states,
+									   num_2N_coup_states,
 									   Np_WP,
-									   J_2N_max,
 									   Nalpha,
 									   L_2N_array,
 									   S_2N_array,
 									   J_2N_array,
 									   T_2N_array,
 									   L_1N_array,
-									   two_J_1N_array);
+									   two_J_1N_array,
+									   two_T_3N_array,
+									   run_parameters);
 
 	/* Create VC-product pointer-arrays in column-major format */
 	double** VC_CM_array  = new double* [Nalpha*Nalpha];
@@ -1028,16 +1031,18 @@ void solve_faddeev_equations(cdouble*  U_array,
 									   C_WP_coup_array,
 									   V_WP_unco_array,
 									   V_WP_coup_array,
-									   tensor_force_true,
+									   num_2N_unco_states,
+									   num_2N_coup_states,
 									   Np_WP,
-									   J_2N_max,
 									   Nalpha,
 									   L_2N_array,
 									   S_2N_array,
 									   J_2N_array,
 									   T_2N_array,
 									   L_1N_array,
-									   two_J_1N_array);
+									   two_J_1N_array,
+									   two_T_3N_array,
+									   run_parameters);
 	
 	size_t  dense_dim = Nalpha * Nq_WP * Np_WP;
 
@@ -1154,27 +1159,25 @@ void solve_faddeev_equations(cdouble*  U_array,
 void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 										double*  C_WP_unco_array,
 										double*  C_WP_coup_array,
-										bool     tensor_force_true,
+										int  	 num_2N_unco_states,
+										int  	 num_2N_coup_states,
 										size_t   Np_WP,
-										int      J_2N_max,
 										size_t   Nalpha,
 										int*     L_2N_array,
 										int*     S_2N_array,
 										int*     J_2N_array,
 										int*     T_2N_array,
 							 			int*     L_1N_array, 
-							 			int*     two_J_1N_array){
+							 			int*     two_J_1N_array,
+										int*     two_T_3N_array,
+										run_params run_parameters){
+	
+	/* This test will be reused several times */
+	bool tensor_force_true = (run_parameters.tensor_force==true);
 	
 	/* Number of uncoupled and coupled 2N-channels */
-	int num_unco_chns = 0;
-	int num_coup_chns = 0;
-	if (tensor_force_true){
-		num_unco_chns = 2*(J_2N_max+1);
-		num_coup_chns =    J_2N_max;
-	}
-	else{
-		num_unco_chns = 4*J_2N_max + 2;
-	}
+	int num_unco_chns = num_2N_unco_states;
+	int num_coup_chns = num_2N_coup_states;
 
 	double* C_subarray  = NULL;
 	double* CT_subarray = NULL;
@@ -1241,6 +1244,7 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 		int T_2N_r 	   = T_2N_array[idx_alpha_r];
 		int L_1N_r 	   = L_1N_array[idx_alpha_r];
 		int two_J_1N_r = two_J_1N_array[idx_alpha_r];
+		int two_T_3N_r = two_T_3N_array[idx_alpha_r];
 
 		/* Column state */
 		for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
@@ -1250,6 +1254,7 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 			int T_2N_c 	   = T_2N_array[idx_alpha_c];
 			int L_1N_c 	   = L_1N_array[idx_alpha_c];
 			int two_J_1N_c = two_J_1N_array[idx_alpha_c];
+			int two_T_3N_c = two_T_3N_array[idx_alpha_c];
 
 			/* Check if possible channel through interaction */
 			bool check_T = (T_2N_r==T_2N_c);
@@ -1262,31 +1267,41 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 			/* Check if possible channel through interaction */
 			if (check_T && check_J && check_S && check_L && check_l && check_j){
 
-				/* Detemine if this is a coupled channel */
+				/* Detemine if this is a coupled channel.
+				 * !!! With isospin symmetry-breaking we count 1S0 as a coupled matrix via T_3N-coupling !!! */
 				bool coupled_matrix = false;
-				if ( tensor_force_true && (L_2N_r!=L_2N_c || (L_2N_r==L_2N_c & L_2N_r!=J_2N_r & J_2N_r!=0)) ){ // This counts 3P0 as uncoupled; used in matrix structure
+				bool state_1S0 = (S_2N_r==0 && J_2N_r==0 && L_2N_r==0);
+				bool coupled_via_L_2N = (tensor_force_true && (L_2N_r!=L_2N_c || (L_2N_r==L_2N_c && L_2N_r!=J_2N_r && J_2N_r!=0)));
+				bool coupled_via_T_3N = (state_1S0==true && run_parameters.isospin_breaking_1S0==true);
+				if (coupled_via_L_2N && coupled_via_T_3N){
+					raise_error("Warning! Code has not been written to handle isospin-breaking in coupled channels!");
+				}
+				if (coupled_via_L_2N || coupled_via_T_3N){ // This counts 3P0 as uncoupled; used in matrix structure
 					coupled_matrix  = true;
 				}
 
 				/* find which VC-product corresponds to the current coupling */
 				if (coupled_matrix){
-					size_t idx_chn_coup       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, tensor_force_true, coupled_matrix);
+					size_t idx_chn_coup       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, coupled_matrix, run_parameters);
 					size_t idx_2N_mat_WP_coup = idx_chn_coup*4*Np_WP*Np_WP;
-					if (L_2N_r<L_2N_c){       // L_r=J_r-1, L_c=J_r+1
+					if ( (coupled_via_L_2N && L_2N_r<L_2N_c) || (coupled_via_T_3N && two_T_3N_r<two_T_3N_c) ){       // L_r=J_r-1, L_c=J_r+1 OR (for 1S0) two_T_3N_r==1/2, two_T_3N_c==3/2
 						CT_subarray = &CT_coup_array[idx_2N_mat_WP_coup + 1*Np_WP*Np_WP];
 					}
-					else if (L_2N_r>L_2N_c){  // L_r=J_r+1, L_c=J_r-1
+					else if ( (coupled_via_L_2N && L_2N_r>L_2N_c) || (coupled_via_T_3N && two_T_3N_r>two_T_3N_c) ){  // L_r=J_r+1, L_c=J_r-1 OR (for 1S0) two_T_3N_r==3/2, two_T_3N_c==1/2
 						CT_subarray = &CT_coup_array[idx_2N_mat_WP_coup + 2*Np_WP*Np_WP];
 					}
-					else if (L_2N_r<J_2N_c){  // L_r=J_r-1, L_c=J_r-1
+					else if ( (coupled_via_L_2N && L_2N_r<J_2N_c) || (coupled_via_T_3N && two_T_3N_r==1) ){ 		 // L_r=J_r-1, L_c=J_r-1 OR (for 1S0) two_T_3N_r==1/2, two_T_3N_c==1/2
 						CT_subarray = &CT_coup_array[idx_2N_mat_WP_coup + 0*Np_WP*Np_WP];
 					}
-					else{               // L_r=J_r+1, L_c=J_r+1
+					else if ( (coupled_via_L_2N && L_2N_r>J_2N_c) || (coupled_via_T_3N && two_T_3N_r==3) ){  		 // L_r=J_r+1, L_c=J_r+1 OR (for 1S0) two_T_3N_r==3/2, two_T_3N_c==3/2
 						CT_subarray = &CT_coup_array[idx_2N_mat_WP_coup + 3*Np_WP*Np_WP];
+					}
+					else{
+						raise_error("Unknown 2N coupled-matrix requested in CT-array setup.");
 					}
 				}
 				else{
-					size_t idx_chn_unco       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, tensor_force_true, coupled_matrix);
+					size_t idx_chn_unco       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, coupled_matrix, run_parameters);
 					size_t idx_2N_mat_WP_unco = idx_chn_unco*Np_WP*Np_WP;
 					CT_subarray = &CT_unco_array[idx_2N_mat_WP_unco];
 				}
@@ -1338,27 +1353,25 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 										double*  C_WP_coup_array,
 										double*  V_WP_unco_array,
 										double*  V_WP_coup_array,
-										bool     tensor_force_true,
+										int  	 num_2N_unco_states,
+										int  	 num_2N_coup_states,
 										size_t   Np_WP,
-										int      J_2N_max,
 										size_t   Nalpha,
 										int*     L_2N_array,
 										int*     S_2N_array,
 										int*     J_2N_array,
 										int*     T_2N_array,
 							 			int*     L_1N_array, 
-							 			int*     two_J_1N_array){
+							 			int*     two_J_1N_array,
+										int*     two_T_3N_array,
+										run_params run_parameters){
+	
+	/* This test will be reused several times */
+	bool tensor_force_true = (run_parameters.tensor_force==true);
 
 	/* Number of uncoupled and coupled 2N-channels */
-	int num_unco_chns = 0;
-	int num_coup_chns = 0;
-	if (tensor_force_true){
-		num_unco_chns = 2*(J_2N_max+1);
-		num_coup_chns =    J_2N_max;
-	}
-	else{
-		num_unco_chns = 4*J_2N_max + 2;
-	}
+	int num_unco_chns = num_2N_unco_states;
+	int num_coup_chns = num_2N_coup_states;
 
 	double* V_subarray = NULL;
 	double* C_subarray = NULL;
@@ -1407,6 +1420,7 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 		int T_2N_r     = T_2N_array[idx_alpha_r];
 		int L_1N_r 	   = L_1N_array[idx_alpha_r];
 		int two_J_1N_r = two_J_1N_array[idx_alpha_r];
+		int two_T_3N_r = two_T_3N_array[idx_alpha_r];
 
 		/* Column state */
 		for (size_t idx_alpha_c=0; idx_alpha_c<Nalpha; idx_alpha_c++){
@@ -1416,6 +1430,7 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 			int T_2N_c     = T_2N_array[idx_alpha_c];
 			int L_1N_c 	   = L_1N_array[idx_alpha_c];
 			int two_J_1N_c = two_J_1N_array[idx_alpha_c];
+			int two_T_3N_c = two_T_3N_array[idx_alpha_c];
 
 			/* Check if possible channel through interaction */
 			bool check_T = (T_2N_r==T_2N_c);
@@ -1428,31 +1443,41 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 			/* Check if possible channel through interaction */
 			if (check_T && check_J && check_S && check_L && check_l && check_j){
 
-				/* Detemine if this is a coupled channel */
+				/* Detemine if this is a coupled channel.
+				 * !!! With isospin symmetry-breaking we count 1S0 as a coupled matrix via T_3N-coupling !!! */
 				bool coupled_matrix = false;
-				if ( tensor_force_true && (L_2N_r!=L_2N_c || (L_2N_r==L_2N_c & L_2N_r!=J_2N_r & J_2N_r!=0)) ){ // This counts 3P0 as uncoupled; used in matrix structure
+				bool state_1S0 = (S_2N_r==0 && J_2N_r==0 && L_2N_r==0);
+				bool coupled_via_L_2N = (tensor_force_true && (L_2N_r!=L_2N_c || (L_2N_r==L_2N_c && L_2N_r!=J_2N_r && J_2N_r!=0)));
+				bool coupled_via_T_3N = (state_1S0==true && run_parameters.isospin_breaking_1S0==true);
+				if (coupled_via_L_2N && coupled_via_T_3N){
+					raise_error("Warning! Code has not been written to handle isospin-breaking in coupled channels!");
+				}
+				if (coupled_via_L_2N || coupled_via_T_3N){ // This counts 3P0 as uncoupled; used in matrix structure
 					coupled_matrix  = true;
 				}
 
 				/* find which VC-product corresponds to the current coupling */
 				if (coupled_matrix){
-					size_t idx_chn_coup       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, tensor_force_true, coupled_matrix);
+					size_t idx_chn_coup       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, coupled_matrix, run_parameters);
 					size_t idx_2N_mat_WP_coup = idx_chn_coup*4*Np_WP*Np_WP;
-					if (L_2N_r<L_2N_c){       // L_r=J_r-1, L_c=J_r+1
+					if ( (coupled_via_L_2N && L_2N_r<L_2N_c) || (coupled_via_T_3N && two_T_3N_r<two_T_3N_c) ){       // L_r=J_r-1, L_c=J_r+1 OR (for 1S0) two_T_3N_r==1/2, two_T_3N_c==3/2
 						VC_product = &VC_coup_array[idx_2N_mat_WP_coup + 1*Np_WP*Np_WP];
 					}
-					else if (L_2N_r>L_2N_c){  // L_r=J_r+1, L_c=J_r-1
+					else if ( (coupled_via_L_2N && L_2N_r>L_2N_c) || (coupled_via_T_3N && two_T_3N_r>two_T_3N_c) ){  // L_r=J_r+1, L_c=J_r-1 OR (for 1S0) two_T_3N_r==3/2, two_T_3N_c==1/2
 						VC_product = &VC_coup_array[idx_2N_mat_WP_coup + 2*Np_WP*Np_WP];
 					}
-					else if (L_2N_r<J_2N_c){  // L_r=J_r-1, L_c=J_r-1
+					else if ( (coupled_via_L_2N && L_2N_r<J_2N_c) || (coupled_via_T_3N && two_T_3N_r==1) ){ 		 // L_r=J_r-1, L_c=J_r-1 OR (for 1S0) two_T_3N_r==1/2, two_T_3N_c==1/2
 						VC_product = &VC_coup_array[idx_2N_mat_WP_coup + 0*Np_WP*Np_WP];
 					}
-					else{               // L_r=J_r+1, L_c=J_r+1
+					else if ( (coupled_via_L_2N && L_2N_r>J_2N_c) || (coupled_via_T_3N && two_T_3N_r==3) ){  		 // L_r=J_r+1, L_c=J_r+1 OR (for 1S0) two_T_3N_r==3/2, two_T_3N_c==3/2
 						VC_product = &VC_coup_array[idx_2N_mat_WP_coup + 3*Np_WP*Np_WP];
+					}
+					else{
+						raise_error("Unknown 2N coupled-matrix requested in VC-array setup.");
 					}
 				}
 				else{
-					size_t idx_chn_unco       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, tensor_force_true, coupled_matrix);
+					size_t idx_chn_unco       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, coupled_matrix, run_parameters);
 					size_t idx_2N_mat_WP_unco = idx_chn_unco*Np_WP*Np_WP;
 					VC_product = &VC_unco_array[idx_2N_mat_WP_unco];
 				}

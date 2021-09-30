@@ -79,7 +79,7 @@ void construct_symmetric_pw_states(int&   N_chn_3N,
 	
 	int two_T_3N_max = 1;
 	if (run_parameters.isospin_breaking_1S0==true){
-		two_J_3N_max = 3;
+		two_T_3N_max = 3;
 	}
 
 	bool print_content = true;
@@ -145,7 +145,7 @@ void construct_symmetric_pw_states(int&   N_chn_3N,
 			/* Used to cound how many PW states are in current channel (J_3N, P_3N) */
 			int Nalpha_in_current_chn = 0;
 			/* two_T_3N loop */
-			for (int two_T_3N=1; two_T_3N<two_J_3N_max+1; two_T_3N+=2){
+			for (int two_T_3N=1; two_T_3N<two_T_3N_max+1; two_T_3N+=2){
 				/* J_2N loop */
 				for (int J_2N=0; J_2N<J_2N_max+1; J_2N++){
 					/* S_2N loop */

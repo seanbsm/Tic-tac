@@ -140,7 +140,7 @@ void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 				}
 			}
 			else{
-				raise_error("Unknown coupling encountered in resolvent-calculation!")
+				raise_error("Unknown coupling encountered in resolvent-calculation!");
 			}
 		}
 		else{

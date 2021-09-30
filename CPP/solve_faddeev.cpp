@@ -136,6 +136,183 @@ void calculate_CPVC_col(double*  col_array,
 	delete [] PVC_col;
 }
 
+
+void calculate_PVC_col_gemm(double*  PVC_col_chunk,
+							size_t	 idx_col_start,
+							size_t	 idx_col_end,
+							size_t   chunk_steplength,
+							double*  P_col_chunk,
+					        size_t   Nalpha,
+							size_t   Nq_WP,
+							size_t   Np_WP,
+					        double** VC_CM_array,
+					        double*  P123_val_array,
+					        int*     P123_row_array,
+					        size_t*  P123_col_array,
+					        size_t   P123_dim){
+
+	/* Dense dimension */
+	size_t dense_dim = Nalpha*Nq_WP*Np_WP;
+
+	/* Number of columns in chunk */
+	size_t chunk_dim = idx_col_end - idx_col_start;
+
+	/* Ensure PVC-chunk contains only zeroes */
+	for (size_t idx=0; idx<dense_dim*chunk_steplength; idx++){
+		PVC_col_chunk[idx] = 0;
+	}
+
+	double* VC_subarray = NULL;
+
+	/* Loop through columns in steps of Np_WP*Nq_WP */
+	size_t idx_alpha_c_start = idx_col_start / (Np_WP*Nq_WP);
+	size_t idx_alpha_c_end   = idx_col_end   / (Np_WP*Nq_WP);
+
+	for (size_t idx_alpha_c=idx_alpha_c_start; idx_alpha_c<idx_alpha_c_end; idx_alpha_c++){
+
+		/* Loop through columns in steps of Np_WP */
+		size_t idx_q_c_start = (idx_col_start - idx_alpha_c*Nq_WP*Np_WP) / Np_WP;
+		size_t idx_q_c_end   = (idx_col_end   - idx_alpha_c*Nq_WP*Np_WP) / Np_WP;
+
+		for (size_t idx_q_c=idx_q_c_start; idx_q_c<idx_q_c_end; idx_q_c++){
+
+			/* Ensure P-chunk contains only zeroes */
+			for (size_t idx=0; idx<Np_WP*dense_dim; idx++){
+				P_col_chunk[idx] = 0;
+			}
+
+			/* Fill P-chunk of size Np_WP*dense_dim */
+			for (size_t idx_p_c=0; idx_p_c<Np_WP; idx_p_c++){
+				size_t idx_col = idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP + idx_p_c;
+				size_t idx_nnz_start = P123_col_array[idx_col];
+				size_t idx_nnz_end   = P123_col_array[idx_col];
+				for (size_t idx_nnz=idx_nnz_start; idx_nnz<idx_nnz_end; idx_nnz++){
+					size_t idx_row = P123_row_array[idx_nnz];
+
+					/* NOTE THAT P = P123 + P132 = 2*P123 */
+					P_col_chunk[idx_row*Np_WP + idx_col] = 2*P123_val_array[idx_nnz];
+				}
+			}
+
+			for (size_t idx_alpha_j=0; idx_alpha_j<Nalpha; idx_alpha_j++){
+				VC_subarray = VC_CM_array[idx_alpha_c*Nalpha + idx_alpha_j];
+
+				/* Only do inner-product if VC is not zero due to conservation laws */
+				if (VC_subarray!=NULL){
+
+					/* Multiply P-chunk with VC_subarray and fill corresponding part of PVC_col_chunk */
+					double beta  = 1;
+					double alpha = 1;
+					MKL_INT M    = dense_dim;
+					MKL_INT N    = Np_WP;
+					MKL_INT K    = Np_WP;
+					MKL_INT lda  = Np_WP;
+					MKL_INT ldb  = Np_WP;
+					MKL_INT ldc  = chunk_steplength;
+					double* A    = P_col_chunk;
+					double* B    = VC_subarray;
+					double* C    = &PVC_col_chunk[idx_alpha_c*Nq_WP*Np_WP + idx_q_c*Np_WP - idx_col_start];
+					cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);	// real multiplication
+				}
+			}
+		}
+	}
+}
+void calculate_CPVC_col_gemm(double*  CPVC_col_chunk,
+							 size_t	  col_idx_start,
+							 size_t	  col_idx_end,
+							 size_t   chunk_steplength,
+							 size_t   Nalpha,
+							 size_t   Nq_WP,
+							 size_t   Np_WP,
+							 double** CT_RM_array,
+							 double** VC_CM_array,
+							 double*  P123_val_array,
+							 int*     P123_row_array,
+							 size_t*  P123_col_array,
+							 size_t   P123_dim){
+	
+	/* Dense dimension */
+	size_t dense_dim = Nalpha*Nq_WP*Np_WP;
+
+	/* Number of columns in chunk */
+	size_t chunk_dim = col_idx_end - col_idx_start;
+	
+	/* Generate PVC-column chunk */
+	double* PVC_col_chunk = new double [dense_dim * chunk_steplength];
+
+	/* Generate P-column chunk */
+	double* P_col_chunk = new double [dense_dim * Np_WP];
+
+	double* PVC_col = new double [dense_dim];
+	for (size_t idx_col=col_idx_start; idx_col<col_idx_end; idx_col++){
+		size_t idx_alpha_c = idx_col / (Np_WP*Nq_WP);
+		size_t idx_q_c     = (idx_col % (Np_WP*Nq_WP)) /  Np_WP;
+		size_t idx_p_c     = idx_col %  Np_WP;
+		calculate_PVC_col(PVC_col,
+						  idx_alpha_c, idx_p_c, idx_q_c,
+						  Nalpha,      Nq_WP,   Np_WP,
+						  VC_CM_array,
+						  P123_val_array,
+						  P123_row_array,
+						  P123_col_array,
+						  P123_dim);
+		for (size_t idx=0; idx<dense_dim; idx++){
+			PVC_col_chunk[idx*chunk_steplength + idx_col-col_idx_start] = PVC_col[idx];
+		}
+	}
+	delete [] PVC_col;
+
+	//calculate_PVC_col_gemm(PVC_col_chunk,
+	//					   col_idx_start,
+	//					   col_idx_end,
+	//					   chunk_steplength,
+	//					   P_col_chunk,
+	//				       Nalpha,
+	//					   Nq_WP,
+	//					   Np_WP,
+	//				       VC_CM_array,
+	//				       P123_val_array,
+	//				       P123_row_array,
+	//				       P123_col_array,
+	//				       P123_dim);
+
+	double* CT_subarray = NULL;
+
+	/* Loop over rows of CPVC by alpha and q */
+	for (size_t idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+		for (size_t idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
+			/* Loop over alpha in inner-product C^T x PVC */
+			for (size_t idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
+				
+				CT_subarray = CT_RM_array[idx_alpha_r*Nalpha + idx_alpha_i];
+				
+				/* Only do inner-product if C^T is not zero due to conservation laws */
+				if (CT_subarray!=NULL){
+					/* Multiply PVC-chunk with CT_subarray and fill corresponding part of CPVC_col_chunk */
+					double beta  = 1;
+					double alpha = 1;
+					MKL_INT M    = Np_WP;
+					MKL_INT N    = chunk_dim;
+					MKL_INT K    = Np_WP;
+					MKL_INT lda  = Np_WP;
+					MKL_INT ldb  = chunk_steplength;
+					MKL_INT ldc  = chunk_steplength;
+					double* A    = CT_subarray;
+					double* B    = &PVC_col_chunk[ (idx_alpha_i*Nq_WP*Np_WP + idx_q_r*Np_WP)*chunk_steplength];
+					double* C    = &CPVC_col_chunk[(idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP)*chunk_steplength];
+					cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);	// real multiplication
+				}
+			}
+		}
+	}
+	
+	delete [] PVC_col_chunk;
+	delete [] P_col_chunk;
+}
+
+
+
 void calculate_all_CPVC_rows(double*  row_arrays,
 							 int*	  q_com_idx_array,	  size_t num_q_com,
 					   		 int*     deuteron_idx_array, size_t num_deuteron_states,
@@ -578,6 +755,8 @@ void pade_method_solve(cdouble*  U_array,
 	size_t num_bytes_per_chunk   = 0.5 * std::pow(1024,3);
     size_t num_bytes_in_CPVC_col = (sizeof(cdouble) * dense_dim);
     size_t num_cols_per_chunk    = num_bytes_per_chunk / num_bytes_in_CPVC_col;
+	/* Ensure num_cols_per_chunk is divisible by Np_WP - important for gemm-use in CPVC-construction */
+	num_cols_per_chunk			-= num_cols_per_chunk % Np_WP;
     size_t num_chunks            = dense_dim / num_cols_per_chunk + 1;
     size_t block_size 			 = num_cols_per_chunk;
 	/* From test-script to program notation */
@@ -675,56 +854,86 @@ void pade_method_solve(cdouble*  U_array,
 					CPVC_cols_array[idx] = 0;
 				}
 
-				#pragma omp parallel //num_threads(1)
-				{
-
-				size_t  thread_idx             = omp_get_thread_num();
-				double* CPVC_col_array  	   = &omp_CPVC_col_array	    [thread_idx*dense_dim];
-				int*    CPVC_row_to_nnz_array  = &omp_CPVC_row_to_nnz_array [thread_idx*dense_dim];
-				int*    CPVC_nnz_to_row_array  = &omp_CPVC_nnz_to_row_array [thread_idx*dense_dim];
-
-				#pragma omp for
-				for (size_t idx_col=idx_col_start; idx_col<idx_col_end; idx_col++){
-					size_t idx_alpha_c = idx_col / (Np_WP*Nq_WP);
-					size_t idx_q_c     = (idx_col % (Np_WP*Nq_WP)) /  Np_WP;
-					size_t idx_p_c     = idx_col %  Np_WP;
-
-						//double timestamp_0 = omp_get_wtime();
-						/* Reset CPVC-column array */
-						//for (size_t row_idx=0; row_idx<dense_dim; row_idx++){
-						//	CPVC_col_array[row_idx]        =  0;
-						//	CPVC_row_to_nnz_array[row_idx] = -1;
-						//	CPVC_nnz_to_row_array[row_idx] = -1;
-						//}
-
-						//double timestamp_1 = omp_get_wtime();
-						//double time1 = timestamp_1 - timestamp_0;
-						//times_array[3*thread_idx] += time1;
-
-						/* Calculate CPVC-column */
-						size_t CPVC_num_nnz = 0;
-						size_t CPVC_col_idx = idx_col - idx_col_start;
-						calculate_CPVC_col(&CPVC_cols_array[CPVC_col_idx*dense_dim],//CPVC_col_array,
-										   CPVC_row_to_nnz_array,
-										   CPVC_nnz_to_row_array,
-										   CPVC_num_nnz,
-										   idx_alpha_c, idx_p_c, idx_q_c,
-										   Nalpha, Nq_WP, Np_WP,
-										   CT_RM_array,
-										   VC_CM_array,
-										   P123_sparse_val_array,
-										   P123_sparse_row_array,
-										   P123_sparse_col_array,
-										   P123_sparse_dim);
-						counter_array[thread_idx] += CPVC_num_nnz;
-
-						//ouble timestamp_2 = omp_get_wtime();
-						//ouble time2 = timestamp_2 - timestamp_1;
-						//imes_array[3*thread_idx + 1] += time2;
-				}
-				}
+				/*void calculate_CPVC_col_gemm(double*  CPVC_col_chunk,
+							 				 size_t	  col_idx_start,
+							 				 size_t	  col_idx_end,
+							 				 size_t   chunk_steplength,
+							 				 int* 	  row_to_nnz_array, 
+							 				 int* 	  nnz_to_row_array,
+							 				 size_t&  num_nnz,
+							 				 size_t   Nalpha,
+							 				 size_t   Nq_WP,
+							 				 size_t   Np_WP,
+							 				 double** CT_RM_array,
+							 				 double** VC_CM_array,
+							 				 double*  P123_val_array,
+							 				 int*     P123_row_array,
+							 				 size_t*  P123_col_array,
+							 				 size_t   P123_dim);*/
+				calculate_CPVC_col_gemm(CPVC_cols_array,
+										idx_col_start,
+										idx_col_end,
+										block_size,
+										Nalpha, Nq_WP, Np_WP,
+										CT_RM_array,
+										VC_CM_array,
+										P123_sparse_val_array,
+										P123_sparse_row_array,
+										P123_sparse_col_array,
+										P123_sparse_dim);
+										
+				//#pragma omp parallel //num_threads(1)
+				//{
+				//size_t  thread_idx             = omp_get_thread_num();
+				//double* CPVC_col_array  	   = &omp_CPVC_col_array	    [thread_idx*dense_dim];
+				//int*    CPVC_row_to_nnz_array  = &omp_CPVC_row_to_nnz_array [thread_idx*dense_dim];
+				//int*    CPVC_nnz_to_row_array  = &omp_CPVC_nnz_to_row_array [thread_idx*dense_dim];
+				//#pragma omp for
+				//for (size_t idx_col=idx_col_start; idx_col<idx_col_end; idx_col++){
+				//	size_t idx_alpha_c = idx_col / (Np_WP*Nq_WP);
+				//	size_t idx_q_c     = (idx_col % (Np_WP*Nq_WP)) /  Np_WP;
+				//	size_t idx_p_c     = idx_col %  Np_WP;
+				//
+				//		/* Calculate CPVC-column */
+				//		size_t CPVC_num_nnz = 0;
+				//		size_t CPVC_col_idx = idx_col - idx_col_start;
+				//		calculate_CPVC_col(&CPVC_cols_array[CPVC_col_idx*dense_dim],//CPVC_col_array,
+				//						   CPVC_row_to_nnz_array,
+				//						   CPVC_nnz_to_row_array,
+				//						   CPVC_num_nnz,
+				//						   idx_alpha_c, idx_p_c, idx_q_c,
+				//						   Nalpha, Nq_WP, Np_WP,
+				//						   CT_RM_array,
+				//						   VC_CM_array,
+				//						   P123_sparse_val_array,
+				//						   P123_sparse_row_array,
+				//						   P123_sparse_col_array,
+				//						   P123_sparse_dim);
+				//		counter_array[thread_idx] += CPVC_num_nnz;
+				//}
+				//}
 				double timestamp_CPVC_chunk_end   = omp_get_wtime();
 				time_CPVC_cols += timestamp_CPVC_chunk_end - timestamp_CPVC_chunk_start;
+
+				//double beta  = 0;
+				//double alpha = 1;
+				//MKL_INT M   = num_on_shell_A_rows;
+				//MKL_INT N   = cols_in_chunk;// max_num_cols_in_mem;
+				//MKL_INT K   = dense_dim;
+				//MKL_INT lda = dense_dim;
+				//MKL_INT ldb = dense_dim;//max_num_cols_in_mem;
+				//MKL_INT ldc = dense_dim;
+				//double* re_A = &re_A_An_row_array_prev[0];
+				//double* im_A = &im_A_An_row_array_prev[0];
+				//double* B = &CPVC_cols_array[0];
+				//double* re_C = &re_A_An_row_array[idx_col_start];
+				//double* im_C = &im_A_An_row_array[idx_col_start];
+				//
+				//double timestamp_gemm_start = omp_get_wtime();
+				//cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, re_A, lda, B, ldb, beta, re_C, ldc);	// real multiplication
+				//cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, im_A, lda, B, ldb, beta, im_C, ldc);	// imag multiplication
+				//double timestamp_gemm_end   = omp_get_wtime();
+				//time_An_CPVC_multiply += timestamp_gemm_end - timestamp_gemm_start;
 
 				double beta  = 0;
 				double alpha = 1;
@@ -732,7 +941,7 @@ void pade_method_solve(cdouble*  U_array,
 				MKL_INT N   = cols_in_chunk;// max_num_cols_in_mem;
 				MKL_INT K   = dense_dim;
 				MKL_INT lda = dense_dim;
-				MKL_INT ldb = dense_dim;//max_num_cols_in_mem;
+				MKL_INT ldb = max_num_cols_in_mem;//max_num_cols_in_mem;
 				MKL_INT ldc = dense_dim;
 				double* re_A = &re_A_An_row_array_prev[0];
 				double* im_A = &im_A_An_row_array_prev[0];
@@ -741,8 +950,8 @@ void pade_method_solve(cdouble*  U_array,
 				double* im_C = &im_A_An_row_array[idx_col_start];
 				
 				double timestamp_gemm_start = omp_get_wtime();
-				cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, re_A, lda, B, ldb, beta, re_C, ldc);	// real multiplication
-				cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, im_A, lda, B, ldb, beta, im_C, ldc);	// imag multiplication
+				cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, re_A, lda, B, ldb, beta, re_C, ldc);	// real multiplication
+				cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, im_A, lda, B, ldb, beta, im_C, ldc);	// imag multiplication
 				double timestamp_gemm_end   = omp_get_wtime();
 				time_An_CPVC_multiply += timestamp_gemm_end - timestamp_gemm_start;
 				

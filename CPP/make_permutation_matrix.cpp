@@ -169,7 +169,7 @@ std::string generate_subarray_file_name(int two_J_3N, int P_3N,
 										int current_TFC,
 										std::string P123_folder){
 
-	std::string filename = P123_folder + "/P123_subsparse_JTP_"
+	std::string filename = P123_folder + "/P123_subsparse_JP_"
 						 + to_string(two_J_3N) + "_" + to_string(P_3N)
 						 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
 						 + "_J2max_" + to_string(J_2N_max) + "_TFC_" + to_string(thread_idx)
@@ -582,6 +582,23 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 					double pi2 = pi2_tilde(p, q, x);
 					double costheta1 = -(0.5 * p + 0.75 * q * x) / pi1;
 					double costheta2 = (p - 0.5 * q * x) / pi2;
+
+					/* Prevent numerical error in Plm */
+					if ( costheta1>1 ){
+						costheta1 = 1;
+					}
+					else if( costheta1<-1 ){
+						costheta1 = -1;
+					}
+	
+					/* Prevent numerical error in Plm */
+					if ( costheta2>1 ){
+						costheta2 = 1;
+					}
+					else if( costheta2<-1 ){
+						costheta2 = -1;
+					}
+
 					size_t idx_subarray_2 = qp_idx_WP*Np_WP*Nphi*Nx + pp_idx_WP*Nphi*Nx + phi_idx*Nx + x_idx;
 					size_t idx_subarray_3 = qp_idx_WP*Np_WP*Nphi*Nx + pp_idx_WP*Nphi*Nx + phi_idx*Nx + x_idx;
 					gsl_sf_legendre_array_e(GSL_SF_LEGENDRE_SPHARM, max_L12, costheta1, -1, &gsl_Plm_2_array[idx_subarray_2 * gsl_Plm_2_stplen]);
@@ -622,9 +639,6 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	size_t tread_buffer_size = std::pow(2,30)/(sizeof(double) + 2* sizeof(int));
 	
 	int P123_omp_num_threads = run_parameters.P123_omp_num_threads;
-	if (P123_omp_num_threads>Nq_WP){
-		P123_omp_num_threads = Nq_WP;
-	}
 
 	/* Pointer-arrays for each OpenMP thread */
 	double** P123_val_array_omp = NULL;
@@ -897,6 +911,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 		}
 	}
 	}
+	/* This changes back the maximal number of threads permitted by omp */
 	omp_set_num_threads(omp_get_max_threads());
 
 	/* Delete all temporary arrays and free memory */

@@ -525,6 +525,13 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 		}
 	}
 
+	/* Do program compatibility-checks with input */
+	if (run_parameters.P123_omp_num_threads>run_parameters.Nq_WP){
+		run_parameters.P123_omp_num_threads = run_parameters.Nq_WP;
+		std::cout << "NOTE: Nq_WP is smaller than number of threads. P123 parallellism is with respect to Nq_WP." << std::endl;
+		std::cout << "      -> Setting P123_omp_num_threads=Nq_WP." << std::endl;
+	}
+
 	/* Print system run parameters */
 	std::cout << std::endl;
 	std::cout << "Running program for:" << std::endl;

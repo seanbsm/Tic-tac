@@ -442,7 +442,7 @@ void pade_method_solve(cdouble*  U_array,
 					   size_t    P123_sparse_dim,
 					   run_params run_parameters,
 					   std::string file_identification){
-
+						   
 	/* Print Pade-approximant convergences */
 	bool print_PA_convergences = true;
 	/* Print Neumann terms */
@@ -489,7 +489,6 @@ void pade_method_solve(cdouble*  U_array,
 	/* File-paths for storing A_An_row_array and on-shell neumann terms */
 	std::string A_An_row_filename      = run_parameters.output_folder + "/An_rows" + file_identification + ".txt";
 	std::string neumann_terms_filename = run_parameters.output_folder + "/neumann_terms" + file_identification + ".txt";
-
 
 	/* Set initial values for A_Kn_row_array, where K^n=1 for n=0 */
 	printf("   - Working on Pade approximant P[N,M] for N=%d, M=%d \n",0,0); fflush(stdout);
@@ -1073,8 +1072,8 @@ void solve_faddeev_equations(cdouble*  U_array,
 
 	/* Convert from COO format to CSC format */
 	printf(" - Converting P123 from COO to CSC format ... \n");
-	size_t* P123_sparse_col_array_csc = new size_t [dense_dim];
-	coo_to_csr_format_converter(P123_sparse_col_array,
+	size_t* P123_sparse_col_array_csc = new size_t [dense_dim+1];
+	coo_to_csc_format_converter(P123_sparse_col_array,
 								P123_sparse_col_array_csc,
 								P123_sparse_dim,
 								dense_dim);

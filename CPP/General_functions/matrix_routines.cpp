@@ -380,10 +380,13 @@ void square_sparse_COO_to_dense_format_converter(int      mat_dim,
 	}
 }
 
+/* THERE'S NO DIFFERENE IN OUTPUT BETWEEN CSR AND CSC WHEN IT COMES TO THIS FUNCTION,
+ * THE OUTPUT DEPENDS PURELY ON INPUT */
 void coo_to_csr_format_converter(int*    idx_row_array_coo,
 								 size_t* idx_row_array_csr,
 								 size_t  mat_sparse_dim,
 								 size_t  mat_dense_dim){
+
 	for (size_t i=0; i<mat_dense_dim+1; i++){
 		idx_row_array_csr[i] = 0;
 	}
@@ -404,6 +407,8 @@ void coo_to_csr_format_converter(int*    idx_row_array_coo,
 	}
 }
 
+/* THERE'S NO DIFFERENE IN OUTPUT BETWEEN CSR AND CSC WHEN IT COMES TO THIS FUNCTION,
+ * THE OUTPUT DEPENDS PURELY ON INPUT */
 void coo_to_csc_format_converter(int*    idx_col_array_coo,
 								 size_t* idx_col_array_csc,
 								 size_t  mat_sparse_dim,

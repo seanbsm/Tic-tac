@@ -669,8 +669,8 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	size_t Gtilde_subarray_size = Nphi * Nx;
 
 
-	int row_step_length = P123_dense_dim/100;
-	int row_multiplier = 1;
+	//int row_step_length = P123_dense_dim/100;
+	//int row_multiplier = 1;
 
 	/* Code segment to check sparse matrix size */
 	double P123_density   = 1. - P123_sparsity;

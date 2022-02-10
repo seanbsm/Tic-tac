@@ -22,7 +22,7 @@ OBJFORT_77_FILES := $(patsubst %.f,%.o,$(shell find ./ -regex [^\#]*\\.f$))
 #LDFLAGS := -lblas -llapack -lm
 
 
-CPPFLAGS := -Wall -std=c++17 -O2 -ggdb -fopenmp
+CPPFLAGS := -Wall -std=c++17 -O3 -ggdb -fopenmp
 # Stop compilation on warning-encounter (good for neat code but not necessary)
 #CPPFLAGS += -Werror
 # Use MKL-types

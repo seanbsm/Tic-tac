@@ -160,7 +160,7 @@ int main(int argc, char* argv[]){
 	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
 	/* Setting to store calculated P123 matrix in WP basis to h5-file */
-	bool calculate_and_store_P123 = false;
+	bool calculate_and_store_P123 = true;
 	
 	/* Setting to solve Faddeev or not. Handy if we only want to
 	 * precalculate permutation matrices, or to calculate both permutation matrices
@@ -558,7 +558,7 @@ int main(int argc, char* argv[]){
 				double q = com_energy_to_com_q_momentum(E_com);
 				double T_lab = com_momentum_to_lab_energy(q, E_bound);
 
-				std::cout << "Tlab " << T_lab << std::endl;
+				//std::cout << "Tlab " << T_lab << std::endl;
 				
 				T_lab_array[Tlab_idx] = T_lab;
 			}

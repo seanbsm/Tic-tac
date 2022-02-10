@@ -1,5 +1,5 @@
 # Run "-h" or "--help" to see meaning of arguments
-two_J_3N_max=17
+two_J_3N_max=1
 Np_WP=50
 Nq_WP=50
 J_2N_max=3
@@ -16,9 +16,9 @@ max_TFC=2
 parallel_run=true
 P123_recovery=false
 tensor_force=true
-isospin_breaking_1S0=true
+isospin_breaking_1S0=false
 mid_point_approximation=false
-potential_model=nijmegen
+potential_model=N2LOopt
 grid_type=chebyshev
 parameter_walk=off
 average=off

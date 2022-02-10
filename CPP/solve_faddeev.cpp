@@ -910,8 +910,13 @@ void pade_method_solve(cdouble*  U_array,
 						min_PA_diff = PA_diff_curr;
 					}
 
-					/* Condition for convergence: 3 or more iterations past minimum PA, or last iteration NM=NM_max */
-					if (NM-idx_best_PA>4 || NM==NM_max){
+					/* Condition for convergence: 3 or more iterations past minimum PA, or last iteration NM=NM_max 
+					 * UPDATE: this is a bad test as it does not account for "good enough", only relative best 
+					 *         meaning we may go FAR beyond what we actually need in convergence */
+					bool convergence_criteria_1 = (NM-idx_best_PA>4 || NM==NM_max);
+					/* Condition for convergence: critera 1 modified to account for a "good-enough" measure */
+					bool convergence_criteria_2 = (convergence_criteria_1 || min_PA_diff<1e-4*std::abs(pade_approximants_array[idx_NDOS*(NM_max+1) + idx_best_PA]));
+					if (convergence_criteria_2){
 						pade_approximants_conv_array[idx_NDOS] = true;
 						pade_approximants_idx_array[idx_NDOS]  = idx_best_PA;
 						num_converged_elements += 1;

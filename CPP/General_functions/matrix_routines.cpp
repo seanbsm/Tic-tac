@@ -24,6 +24,19 @@ void raise_error_DSS_MKL(_INTEGER_t error, const char* function_name){
 	exit(1);
 }
 
+void dot_MV(double *A, double *B, double *C, int N, int M){
+	double  beta  = 0.0;
+	double  alpha = 1.0;
+	MKL_INT incrx = 1.0;
+	MKL_INT incry = 1.0;
+	char    trans = 'N';
+	MKL_INT n = N;
+	MKL_INT m = M;
+	//cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, &alpha, A, K, B, M, &beta, C, M);
+	dgemv(&trans, &n, &m, &alpha, A, &m, B, &incrx, &beta, C, &incry);
+}
+
+
 std::complex<double> cdot_VV(std::complex<float> *X, std::complex<float> *Y, int N, int INCR_X, int INCR_Y){
 	std::complex<float> dot_product = 0;
 	cblas_cdotu_sub(N, X, INCR_X, Y, INCR_Y, &dot_product);
@@ -52,6 +65,43 @@ void cdot_MM(std::complex<double> *A, std::complex<double> *B, std::complex<doub
 	std::complex<double> alpha = {1,0};
 	cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, &alpha, A, K, B, M, &beta, C, M);
 }
+
+/* Multiplies a sparse matrix A with a dense matrix B to make a dense matrix C */
+void dot_MM_sparse(double* A_v, long long int* A_c, long long int* A_r, double *B, double *C, int N, int K, int M, bool transpose_A){
+	sparse_status_t mkl_sparse_status;
+    sparse_matrix_t A;
+	bool operation_success;
+    mkl_sparse_status = mkl_sparse_d_create_csr(&A,
+                                                SPARSE_INDEX_BASE_ZERO,
+                                                N,
+                                                M,
+                                                A_c,
+                                                A_c + 1,
+                                                A_r,
+                                                A_v);
+	operation_success = verify_sparse_mkl_success(mkl_sparse_status, false);
+
+    auto operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    if (transpose_A){
+		operation = SPARSE_OPERATION_TRANSPOSE;
+	}
+	
+	double alpha = 1.0;
+    //sparse_matrix_t A = P_MKL_CSC;
+    matrix_descr descr;
+    descr.type = SPARSE_MATRIX_TYPE_GENERAL;
+    sparse_layout_t layout = SPARSE_LAYOUT_ROW_MAJOR;
+    //double* B = V_dense;
+    MKL_INT columns = M;
+    MKL_INT ldb = M;
+    double beta = 0.0;
+    //double* C = PV_sm_dm;
+    MKL_INT ldc = M;
+	
+    mkl_sparse_status = mkl_sparse_d_mm(operation, alpha, A, descr, layout, B, columns, ldb, beta, C, ldc);
+	operation_success = verify_sparse_mkl_success(mkl_sparse_status, false);
+}
+
 
 void solve_MM(float* A, float* B, int dim){
 	char trans = 'N';

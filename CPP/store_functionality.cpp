@@ -516,6 +516,88 @@ void read_WP_boundaries_from_txt(double* WP_boundaries, int N_WP, std::string fi
 	}
 }
 
+void store_sparse_matrix_h5(double* sparse_val_array,
+							int*    sparse_row_array,
+							int*    sparse_col_array,
+							size_t  sparse_dim,
+							size_t  dense_dim,
+							std::string filename_in,
+							bool print_content){
+
+	if (print_content){
+		printf("   - Setting up h5-file \n");
+	}
+
+	/* Convert filename_in to char-array */
+	char filename[300];
+	std::strcpy(filename, filename_in.c_str());
+
+	if (print_content){
+		cout << " - Write to: " << filename << "\n";
+	}
+	
+	/* Create and open file */
+	hid_t file_id = H5Fcreate(filename,
+							  H5F_ACC_TRUNC,
+							  H5P_DEFAULT,
+							  H5P_DEFAULT);
+
+	/* Write dimensions */
+	if (print_content){
+		printf("   - Writing matrix dimensions \n");
+	}
+	write_integer_to_h5((unsigned long long int) sparse_dim, "nnz", file_id);
+	write_integer_to_h5((unsigned long long int) dense_dim,  "dim", file_id);
+	
+	/* Sparse matrix elements */
+	if (print_content){
+		printf("   - Writing sparse matrix elements and indices \n");
+	}
+	write_sparse_permutation_matrix_h5(sparse_val_array,
+									   sparse_row_array,
+									   sparse_col_array,
+									   sparse_dim,
+									   file_id);
+
+	herr_t status = H5Fclose(file_id);
+}
+
+void read_sparse_matrix_h5(double** sparse_val_array,
+						   int**    sparse_row_array,
+						   int**    sparse_col_array,
+						   size_t&  sparse_dim,
+						   size_t&  dense_dim,
+						   std::string filename_in,
+						   bool    print_content){
+
+	/* Convert filename_in to char-array */
+	char filename[300];
+	std::strcpy(filename, filename_in.c_str());
+
+	if (print_content){
+		printf(" - Read from: %s \n",  filename);
+	}
+	
+	/* Read dimensions */
+	unsigned long long int sparse_dim_temp = 0;
+	read_ULL_integer_from_h5(sparse_dim_temp, "nnz", filename);
+	sparse_dim = sparse_dim_temp;
+	unsigned long long int dense_dim_temp = 0;
+	read_ULL_integer_from_h5(dense_dim_temp, "dim", filename);
+	dense_dim = dense_dim_temp;
+	
+	/* Read P123 sparse matrix elements and indices */
+	*sparse_row_array = new int    [sparse_dim];
+	*sparse_col_array = new int    [sparse_dim];
+	*sparse_val_array = new double [sparse_dim];
+
+	read_sparse_permutation_matrix_h5(*sparse_val_array,
+									  *sparse_row_array,
+									  *sparse_col_array,
+									  sparse_dim,
+									  filename);
+}
+
 void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_array,
 													   int*    P123_sparse_row_array,
 													   int*    P123_sparse_col_array,

@@ -90,6 +90,21 @@ void read_WP_boundaries_from_txt(double* WP_boundaries,
 								 int N_WP,
 								 std::string filename);
 
+void store_sparse_matrix_h5(double* sparse_val_array,
+							int*    sparse_row_array,
+							int*    sparse_col_array,
+							size_t  sparse_dim,
+							size_t  dense_dim,
+							std::string filename_in,
+							bool print_content);
+void read_sparse_matrix_h5(double** sparse_val_array,
+						   int**    sparse_row_array,
+						   int**    sparse_col_array,
+						   size_t&  sparse_dim,
+						   size_t&  dense_dim,
+						   std::string filename_in,
+						   bool    print_content);
+
 void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_array,
 													   int*    P123_sparse_row_array,
 													   int*    P123_sparse_col_array,

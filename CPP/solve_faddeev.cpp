@@ -35,7 +35,7 @@ void calculate_PVC_col(double*  col_array,
 				for (size_t idx_i=idx_i_lower; idx_i<idx_i_upper; idx_i++){
 
 					/* Access arrays, this whole function is written to minimize these two calls */
-					/* NOTE THAT P = P123 + P132 = 2*P123 */
+					/* NOTE THAT P = P123 + P132 = 2*P123 FOR ANTISYMMETRIC PAIR-STATES */
 					double P_element  = 2*P123_val_array[idx_i];
 
 					size_t idx_row = P123_row_array[idx_i];
@@ -48,17 +48,17 @@ void calculate_PVC_col(double*  col_array,
 }
 
 void calculate_CPVC_col(double*  col_array,
-						int* 	 row_to_nnz_array, 
-						int* 	 nnz_to_row_array,
-						size_t&  num_nnz,
-						size_t   idx_alpha_c, size_t idx_p_c, size_t idx_q_c,
-						size_t   Nalpha,      size_t Nq_WP,   size_t Np_WP,
-						double** CT_RM_array,
-						double** VC_CM_array,
-						double*  P123_val_array,
-						int*     P123_row_array,
-						size_t*  P123_col_array,
-						size_t   P123_dim){
+					    int* 	 row_to_nnz_array, 
+					    int* 	 nnz_to_row_array,
+					    size_t&  num_nnz,
+					    size_t   idx_alpha_c, size_t idx_p_c, size_t idx_q_c,
+					    size_t   Nalpha,      size_t Nq_WP,   size_t Np_WP,
+					    double** CT_RM_array,
+					    double** VC_CM_array,
+					    double*  P123_val_array,
+					    int*     P123_row_array,
+					    size_t*  P123_col_array,
+					    size_t   P123_dim){
 	
 	/* Generate PVC-column */
 	double* PVC_col = new double [Nalpha*Nq_WP*Np_WP];
@@ -67,6 +67,7 @@ void calculate_CPVC_col(double*  col_array,
 		PVC_col[idx] = 0;
 	}
 	
+	//auto timestamp_start = std::chrono::system_clock::now();
 	calculate_PVC_col(PVC_col,
 					  idx_alpha_c, idx_p_c, idx_q_c,
 					  Nalpha,      Nq_WP,   Np_WP,
@@ -75,6 +76,9 @@ void calculate_CPVC_col(double*  col_array,
 					  P123_row_array,
 					  P123_col_array,
 					  P123_dim);
+	//auto timestamp_end = std::chrono::system_clock::now();
+	//std::chrono::duration<double>  time1 = timestamp_end - timestamp_start;
+	//printf("TIME PVC:  %.6f \n", time1.count()); fflush(stdout);
 
 	/* THOUGHT:
 	 * MOVE ALPHA_I OUTWARDS AND GO BACK TO DIRECT APPEND TO COL_ARRAY.
@@ -84,20 +88,62 @@ void calculate_CPVC_col(double*  col_array,
 	 * Use dense mat-vec multiplication for sub-blocks  (Can let q be columns of right-vectors? Appealing use of MM-multiplication)
 	 * Use dense vec-vec (or vec-mat-vec?) multiplication for A_An */
 
-	//#pragma omp parallel
-	//{
 	/* Generate (C^T x PVC)-column */
 	double* CT_subarray     = NULL;
 	double* CT_subarray_row = NULL;
 	double* PVC_subcol 		= NULL;
-	//#pragma omp for
+
+	///*  Looping based on matrix-vector product */
+	//double* CPVC_subcol 	= NULL;
+	//for (size_t idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+	//	/* Beginning of inner-product loops (index "i") */
+	//	for (size_t idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
+	//		size_t idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
+	//		CT_subarray = CT_RM_array[idx_CT_2N_block];
+	//
+	//		/* Only do inner-product if CT is not zero due to conservation laws */
+	//		if (CT_subarray!=NULL){
+	//			for (size_t idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
+	//				PVC_subcol  = &PVC_col[idx_alpha_i*Nq_WP*Np_WP + idx_q_r*Np_WP];
+	//				CPVC_subcol = &col_array[idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP];
+	//
+	//				/* Do inner-product over momentum p */
+	//				dot_MV(CT_subarray, PVC_subcol, CPVC_subcol, Np_WP, Np_WP);
+	//			}
+	//		}
+	//	}
+	//}
+
+	///*  Looping based on first nnz-lookup of PVC elements */
+	//for (size_t idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
+	//	for (size_t idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
+	//		for (size_t idx_p_i=0; idx_p_i<Np_WP; idx_p_i++){
+	//			double PVC_element = PVC_col[idx_alpha_i*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_i];
+	//			if (PVC_element!=0){
+	//				for (size_t idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+	//					size_t idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
+	//					CT_subarray = CT_RM_array[idx_CT_2N_block];
+	//					if (CT_subarray!=NULL){
+	//						for (size_t idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
+	//							double prod = PVC_element  * CT_subarray[idx_p_r*Np_WP + idx_p_i];
+	//							size_t idx_CPVC = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
+	//							col_array[idx_CPVC] += prod;
+	//						}
+	//					}
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
+	
+	/*  Looping based on first nnz-lookup of CT-matrices */
 	/* Loop over rows of col_array */
+	//timestamp_start = std::chrono::system_clock::now();
 	for (size_t idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
 		/* Beginning of inner-product loops (index "i") */
 		for (size_t idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
 			size_t idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
 			CT_subarray = CT_RM_array[idx_CT_2N_block];
-
 			/* Only do inner-product if CT is not zero due to conservation laws */
 			if (CT_subarray!=NULL){
 				PVC_subcol = &PVC_col[idx_alpha_i*Nq_WP*Np_WP];
@@ -107,15 +153,12 @@ void calculate_CPVC_col(double*  col_array,
 						double PVC_element = PVC_subcol[idx_q_r*Np_WP + idx_p_i];
 						if (PVC_element!=0){
 							for (size_t idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
-
 								/* I'm not sure if this is the fastest ordering of the loops */
-								double CT_element  = CT_subarray[idx_p_r*Np_WP + idx_p_i];
-
-								double prod = CT_element * PVC_element;
-								if (prod!=0){
+								//double CT_element  = CT_subarray[idx_p_r*Np_WP + idx_p_i];
+								double prod = PVC_element  * CT_subarray[idx_p_r*Np_WP + idx_p_i];
+								//if (prod!=0){
 									size_t idx_CPVC = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
 									col_array[idx_CPVC] += prod;
-
 									//int nnz_idx = row_to_nnz_array[idx_CPVC];
 									//if (nnz_idx==-1){
 									//	row_to_nnz_array[idx_CPVC] = num_nnz;
@@ -123,8 +166,7 @@ void calculate_CPVC_col(double*  col_array,
 									//	nnz_idx = num_nnz;
 									//	num_nnz += 1;
 									//}
-									//col_array[nnz_idx] += prod;
-								}
+								//}
 							}
 						}
 					}
@@ -132,7 +174,10 @@ void calculate_CPVC_col(double*  col_array,
 			}
 		}
 	}
-	//}
+	//timestamp_end = std::chrono::system_clock::now();
+	//std::chrono::duration<double>  time2 = timestamp_end - timestamp_start;
+	//printf("TIME CPVC:  %.6f \n", time2.count()); fflush(stdout);
+	
 	delete [] PVC_col;
 }
 
@@ -451,6 +496,14 @@ void pade_method_solve(cdouble*  U_array,
 	bool store_neumann_terms   = true;
 	/* Store An-matrices */
 	bool store_An_arrays 	   = false;
+	/* Store CPVC-kernel to disk */
+	bool store_CPVC_array	   = false;
+	/* Store CPVC-kernel in memory (faster but much more memory intensive) */
+	bool keep_CPVC_in_mem	   = false;
+	
+	/* Timekeeping variables */
+	auto timestamp_start = std::chrono::system_clock::now();
+	auto timestamp_end   = std::chrono::system_clock::now();
 
 	/* Use as many threads as possible in MKL-GEMM */
 	mkl_set_num_threads(omp_get_max_threads());
@@ -472,28 +525,330 @@ void pade_method_solve(cdouble*  U_array,
 	/* Dense dimension of 3N-channel */
 	size_t dense_dim = Nalpha * Nq_WP * Np_WP;
 
-	/* Allocate row-arrays for A*A^n, where A=(C^T)(P)(VC) */
+	/* Allocate row-arrays for A*A^n, where A=(C^T)(P)(VC) 
+	 * _array: current iteration of Neumann terms
+	 * _array_prev: previous iteration of Neumann terms
+	 * _array_comp: compact, past iteration of Neumann terms (compactified to contain only non-converged on-shell elements for faster gemm)
+	 * _array_prod: compact, next iteration of Neumann terms (compactified to contain only non-converged on-shell elements for faster gemm) */
 	double* re_A_An_row_array 	   = new double [dense_dim * num_on_shell_A_rows];
-	double* re_A_An_row_array_prev = new double [dense_dim * num_on_shell_A_rows];
 	double* im_A_An_row_array 	   = new double [dense_dim * num_on_shell_A_rows];
+	double* re_A_An_row_array_prev = new double [dense_dim * num_on_shell_A_rows];
 	double* im_A_An_row_array_prev = new double [dense_dim * num_on_shell_A_rows];
+	double* re_A_An_row_array_comp = new double [dense_dim * num_on_shell_A_rows];
+	double* im_A_An_row_array_comp = new double [dense_dim * num_on_shell_A_rows];
+	double* re_A_An_row_array_prod = new double [dense_dim * num_on_shell_A_rows];
+	double* im_A_An_row_array_prod = new double [dense_dim * num_on_shell_A_rows];
 	
 	/* Set A_An-arrays to zero */
 	for (size_t i=0; i<dense_dim*num_on_shell_A_rows; i++){
 		re_A_An_row_array[i] 	  = 0;
-		re_A_An_row_array_prev[i] = 0;
 		im_A_An_row_array[i] 	  = 0;
+		re_A_An_row_array_prev[i] = 0;
 		im_A_An_row_array_prev[i] = 0;
+		re_A_An_row_array_comp[i] = 0;
+		im_A_An_row_array_comp[i] = 0;
+		re_A_An_row_array_prod[i] = 0;
+		im_A_An_row_array_prod[i] = 0;
 	}
+
+	/* Mapping vector from non-converged, compactified rows to full row-storage */
+	size_t* A_An_indexing_array = new size_t [num_on_shell_A_rows];
 
 	/* File-paths for storing A_An_row_array and on-shell neumann terms */
 	std::string A_An_row_filename      = run_parameters.output_folder + "/An_rows" + file_identification + ".txt";
 	std::string neumann_terms_filename = run_parameters.output_folder + "/neumann_terms" + file_identification + ".txt";
 
+	/* Arrays to store Pade-approximants (PA) for each on-shelle elements */
+	cdouble* pade_approximants_array      = new cdouble [num_on_shell_A_vals * (NM_max+1)];
+	size_t*  pade_approximants_idx_array  = new size_t  [num_on_shell_A_vals];
+	bool*    pade_approximants_conv_array = new bool    [num_on_shell_A_vals];
+	size_t	 num_converged_elements		  = 0;
+
+	/* Define CPVC-chunks size */
+	size_t num_Gbytes_per_chunk  = 4;
+	size_t num_bytes_per_chunk   = num_Gbytes_per_chunk * std::pow(1024,3);
+    size_t num_bytes_in_CPVC_col = (sizeof(cdouble) * dense_dim);
+    size_t num_cols_per_chunk    = num_bytes_per_chunk / num_bytes_in_CPVC_col;
+    size_t num_chunks            = dense_dim / num_cols_per_chunk + 1;
+    size_t block_size 			 = num_cols_per_chunk;
+
+	//printf("   - Will calculate kernels in %d chunks of %d GB \n", num_chunks, num_Gbytes_per_chunk); fflush(stdout);
+
+	/* From test-script to program notation */
+	size_t    max_num_cols_in_mem = block_size;
+	size_t	  num_col_chunks	  = num_chunks;
+	double*   CPVC_cols_array     = new double [dense_dim * max_num_cols_in_mem];
+	
+	/* Allocate row- and column-arrays for (C^T)(P)(VC) */
+	int 	 num_threads			    = omp_get_max_threads();
+	double*  omp_CPVC_col_array  		= new double [dense_dim * num_threads];
+	int*     omp_CPVC_row_to_nnz_array  = new int    [dense_dim * num_threads];
+	int*     omp_CPVC_nnz_to_row_array  = new int    [dense_dim * num_threads];
+
+	for (size_t idx_NDOS=0; idx_NDOS<num_on_shell_A_vals; idx_NDOS++){
+		pade_approximants_conv_array[idx_NDOS] = false;
+	}
+
+	/* CPVC sparse arrays, used if keep_CPVC_in_mem=true */
+	double* CPVC_v_array   = NULL;
+	int*    CPVC_c_array   = NULL;
+	int*    CPVC_r_array   = NULL;
+	size_t* CPVC_csc_array = NULL;
+	long long int* CPVC_c_array_LL   = NULL;
+	//long long int* CPVC_r_array_LL   = NULL;
+	long long int* CPVC_csc_array_LL = NULL;
+
+	/* Precalculate kernel CPVC, if the option is selected */
+	if (keep_CPVC_in_mem){
+		printf("   - Precalculating CPVC-kernel in CSR-sparse format \n"); fflush(stdout);
+
+		size_t CPVC_dim_est = P123_sparse_dim * 100;
+		double CPVC_GB_est  = (double) CPVC_dim_est * (2*sizeof(int) + sizeof(double)) / std::pow(1024,3);
+		printf("     - Estimated kernel size: %zu non-zero elements (%.2f GB in COO format)\n", CPVC_dim_est, CPVC_GB_est); fflush(stdout);
+
+		/* CPVC-sparse arrays in COO format PER THREAD */
+		size_t*  omp_CPVC_dim 	  = new size_t  [num_threads];
+		size_t*  omp_CPVC_nnz 	  = new size_t  [num_threads];
+		double** omp_CPVC_v_array = new double* [num_threads];
+		int**    omp_CPVC_c_array = new int*    [num_threads];
+		int**    omp_CPVC_r_array = new int*    [num_threads];
+		for (int i=0; i<num_threads; i++){
+			size_t omp_dim_est  = P123_sparse_dim * 10 / num_threads; // This is an estimate based on what we see typically, distribute among threads
+			omp_CPVC_dim[i]     = omp_dim_est;
+			omp_CPVC_nnz[i]     = 0;
+			omp_CPVC_v_array[i] = new double [omp_dim_est];
+			omp_CPVC_c_array[i] = new int    [omp_dim_est];
+			omp_CPVC_r_array[i] = new int    [omp_dim_est];
+		}
+
+		/* Fill omp-arrays with nnz elements of CPVC-kernel */
+		printf("     - Precalculating ... \n"); fflush(stdout);
+		timestamp_start = std::chrono::system_clock::now();
+		#pragma omp parallel
+		{
+			size_t  thread_idx        = omp_get_thread_num();
+			double* col_array  	   	  = new double [dense_dim];
+			int*    row_to_nnz_array  = new int    [dense_dim];
+			int*    nnz_to_row_array  = new int    [dense_dim];
+
+			/* Manually set up parallel for loop, this lets me avoid having to sort columns after matrix construction */
+			size_t idx_col_start = (dense_dim/num_threads) *  thread_idx;
+			size_t idx_col_end   = (dense_dim/num_threads) * (thread_idx+1) + (thread_idx==num_threads-1)*(dense_dim%num_threads);
+
+			for (size_t idx_col=idx_col_start; idx_col<idx_col_end; idx_col++){
+				for (size_t i=0; i<dense_dim; i++){
+					col_array[i] = 0;
+					row_to_nnz_array[i] = -1;
+					nnz_to_row_array[i] = -1;
+				}
+
+				size_t idx_alpha_c = idx_col / (Np_WP*Nq_WP);
+				size_t idx_q_c     = (idx_col % (Np_WP*Nq_WP)) /  Np_WP;
+				size_t idx_p_c     = idx_col %  Np_WP;
+
+				/* Calculate CPVC-column */
+				size_t num_nnz = 0;
+				calculate_CPVC_col(col_array,
+								   row_to_nnz_array,
+								   nnz_to_row_array,
+								   num_nnz,
+								   idx_alpha_c, idx_p_c, idx_q_c,
+								   Nalpha, Nq_WP, Np_WP,
+								   CT_RM_array,
+								   VC_CM_array,
+								   P123_sparse_val_array,
+								   P123_sparse_row_array,
+								   P123_sparse_col_array,
+								   P123_sparse_dim);
+
+
+				//std::cout << thread_idx << " " << 1 << std::endl;
+				
+				/* Lengthen array by 100*dense_dim if the array cannot fit another dense_dim nnz-elements (i.e. max nnz elements from next loop-iteration) */
+				if ( omp_CPVC_nnz[thread_idx]+num_nnz+dense_dim >= omp_CPVC_dim[thread_idx] ){
+					size_t steplength = 100*dense_dim;
+					increase_sparse_array_size(&omp_CPVC_v_array[thread_idx], omp_CPVC_dim[thread_idx], steplength);
+					increase_sparse_array_size(&omp_CPVC_r_array[thread_idx], omp_CPVC_dim[thread_idx], steplength);
+					increase_sparse_array_size(&omp_CPVC_c_array[thread_idx], omp_CPVC_dim[thread_idx], steplength);
+					omp_CPVC_dim[thread_idx] += steplength;
+				}
+
+				//std::cout << thread_idx << " " << 2 << std::endl;
+
+				/* Append nnz elements to sparse omp-array */
+				size_t curr_nnz = omp_CPVC_nnz[thread_idx];
+				for (int nnz=0; nnz<num_nnz; nnz++){
+					//std::cout << nnz << " " << curr_nnz << std::endl;
+					//std::cout << col_array[nnz_to_row_array[nnz]] << std::endl;
+					//std::cout << nnz_to_row_array[nnz] << std::endl;
+					//std::cout << idx_col << std::endl;
+					omp_CPVC_v_array[thread_idx][curr_nnz+nnz] = col_array[nnz_to_row_array[nnz]];
+					omp_CPVC_r_array[thread_idx][curr_nnz+nnz] = nnz_to_row_array[nnz];
+					omp_CPVC_c_array[thread_idx][curr_nnz+nnz] = idx_col;
+				}
+				omp_CPVC_nnz[thread_idx] += num_nnz;
+				//std::cout << thread_idx << " " << 3 << std::endl;
+			}
+		}
+		size_t CPVC_num_nnz = 0;
+		for (int i=0; i<num_threads; i++){
+			CPVC_num_nnz += omp_CPVC_nnz[i];
+		}
+		double CPVC_GB_true  = (double) CPVC_num_nnz * (2*sizeof(int) + sizeof(double)) / std::pow(1024,3);
+		double CPVC_density  = (double) 100.0 * CPVC_num_nnz / std::pow(dense_dim, 2);
+		printf("       - Actual kernel size: %zu non-zero elements (%.2f GB in COO format) (%.2f%% density)\n", CPVC_num_nnz, CPVC_GB_true, CPVC_density); fflush(stdout);
+		timestamp_end = std::chrono::system_clock::now();
+		std::chrono::duration<double>  time_CPVC_construction = timestamp_end - timestamp_start;
+		printf("       - Time spent:     %.6f \n", time_CPVC_construction.count()); fflush(stdout);
+		printf("       - Done. \n"); fflush(stdout);
+
+		/* Consolidate omp-arrays into a single COO-format array
+		 * NOTE: This can be divided into three sections that deallocate e.g. omp-value array
+		 * before allocating col-array such that memory is used more efficiently. */
+		printf("     - Consolidating distributed arrays ... \n"); fflush(stdout);
+		timestamp_start = std::chrono::system_clock::now();
+
+		/* Consolidate values and deallocate parallel memory */
+		CPVC_v_array = new double [CPVC_num_nnz];
+		size_t idx_nnz = 0;
+		for (int i=0; i<num_threads; i++){
+			for (size_t j=0; j<omp_CPVC_nnz[i]; j++){
+				CPVC_v_array[idx_nnz] = omp_CPVC_v_array[i][j];
+				idx_nnz += 1;
+			}
+		}
+		for (int i=0; i<num_threads; i++){
+			delete [] omp_CPVC_v_array[i];
+		}
+
+		/* Consolidate column-indices and deallocate parallel memory  */
+		CPVC_c_array = new int [CPVC_num_nnz];
+		idx_nnz = 0;
+		for (int i=0; i<num_threads; i++){
+			for (size_t j=0; j<omp_CPVC_nnz[i]; j++){
+				CPVC_c_array[idx_nnz] = omp_CPVC_c_array[i][j];
+				idx_nnz += 1;
+			}
+		}
+		for (int i=0; i<num_threads; i++){
+			delete [] omp_CPVC_c_array[i];
+		}
+
+		/* Consolidate row-indices and deallocate parallel memory  */
+		CPVC_r_array = new int [CPVC_num_nnz];
+		idx_nnz = 0;
+		for (int i=0; i<num_threads; i++){
+			for (size_t j=0; j<omp_CPVC_nnz[i]; j++){
+				CPVC_r_array[idx_nnz] = omp_CPVC_r_array[i][j];
+				idx_nnz += 1;
+			}
+		}
+		for (int i=0; i<num_threads; i++){
+			delete [] omp_CPVC_r_array[i];
+		}
+
+		/* Deallocate parallel pointer-arrays */
+		delete [] omp_CPVC_dim;
+		delete [] omp_CPVC_nnz;
+		delete [] omp_CPVC_v_array;
+		delete [] omp_CPVC_c_array;
+		delete [] omp_CPVC_r_array;
+
+		timestamp_end = std::chrono::system_clock::now();
+		std::chrono::duration<double>  time_CPVC_consolidation = timestamp_end - timestamp_start;
+		printf("       - Time spent:     %.6f \n", time_CPVC_consolidation.count()); fflush(stdout);
+		printf("       - Done. \n"); fflush(stdout);
+
+		///* Sort CPVC COO-sparse array */
+		//printf("     - Sorting COO-entries ... \n"); fflush(stdout);
+		//timestamp_start = std::chrono::system_clock::now();
+		//unsorted_sparse_to_coo_row_major_sorter(&CPVC_v_array,
+		//									 	&CPVC_r_array,
+		//									 	&CPVC_c_array,
+		//									 	CPVC_num_nnz,
+		//									 	dense_dim);
+		//timestamp_end = std::chrono::system_clock::now();
+		//std::chrono::duration<double>  time_CPVC_sorting = timestamp_end - timestamp_start;
+		//printf("       - Time spent:     %.6f \n", time_CPVC_sorting.count()); fflush(stdout);
+		//printf("       - Done. \n"); fflush(stdout);
+
+		///* Convert COO-array to CSC-array */
+		//printf("     - Converting from COO to CSC ... \n"); fflush(stdout);
+		//timestamp_start = std::chrono::system_clock::now();
+		//CPVC_csc_array = new size_t [dense_dim + 1];
+		//coo_to_csc_format_converter(CPVC_r_array,
+		//						 	  CPVC_csc_array,
+		//						 	  CPVC_num_nnz,
+		//						 	  dense_dim);
+		//delete [] CPVC_r_array;
+		//timestamp_end = std::chrono::system_clock::now();
+		//std::chrono::duration<double>  time_CPVC_convertion = timestamp_end - timestamp_start;
+		//printf("       - Time spent:     %.6f \n", time_CPVC_convertion.count()); fflush(stdout);
+		//printf("       - Done. \n"); fflush(stdout);
+		///* Copy column-array from int to long long int */
+		//CPVC_c_array_LL   = new long long int [CPVC_num_nnz];
+		//for (size_t i=0; i<CPVC_num_nnz; i++){
+		//	CPVC_c_array_LL[i] = CPVC_c_array[i];
+		//}
+		//delete [] CPVC_c_array;
+		///* Copy CSC-array from int to long long int */
+		//CPVC_csc_array_LL = new long long int [dense_dim+1];
+		//for (int i=0; i<dense_dim+1; i++){
+		//	CPVC_csc_array_LL[i] = CPVC_csc_array[i];
+		//}
+		//delete [] CPVC_csc_array;
+
+		std::string filename = "kernel.h5";   //P123_folder + "/CPVC_"
+						 				   //+ to_string(two_J_3N) + "_" + to_string(P_3N)
+						 				   //+ "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
+						 				   //+ "_J2max_" + to_string(J_2N_max) + "_TFC_" + to_string(thread_idx)
+						 				   //+ "_" + to_string(current_TFC) + ".h5";
+
+		/* Store sparse CPVC-array to file */
+		printf("     - Writing kernel to h5 ... \n"); fflush(stdout);
+		timestamp_start = std::chrono::system_clock::now();
+		store_sparse_matrix_h5(CPVC_v_array,
+							   CPVC_r_array,
+							   CPVC_c_array,
+							   CPVC_num_nnz,
+							   dense_dim,
+					   		   filename,
+							   false);
+		timestamp_end = std::chrono::system_clock::now();
+		std::chrono::duration<double>  time_CPVC_storage = timestamp_end - timestamp_start;
+		printf("       - Successs. \n"); fflush(stdout);
+		printf("       - Time spent:     %.6f \n", time_CPVC_storage.count()); fflush(stdout);
+		printf("       - Done. \n"); fflush(stdout);
+
+		/* Read sparse CPVC-array from file */
+		printf("     - Reading kernel from h5 ... \n"); fflush(stdout);
+		timestamp_start = std::chrono::system_clock::now();
+		delete [] CPVC_v_array;
+		CPVC_v_array = NULL;
+		delete [] CPVC_r_array;
+		CPVC_r_array = NULL;
+		delete [] CPVC_c_array;
+		CPVC_c_array = NULL;
+		read_sparse_matrix_h5(&CPVC_v_array,
+							   &CPVC_r_array,
+							   &CPVC_c_array,
+							   CPVC_num_nnz,
+							   dense_dim,
+					   		   filename,
+							   false);
+		timestamp_end = std::chrono::system_clock::now();
+		std::chrono::duration<double>  time_CPVC_reading = timestamp_end - timestamp_start;
+		printf("       - Successs. \n"); fflush(stdout);
+		printf("       - Time spent:     %.6f \n", time_CPVC_reading.count()); fflush(stdout);
+		printf("       - Done. \n"); fflush(stdout);
+
+		printf("     - Done. \n"); fflush(stdout);
+	}
+
 	/* Set initial values for A_Kn_row_array, where K^n=1 for n=0 */
 	printf("   - Working on Pade approximant P[N,M] for N=%d, M=%d \n",0,0); fflush(stdout);
 	printf("     - Calculating on-shell rows of A*K^n for n=%d. \n", 0); fflush(stdout);
-	auto timestamp_start = std::chrono::system_clock::now();
+	timestamp_start = std::chrono::system_clock::now();
 	/* Calculate CPVC-row and write to A_Kn_row_array_prev */
 	calculate_all_CPVC_rows(re_A_An_row_array_prev,
 							q_com_idx_array, num_q_com,
@@ -505,7 +860,7 @@ void pade_method_solve(cdouble*  U_array,
 							P123_sparse_row_array,
 							P123_sparse_col_array,
 							P123_sparse_dim);
-	auto timestamp_end = std::chrono::system_clock::now();
+	timestamp_end = std::chrono::system_clock::now();
 	std::chrono::duration<double> time = timestamp_end - timestamp_start;
 	printf("       - Time generating CPVC-rows:     %.6f \n", time.count()); fflush(stdout);
 	printf("       - Done \n", time.count()); fflush(stdout);
@@ -566,33 +921,6 @@ void pade_method_solve(cdouble*  U_array,
 							 array_seperator_text);
 		printf("       - Done \n");
 	}
-	
-	/* Arrays to store Pade-approximants (PA) for each on-shelle elements */
-	cdouble* pade_approximants_array      = new cdouble [num_on_shell_A_vals * (NM_max+1)];
-	size_t*  pade_approximants_idx_array  = new size_t  [num_on_shell_A_vals];
-	bool*    pade_approximants_conv_array = new bool    [num_on_shell_A_vals];
-	size_t	 num_converged_elements		  = 0;
-
-	/* Define CPVC-chunks size */
-	size_t num_bytes_per_chunk   = 0.5 * std::pow(1024,3);
-    size_t num_bytes_in_CPVC_col = (sizeof(cdouble) * dense_dim);
-    size_t num_cols_per_chunk    = num_bytes_per_chunk / num_bytes_in_CPVC_col;
-    size_t num_chunks            = dense_dim / num_cols_per_chunk + 1;
-    size_t block_size 			 = num_cols_per_chunk;
-	/* From test-script to program notation */
-	size_t    max_num_cols_in_mem = block_size;
-	size_t	  num_col_chunks	  = num_chunks;
-	double*   CPVC_cols_array     = new double [dense_dim * max_num_cols_in_mem];
-	
-	/* Allocate row- and column-arrays for (C^T)(P)(VC) */
-	int 	 num_threads			    = omp_get_max_threads();
-	double*  omp_CPVC_col_array  		= new double [dense_dim * num_threads];
-	int*     omp_CPVC_row_to_nnz_array  = new int    [dense_dim * num_threads];
-	int*     omp_CPVC_nnz_to_row_array  = new int    [dense_dim * num_threads];
-
-	for (size_t idx_NDOS=0; idx_NDOS<num_on_shell_A_vals; idx_NDOS++){
-		pade_approximants_conv_array[idx_NDOS] = false;
-	}
 
 	/* Loop over number of Pade-terms we use */
 	for (size_t NM=0; NM<NM_max+1; NM++){
@@ -628,12 +956,6 @@ void pade_method_solve(cdouble*  U_array,
 
 			double timestamp_neumann_start = omp_get_wtime();
 
-			///* Reset time-keeper array */
-			//auto timestamp_start = std::chrono::system_clock::now();
-			//for (int i=0; i<3*num_threads; i++){
-			//	times_array[i] = 0;
-			//}
-
 			/* Calculate all a-coefficients for calculated CPVC-column */
 			double timestamp_resolvent_start = omp_get_wtime();
 			printf("     - Multiplying in resolvent with An. \n"); fflush(stdout);
@@ -654,51 +976,71 @@ void pade_method_solve(cdouble*  U_array,
 			}
 			double timestamp_resolvent_end    = omp_get_wtime();
 			time_resolvent = timestamp_resolvent_end - timestamp_resolvent_start;
+
+			size_t num_non_conv_rows = 0;
+			for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+				for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
+					/* Nucleon-deuteron on-shell (NDOS) indices
+					 * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
+					size_t idx_alpha_NDOS_row = deuteron_idx_array[idx_d_row];
+					size_t idx_p_NDOS 	  = 0;
+					size_t idx_q_NDOS 	  = q_com_idx_array[idx_q_com];
+
+					size_t idx_row_NDOS   = idx_d_row*num_q_com + idx_q_com;
+
+					/* See if row contains unconverged, on-shell elements */
+					bool row_conv = true;
+					for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
+						size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
+						if (pade_approximants_conv_array[idx_NDOS]==false){
+							row_conv = false;
+						}
+					}
+					
+					if (row_conv==false){
+						for (size_t i=0; i<dense_dim; i++){
+							re_A_An_row_array_comp[num_non_conv_rows*dense_dim + i] = re_A_An_row_array_prev[idx_row_NDOS*dense_dim + i];
+							im_A_An_row_array_comp[num_non_conv_rows*dense_dim + i] = im_A_An_row_array_prev[idx_row_NDOS*dense_dim + i];
+						}
+						A_An_indexing_array[num_non_conv_rows] = idx_row_NDOS;
+						num_non_conv_rows += 1;
+					}
+				}
+			}
 			
 			printf("     - Calculating on-shell rows of A*K^n for n=%d. \n", n); fflush(stdout);
-			for (size_t idx_col_chunk=0; idx_col_chunk<num_col_chunks; idx_col_chunk++){
+			if (keep_CPVC_in_mem==false){
+				for (size_t idx_col_chunk=0; idx_col_chunk<num_col_chunks; idx_col_chunk++){
 
-				double timestamp_CPVC_chunk_start = omp_get_wtime();
+					double timestamp_CPVC_chunk_start = omp_get_wtime();
 
-				size_t idx_col_start =  idx_col_chunk    * max_num_cols_in_mem;
-				size_t idx_col_end   = (idx_col_chunk+1) * max_num_cols_in_mem;
+					size_t idx_col_start =  idx_col_chunk    * max_num_cols_in_mem;
+					size_t idx_col_end   = (idx_col_chunk+1) * max_num_cols_in_mem;
 
-				if (idx_col_end>dense_dim){
-					idx_col_end = dense_dim;
-				}
+					if (idx_col_end>dense_dim){
+						idx_col_end = dense_dim;
+					}
 
-				size_t cols_in_chunk = idx_col_end - idx_col_start;
+					size_t cols_in_chunk = idx_col_end - idx_col_start;
 
-				/* Reset CPVC-columns when array is filled */
-				for (size_t idx=0; idx<dense_dim * max_num_cols_in_mem; idx++){
-					CPVC_cols_array[idx] = 0;
-				}
+					/* Reset CPVC-columns when array is filled */
+					for (size_t idx=0; idx<dense_dim * max_num_cols_in_mem; idx++){
+						CPVC_cols_array[idx] = 0;
+					}
 
-				#pragma omp parallel //num_threads(1)
-				{
+					#pragma omp parallel //num_threads(1)
+					{
 
-				size_t  thread_idx             = omp_get_thread_num();
-				double* CPVC_col_array  	   = &omp_CPVC_col_array	    [thread_idx*dense_dim];
-				int*    CPVC_row_to_nnz_array  = &omp_CPVC_row_to_nnz_array [thread_idx*dense_dim];
-				int*    CPVC_nnz_to_row_array  = &omp_CPVC_nnz_to_row_array [thread_idx*dense_dim];
+					size_t  thread_idx             = omp_get_thread_num();
+					double* CPVC_col_array  	   = &omp_CPVC_col_array	    [thread_idx*dense_dim];
+					int*    CPVC_row_to_nnz_array  = &omp_CPVC_row_to_nnz_array [thread_idx*dense_dim];
+					int*    CPVC_nnz_to_row_array  = &omp_CPVC_nnz_to_row_array [thread_idx*dense_dim];
 
-				#pragma omp for
-				for (size_t idx_col=idx_col_start; idx_col<idx_col_end; idx_col++){
-					size_t idx_alpha_c = idx_col / (Np_WP*Nq_WP);
-					size_t idx_q_c     = (idx_col % (Np_WP*Nq_WP)) /  Np_WP;
-					size_t idx_p_c     = idx_col %  Np_WP;
-
-						//double timestamp_0 = omp_get_wtime();
-						/* Reset CPVC-column array */
-						//for (size_t row_idx=0; row_idx<dense_dim; row_idx++){
-						//	CPVC_col_array[row_idx]        =  0;
-						//	CPVC_row_to_nnz_array[row_idx] = -1;
-						//	CPVC_nnz_to_row_array[row_idx] = -1;
-						//}
-
-						//double timestamp_1 = omp_get_wtime();
-						//double time1 = timestamp_1 - timestamp_0;
-						//times_array[3*thread_idx] += time1;
+					#pragma omp for
+					for (size_t idx_col=idx_col_start; idx_col<idx_col_end; idx_col++){
+						size_t idx_alpha_c = idx_col / (Np_WP*Nq_WP);
+						size_t idx_q_c     = (idx_col % (Np_WP*Nq_WP)) /  Np_WP;
+						size_t idx_p_c     = idx_col %  Np_WP;
 
 						/* Calculate CPVC-column */
 						size_t CPVC_num_nnz = 0;
@@ -716,42 +1058,59 @@ void pade_method_solve(cdouble*  U_array,
 										   P123_sparse_col_array,
 										   P123_sparse_dim);
 						counter_array[thread_idx] += CPVC_num_nnz;
+					}
+					}
+					double timestamp_CPVC_chunk_end   = omp_get_wtime();
+					time_CPVC_cols += timestamp_CPVC_chunk_end - timestamp_CPVC_chunk_start;
 
-						//ouble timestamp_2 = omp_get_wtime();
-						//ouble time2 = timestamp_2 - timestamp_1;
-						//imes_array[3*thread_idx + 1] += time2;
-				}
-				}
-				double timestamp_CPVC_chunk_end   = omp_get_wtime();
-				time_CPVC_cols += timestamp_CPVC_chunk_end - timestamp_CPVC_chunk_start;
+					double beta  = 0;
+					double alpha = 1;
+					MKL_INT M    = num_non_conv_rows;// num_on_shell_A_rows
+					MKL_INT N    = cols_in_chunk;// max_num_cols_in_mem;
+					MKL_INT K    = dense_dim;
+					MKL_INT lda  = dense_dim;
+					MKL_INT ldb  = dense_dim;//max_num_cols_in_mem;
+					MKL_INT ldc  = dense_dim;
+					double* re_A = &re_A_An_row_array_comp[0];
+					double* im_A = &im_A_An_row_array_comp[0];
+					double* B 	 = &CPVC_cols_array[0];
+					double* re_C = &re_A_An_row_array_prod[idx_col_start];
+					double* im_C = &im_A_An_row_array_prod[idx_col_start];
 
-				double beta  = 0;
-				double alpha = 1;
-				MKL_INT M   = num_on_shell_A_rows;
-				MKL_INT N   = cols_in_chunk;// max_num_cols_in_mem;
-				MKL_INT K   = dense_dim;
-				MKL_INT lda = dense_dim;
-				MKL_INT ldb = dense_dim;//max_num_cols_in_mem;
-				MKL_INT ldc = dense_dim;
-				double* re_A = &re_A_An_row_array_prev[0];
-				double* im_A = &im_A_An_row_array_prev[0];
-				double* B = &CPVC_cols_array[0];
-				double* re_C = &re_A_An_row_array[idx_col_start];
-				double* im_C = &im_A_An_row_array[idx_col_start];
-				
+					double timestamp_gemm_start = omp_get_wtime();
+					cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, re_A, lda, B, ldb, beta, re_C, ldc);	// real multiplication
+					cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, im_A, lda, B, ldb, beta, im_C, ldc);	// imag multiplication
+					double timestamp_gemm_end   = omp_get_wtime();
+					time_An_CPVC_multiply += timestamp_gemm_end - timestamp_gemm_start;
+				}
+			}
+			else{
 				double timestamp_gemm_start = omp_get_wtime();
-				cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, re_A, lda, B, ldb, beta, re_C, ldc);	// real multiplication
-				cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, im_A, lda, B, ldb, beta, im_C, ldc);	// imag multiplication
+				const char   ordering = 'R';
+				const char   trans 	  = 'T';
+				const double alpha 	  = 1.0;
+				/* Transpose An before sparse multiplication */
+				mkl_dimatcopy(ordering, trans, num_non_conv_rows, dense_dim, alpha, re_A_An_row_array_comp, dense_dim, num_non_conv_rows);
+				mkl_dimatcopy(ordering, trans, num_non_conv_rows, dense_dim, alpha, im_A_An_row_array_comp, dense_dim, num_non_conv_rows);
+				/* Multiply CPVC with An using sparse multiplication */
+				//dot_MM_sparse(CPVC_v_array, CPVC_c_array_LL, CPVC_csc_array_LL, re_A_An_row_array_comp, re_A_An_row_array_prod, dense_dim, dense_dim, num_non_conv_rows, true);
+				//dot_MM_sparse(CPVC_v_array, CPVC_c_array_LL, CPVC_csc_array_LL, re_A_An_row_array_comp, im_A_An_row_array_prod, dense_dim, dense_dim, num_non_conv_rows, true);
+				/* Transpose An+1 after sparse multiplication */
+				mkl_dimatcopy(ordering, trans, dense_dim, num_non_conv_rows, alpha, re_A_An_row_array_prod, num_non_conv_rows, dense_dim);
+				mkl_dimatcopy(ordering, trans, dense_dim, num_non_conv_rows, alpha, im_A_An_row_array_prod, num_non_conv_rows, dense_dim);
 				double timestamp_gemm_end   = omp_get_wtime();
 				time_An_CPVC_multiply += timestamp_gemm_end - timestamp_gemm_start;
-				
-				//double timestamp_4 = omp_get_wtime();
-				//double time4 = timestamp_4 - timestamp_3;
-				//times_array[3*0 + 2] += time4;
-				
 			}
-			//auto timestamp_end = std::chrono::system_clock::now();
-			//std::chrono::duration<double> time = timestamp_end - timestamp_start;
+
+			/* Write compact format back to full format */
+			for (size_t r=0; r<num_non_conv_rows; r++){
+				size_t idx_row_NDOS = A_An_indexing_array[r];
+
+				for (size_t i=0; i<dense_dim; i++){
+					re_A_An_row_array[idx_row_NDOS*dense_dim + i] = re_A_An_row_array_prod[r*dense_dim + i];
+					im_A_An_row_array[idx_row_NDOS*dense_dim + i] = im_A_An_row_array_prod[r*dense_dim + i];
+				}
+			}
 			double timestamp_neumann_end = omp_get_wtime();
 			time_neumann = timestamp_neumann_end - timestamp_neumann_start;
 
@@ -760,26 +1119,6 @@ void pade_method_solve(cdouble*  U_array,
 			printf("       - Time multiplying An with CPVC: %.6f s \n", time_An_CPVC_multiply);
 			printf("       - Total time:                    %.6f s \n", time_neumann);
 			printf("       - Done \n"); fflush(stdout);
-
-			//double time_resetting_arrays = 0;
-			//double time_CPVC_cols = 0;
-			//double time_An_CPVC_multiply = 0;
-			//for (int thread_idx=0; thread_idx<num_threads; thread_idx++){
-			//	if (times_array[3*thread_idx]>time_resetting_arrays){
-			//		time_resetting_arrays = times_array[3*thread_idx];
-			//	}
-			//	if (times_array[3*thread_idx+1]>time_CPVC_cols){
-			//		time_CPVC_cols = times_array[3*thread_idx+1];
-			//	}
-			//	if (times_array[3*thread_idx+2]>time_An_CPVC_multiply){
-			//		time_An_CPVC_multiply = times_array[3*thread_idx+2];
-			//	}
-			//}
-			//printf("       - Time resetting arrays:         %.6f \n", time_resetting_arrays);
-			//printf("       - Time generating CPVC-cols:     %.6f \n", time_CPVC_cols);
-			//printf("       - Time multiplying with An-rows: %.6f \n", time_An_CPVC_multiply);
-			//printf("       - Total time:                    %.6f \n", time.count());
-			//printf("       - Done \n"); fflush(stdout);
 
 			size_t nnz_counts = 0;
 			for (size_t i=0; i<100; i++){
@@ -792,7 +1131,6 @@ void pade_method_solve(cdouble*  U_array,
 			for (size_t i=0; i<num_on_shell_A_rows*dense_dim; i++){
 				re_A_An_row_array_prev[i] = re_A_An_row_array[i];
 				im_A_An_row_array_prev[i] = im_A_An_row_array[i];
-				//if (n==27){std::cout << A_An_row_array_prev[i] << std::endl;}
 			}
 
 			printf("     - Extracting on-shell Neumann-series terms a_n=A*K^n for n=%d. \n", n); fflush(stdout);
@@ -865,11 +1203,6 @@ void pade_method_solve(cdouble*  U_array,
 		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 			for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
 				for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
-					///* Nucleon-deuteron on-shell (NDOS) indices
-					// * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
-					//size_t idx_alpha_NDOS_row = deuteron_idx_array[idx_d_row];
-					//size_t idx_alpha_NDOS_col = deuteron_idx_array[idx_d_col];
-					//size_t idx_q_NDOS 	   	  = q_com_idx_array[idx_q_com];
 
 					size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
 
@@ -910,13 +1243,17 @@ void pade_method_solve(cdouble*  U_array,
 						min_PA_diff = PA_diff_curr;
 					}
 
-					/* Condition for convergence: 3 or more iterations past minimum PA, or last iteration NM=NM_max 
-					 * UPDATE: this is a bad test as it does not account for "good enough", only relative best 
-					 *         meaning we may go FAR beyond what we actually need in convergence */
-					bool convergence_criteria_1 = (NM-idx_best_PA>4 || NM==NM_max);
-					/* Condition for convergence: critera 1 modified to account for a "good-enough" measure */
-					bool convergence_criteria_2 = (convergence_criteria_1 || min_PA_diff<1e-4*std::abs(pade_approximants_array[idx_NDOS*(NM_max+1) + idx_best_PA]));
-					if (convergence_criteria_2){
+					/* Criterias for convergence¨
+					 * If any are fulfilled, we set convergence to true for current on-shell element */
+					bool convergence_criteria_0 = (NM==NM_max);																				// Cannot go past max NM
+					bool convergence_criteria_1 = (NM-idx_best_PA>4);																		// If nothing better is found in the last 3 PAs, we assume we found the best
+					bool convergence_criteria_2 = (min_PA_diff<1e-4*std::abs(pade_approximants_array[idx_NDOS*(NM_max+1) + idx_best_PA]));	// If the difference is less than the 4th significant digit, we assume "good enough"
+					bool convergence_criteria_3 = (min_PA_diff<1e-7);																		// If we are below single precision resolution, assume convergence
+					
+					if (convergence_criteria_0 ||
+						convergence_criteria_1 ||
+						convergence_criteria_2 ||
+						convergence_criteria_3){
 						pade_approximants_conv_array[idx_NDOS] = true;
 						pade_approximants_idx_array[idx_NDOS]  = idx_best_PA;
 						num_converged_elements += 1;

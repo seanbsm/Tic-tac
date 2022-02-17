@@ -9,6 +9,11 @@
 #include <algorithm>
 #include "mkl.h"
 #include "mkl_dss.h"
+#include "mkl_spblas.h"
+
+#include "../error_management.h"
+
+void dot_MV(double *A, double *B, double *C, int N, int M);
 
 std::complex<double> cdot_VV(std::complex<float>  *X, std::complex<float>  *Y, int N, int INCR_X, int INCR_Y);
 std::complex<double> cdot_VV(std::complex<double> *X, std::complex<double> *Y, int N, int INCR_X, int INCR_Y);
@@ -23,6 +28,8 @@ void solve_MM(float *A, float *B, int N);
 void solve_MM(double *A, double *B, int N);
 void solve_MM(std::complex<float> *A, std::complex<float> *B, int N);
 void solve_MM(std::complex<double> *A, std::complex<double> *B, int N);
+
+void dot_MM_sparse(double* A_v, long long int* A_c, long long int* A_r, double *B, double *C, int N, int K, int M, bool transpose_A);
 
 std::complex<double> determinant(std::complex<double>* A, int N);
 

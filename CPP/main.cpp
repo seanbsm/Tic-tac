@@ -390,18 +390,23 @@ int main(int argc, char* argv[]){
 				q_m      = com_energy_to_com_q_momentum(E_com);
 				T_lab_midpoint_vector[q_WP_idx] = com_momentum_to_lab_energy(q_m, E_bound);
 			}
-			std::vector<double> T_lab_input_list = {1,2,3,4,5,9,10,13,22.7,35,53};
+
+			//std::vector<double> T_lab_input_list = {1,2,3,4,5,9,10,13,22.7,35,53};
+			double* energy_input_array = NULL;
+			int		num_energy_input   = 0;
+			read_input_energies(energy_input_array, num_energy_input, run_parameters.energy_input_file);
 			//std::vector<double> T_lab_input_list = {  3,   4,   5,       6,
 			//										  9,  10,  11,      12,
 			//										 13,  16,  22.7,    28,
 			//										 30,  35,  42,      47.5,
 			//										 50,  53,  65,      93.5,
 			//										146, 155, 180, 220, 240};
+			
 			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP-1; q_WP_idx++){
 				double T_lab_lower = T_lab_midpoint_vector[q_WP_idx];
 				double T_lab_upper = T_lab_midpoint_vector[q_WP_idx+1];
-				for (size_t i=0; i<T_lab_input_list.size(); i++){
-					double T_lab_input = T_lab_input_list[i];
+				for (int i=0; i<num_energy_input; i++){
+					double T_lab_input = energy_input_array[i];
 					/* See if input energy lies between two bin mid-points */
 					if (T_lab_lower<=T_lab_input && T_lab_input<=T_lab_upper){
 						midpoint_idx_vector[q_WP_idx] = true;

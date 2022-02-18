@@ -60,5 +60,48 @@ typedef struct run_params{
 	std::string P123_folder;
 } run_params;
 
+/* Structs for compact storage */
+typedef struct pw_table{
+	int alpha_pwtable;
+	int L_pwtable;
+	int S_pwtable;
+	int J_pwtable;
+	int T_pwtable;
+	int l_pwtable;
+	int twoj_pwtable;
+	int twoJtotal_pwtable;
+	int PARtotal_pwtable;
+	int twoTtotal_pwtable;
+} pw_table;
+
+typedef struct alpha_table{
+	int alpha_alphaprime_index;
+	int alpha_index;
+	int alphaprime_index;
+} alpha_table;
+
+
+typedef struct pmesh_table{
+	int index_ptable;
+	double mesh_ptable;
+} pmesh_table;
+
+
+typedef struct qmesh_table{
+	int index_qtable;
+	double mesh_qtable;
+} qmesh_table;
+
+typedef struct bounds_mesh_table{
+	int    index_table;
+	double mesh_table;
+} bounds_mesh_table;
+
+typedef struct Psparse_table{
+	int index_row_Ptable;
+	int index_col_Ptable;
+	double value_Ptable;
+} Psparse_table;
+
 #endif // TYPE_DEFS_H
 

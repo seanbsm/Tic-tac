@@ -25,5 +25,6 @@ potential_model=N2LOopt
 grid_type=chebyshev
 parameter_walk=off
 average=off
+energy_input_file=Input/lab_energies.txt
 output_folder=Output
 P123_folder=../../Data/permutation_matrices

@@ -372,7 +372,7 @@ void set_default_values(run_params& run_parameters){
 	run_parameters.calculate_and_store_P123 = true;
 	run_parameters.solve_faddeev		    = true;
 	run_parameters.production_run		    = true;
-	run_parameters.energy_input_file        = "lab_energies";
+	run_parameters.energy_input_file        = "lab_energies.txt";
 	run_parameters.average  	  	        = "off";
 	run_parameters.output_folder  	        = "Output";
 	run_parameters.P123_folder  	        = "Output";

@@ -35,6 +35,10 @@
 #include "error_management.h"
 #include "General_functions/matrix_routines.h"
 
+void read_input_energies(double*& energy_array,
+						 int&	  num_energies,
+						 std::string file_path);
+
 void store_sep_complex_matrix(double* re_matrix_array,
 							  double* im_matrix_array,
                          	  size_t num_rows,

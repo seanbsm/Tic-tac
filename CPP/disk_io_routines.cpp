@@ -1,48 +1,5 @@
 #include "disk_io_routines.h"
 
-/* Structs for compact storage */
-typedef struct pw_table{
-	int alpha_pwtable;
-	int L_pwtable;
-	int S_pwtable;
-	int J_pwtable;
-	int T_pwtable;
-	int l_pwtable;
-	int twoj_pwtable;
-	int twoJtotal_pwtable;
-	int PARtotal_pwtable;
-	int twoTtotal_pwtable;
-} pw_table;
-
-typedef struct alpha_table{
-	int alpha_alphaprime_index;
-	int alpha_index;
-	int alphaprime_index;
-} alpha_table;
-
-
-typedef struct pmesh_table{
-	int index_ptable;
-	double mesh_ptable;
-} pmesh_table;
-
-
-typedef struct qmesh_table{
-	int index_qtable;
-	double mesh_qtable;
-} qmesh_table;
-
-typedef struct bounds_mesh_table{
-	int    index_table;
-	double mesh_table;
-} bounds_mesh_table;
-
-typedef struct Psparse_table{
-	int index_row_Ptable;
-	int index_col_Ptable;
-	double value_Ptable;
-} Psparse_table;
-
 template <typename T>
 std::string to_string_with_precision_and_sign(const T a_value, const int n = 6){
 	std::string sgn = "";
@@ -67,18 +24,51 @@ void open_file(std::ofstream &file,
 		/* Append to file */
 		file.open(file_path, std::ios_base::app);
 	}
+
+	if (!file) {
+        raise_error("Unable to open file " + file_path);
+    }
 }
 
-//void store_neumann_terms(cdouble* neumann_array,
-//                         size_t num_OS_rows,
-//						 size_t num_cols,
-//						 size_t steplength,
-//						 std::string file_path,
-//						 bool rewrite_file){
-//    /* Open file*/
-//	std::ofstream output_file;
-//	open_file(output_file, file_path, rewrite_file);
-//}
+void open_readfile(std::ifstream &file,
+			   	  std::string file_path){
+
+	file.open(file_path);
+
+	if (!file) {
+        raise_error("Unable to open file " + file_path);
+    }
+}
+
+void read_input_energies(double*& energy_array,
+						 int&	  num_energies,
+						 std::string file_path){
+
+	/* Only accept .txt-files for energy-input */
+	size_t str_size = file_path.size();
+	if (file_path.substr(str_size-4) != ".txt"){
+		raise_error("Input energy file must be .txt");
+	}
+
+	/* Open file*/
+	std::ifstream input_file;
+	open_readfile(input_file, file_path);
+
+	/* Read file */
+	std::vector<double> energies_vector;
+	double entry = 0;
+	while (input_file >> entry){
+        energies_vector.push_back(entry);
+    }
+
+	/* Close file */
+	input_file.close();
+
+	/* Copy input to vector */
+	num_energies = energies_vector.size();
+	energy_array = new double [num_energies];
+	std::copy(energies_vector.begin(), energies_vector.end(), energy_array);
+}
 
 void store_sep_complex_matrix(double* re_matrix_array,
 							  double* im_matrix_array,

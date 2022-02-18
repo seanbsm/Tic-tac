@@ -44,6 +44,9 @@ typedef struct run_params{
 	bool 		tensor_force;
 	bool		isospin_breaking_1S0;
 	bool 		mid_point_approximation;
+	bool		calculate_and_store_P123;
+	bool		solve_faddeev;
+	bool		production_run;
 	std::string potential_model;
 	std::string subfolder;
 	std::string p_grid_type;

@@ -1,6 +1,150 @@
 
 #include "set_run_parameters.h"
 
+bool read_and_set_parameter(run_params& run_parameters, std::string option, std::string input){
+
+	bool valid_option_found = true;
+	
+	if (option == "two_J_3N_max"){
+		run_parameters.two_J_3N_max = std::stoi(input);
+	}
+	else if (option == "Np_WP"){
+		run_parameters.Np_WP = std::stoi(input);
+	}
+	else if (option == "Nq_WP"){
+		run_parameters.Nq_WP = std::stoi(input);
+	}
+	else if (option == "J_2N_max"){
+		run_parameters.J_2N_max = std::stoi(input);
+	}
+	else if (option == "Nphi"){
+		run_parameters.Nphi = std::stoi(input);
+	}
+	else if (option == "Nx"){
+		run_parameters.Nx = std::stoi(input);
+	}
+	else if (option == "chebyshev_t"){
+		run_parameters.chebyshev_t = std::stod(input);
+	}
+	else if (option == "chebyshev_s"){
+		run_parameters.chebyshev_s = std::stod(input);
+	}
+	else if (option == "Np_per_WP"){
+		run_parameters.Np_per_WP = std::stoi(input);
+	}
+	else if (option == "Nq_per_WP"){
+		run_parameters.Nq_per_WP = std::stoi(input);
+	}
+	else if (option == "P123_omp_num_threads"){
+		run_parameters.P123_omp_num_threads = std::stoi(input);
+	}
+	else if (option == "max_TFC"){
+		run_parameters.max_TFC = std::stoi(input);
+	}
+	else if (option == "parallel_run"){
+		if (input=="true" || input=="false"){
+			run_parameters.parallel_run = (input=="true");
+		}
+		else{
+			raise_error("Invalid value for input parameter parallel_run!");
+		}
+	}
+	else if (option == "P123_recovery"){
+		if (input=="true" || input=="false"){
+			run_parameters.P123_recovery = (input=="true");
+		}
+		else{
+			raise_error("Invalid value for input parameter P123_recovery!");
+		}
+	}
+	else if (option == "tensor_force"){
+		if (input=="true" || input=="false"){
+			run_parameters.tensor_force = (input=="true");
+		}
+		else{
+			raise_error("Invalid value for input parameter tensor_force!");
+		}
+	}
+	else if (option == "isospin_breaking_1S0"){
+		if (input=="true" || input=="false"){
+			run_parameters.isospin_breaking_1S0 = (input=="true");
+		}
+		else{
+			raise_error("Invalid value for input parameter isospin_breaking_1S0!");
+		}
+	}
+	else if (option == "mid_point_approximation"){
+		if (input=="true" || input=="false"){
+			run_parameters.mid_point_approximation = (input=="true");
+		}
+		else{
+			raise_error("Invalid value for input parameter mid_point_approximation!");
+		}
+	}
+	else if (option == "calculate_and_store_P123"){
+		if (input=="true" || input=="false"){
+			run_parameters.calculate_and_store_P123 = (input=="true");
+		}
+		else{
+			raise_error("Invalid value for input parameter calculate_and_store_P123!");
+		}
+	}
+	else if (option == "solve_faddeev"){
+		if (input=="true" || input=="false"){
+			run_parameters.solve_faddeev = (input=="true");
+		}
+		else{
+			raise_error("Invalid value for input parameter solve_faddeev!");
+		}
+	}
+	else if (option == "production_run"){
+		if (input=="true" || input=="false"){
+			run_parameters.production_run = (input=="true");
+		}
+		else{
+			raise_error("Invalid value for input parameter production_run!");
+		}
+	}
+	else if (option == "potential_model"){
+		run_parameters.potential_model = input;
+	}
+	else if (option == "subfolder"){
+		run_parameters.subfolder = input;
+	}
+	else if (option == "p_grid_type"){
+		run_parameters.p_grid_type = input;
+	}
+	else if (option == "p_grid_filename"){
+		run_parameters.p_grid_filename = input;
+	}
+	else if (option == "q_grid_type"){
+		run_parameters.q_grid_type = input;
+	}
+	else if (option == "q_grid_filename"){
+		run_parameters.q_grid_filename = input;
+	}
+	else if (option == "parameter_walk"){
+		run_parameters.parameter_walk = input;
+	}
+	else if (option == "energy_input_file"){
+		run_parameters.energy_input_file = input;
+	}
+	else if (option == "average"){
+		run_parameters.average = input;
+	}
+	else if (option == "output_folder"){
+		run_parameters.output_folder = input;
+	}
+	else if (option == "P123_folder"){
+			run_parameters.P123_folder = input;
+		}
+	else{
+		valid_option_found = false;
+	}
+
+	return valid_option_found;
+}
+
 void read_input_list_and_set_parameters(run_params& run_parameters, std::string filename){
 	/* Define file with input */
 	std::ifstream infile(filename);
@@ -27,116 +171,9 @@ void read_input_list_and_set_parameters(run_params& run_parameters, std::string 
 			/* Remove whitespace from input string */
 			input.erase(std::remove_if(input.begin(), input.end(), ::isspace), input.end());
 			
-			if (option == "two_J_3N_max"){
-				run_parameters.two_J_3N_max = std::stoi(input);
-			}
-			else if (option == "Np_WP"){
-				run_parameters.Np_WP = std::stoi(input);
-			}
-			else if (option == "Nq_WP"){
-				run_parameters.Nq_WP = std::stoi(input);
-			}
-			else if (option == "J_2N_max"){
-				run_parameters.J_2N_max = std::stoi(input);
-			}
-			else if (option == "Nphi"){
-				run_parameters.Nphi = std::stoi(input);
-			}
-			else if (option == "Nx"){
-				run_parameters.Nx = std::stoi(input);
-			}
-			else if (option == "chebyshev_t"){
-				run_parameters.chebyshev_t = std::stod(input);
-			}
-			else if (option == "chebyshev_s"){
-				run_parameters.chebyshev_s = std::stod(input);
-			}
-			else if (option == "Np_per_WP"){
-				run_parameters.Np_per_WP = std::stoi(input);
-			}
-			else if (option == "Nq_per_WP"){
-				run_parameters.Nq_per_WP = std::stoi(input);
-			}
-			else if (option == "P123_omp_num_threads"){
-				run_parameters.P123_omp_num_threads = std::stoi(input);
-			}
-			else if (option == "max_TFC"){
-				run_parameters.max_TFC = std::stoi(input);
-			}
-			else if (option == "parallel_run"){
-				if (input=="true" || input=="false"){
-					run_parameters.parallel_run = (input=="true");
-				}
-				else{
-					raise_error("Invalid value for input parameter parallel_run!");
-				}
-			}
-			else if (option == "P123_recovery"){
-				if (input=="true" || input=="false"){
-					run_parameters.P123_recovery = (input=="true");
-				}
-				else{
-					raise_error("Invalid value for input parameter P123_recovery!");
-				}
-			}
-			else if (option == "tensor_force"){
-				if (input=="true" || input=="false"){
-					run_parameters.tensor_force = (input=="true");
-				}
-				else{
-					raise_error("Invalid value for input parameter tensor_force!");
-				}
-			}
-			else if (option == "isospin_breaking_1S0"){
-				if (input=="true" || input=="false"){
-					run_parameters.isospin_breaking_1S0 = (input=="true");
-				}
-				else{
-					raise_error("Invalid value for input parameter isospin_breaking_1S0!");
-				}
-			}
-			else if (option == "mid_point_approximation"){
-				if (input=="true" || input=="false"){
-					run_parameters.mid_point_approximation = (input=="true");
-				}
-				else{
-					raise_error("Invalid value for input parameter mid_point_approximation!");
-				}
-			}
-			else if (option == "potential_model"){
-				run_parameters.potential_model = input;
-			}
-			else if (option == "subfolder"){
-				run_parameters.subfolder = input;
-			}
-			else if (option == "p_grid_type"){
-				run_parameters.p_grid_type = input;
-			}
-			else if (option == "p_grid_filename"){
-				run_parameters.p_grid_filename = input;
-			}
-			else if (option == "q_grid_type"){
-				run_parameters.q_grid_type = input;
-			}
-			else if (option == "q_grid_filename"){
-				run_parameters.q_grid_filename = input;
-			}
-			else if (option == "parameter_walk"){
-				run_parameters.parameter_walk = input;
-			}
-			else if (option == "energy_input_file"){
-				run_parameters.energy_input_file = input;
-			}
-			else if (option == "average"){
-				run_parameters.average = input;
-			}
-			else if (option == "output_folder"){
-				run_parameters.output_folder = input;
-			}
-			else if (option == "P123_folder"){
-					run_parameters.P123_folder = input;
-				}
-			else{
+			bool valid_option_found = read_and_set_parameter(run_parameters, option, input);
+
+			if (valid_option_found==false){
 				unrecognised_option(line);
 			}
 		}
@@ -307,35 +344,38 @@ void only_show_usage(){
 void set_default_values(run_params& run_parameters){
 
 	/* Default parameters */
-	run_parameters.two_J_3N_max 	       = 1;
-	run_parameters.Np_WP		 	       = 50;
-	run_parameters.Nq_WP		 	       = 50;
-	run_parameters.J_2N_max	  	  	       = 3;
-	run_parameters.Nphi		 		       = 48;
-	run_parameters.Nx 			 	       = 15;
-	run_parameters.chebyshev_t		       = 1;
-	run_parameters.chebyshev_s		       = 100;
-	run_parameters.Np_per_WP	 	       = 8;
-	run_parameters.Nq_per_WP	 	       = 8;
-	run_parameters.channel_idx		       = -1;
-	run_parameters.parallel_run		       = false;
-	run_parameters.potential_model	       = "LO_internal";
-	run_parameters.subfolder	  	       = "Output";
-	run_parameters.p_grid_type 	  	       = "chebyshev";
-	run_parameters.p_grid_filename 	       = "";
-	run_parameters.q_grid_type 	  	       = "chebyshev";
-	run_parameters.q_grid_filename 	       = "";
-	run_parameters.P123_omp_num_threads    = omp_get_max_threads();
-	run_parameters.max_TFC				   = -1;
-	run_parameters.parameter_walk 	       = "off";
-	run_parameters.P123_recovery		   = false;
-	run_parameters.tensor_force			   = true;
-	run_parameters.isospin_breaking_1S0    = true;
-	run_parameters.mid_point_approximation = false;
-	run_parameters.energy_input_file       = "lab_energies";
-	run_parameters.average  	  	       = "off";
-	run_parameters.output_folder  	       = "Output";
-	run_parameters.P123_folder  	       = "Output";
+	run_parameters.two_J_3N_max 	        = 1;
+	run_parameters.Np_WP		 	        = 50;
+	run_parameters.Nq_WP		 	        = 50;
+	run_parameters.J_2N_max	  	  	        = 3;
+	run_parameters.Nphi		 		        = 48;
+	run_parameters.Nx 			 	        = 15;
+	run_parameters.chebyshev_t		        = 1;
+	run_parameters.chebyshev_s		        = 100;
+	run_parameters.Np_per_WP	 	        = 8;
+	run_parameters.Nq_per_WP	 	        = 8;
+	run_parameters.channel_idx		        = -1;
+	run_parameters.parallel_run		        = false;
+	run_parameters.potential_model	        = "LO_internal";
+	run_parameters.subfolder	  	        = "Output";
+	run_parameters.p_grid_type 	  	        = "chebyshev";
+	run_parameters.p_grid_filename 	        = "";
+	run_parameters.q_grid_type 	  	        = "chebyshev";
+	run_parameters.q_grid_filename 	        = "";
+	run_parameters.P123_omp_num_threads     = omp_get_max_threads();
+	run_parameters.max_TFC				    = -1;
+	run_parameters.parameter_walk 	        = "off";
+	run_parameters.P123_recovery		    = false;
+	run_parameters.tensor_force			    = true;
+	run_parameters.isospin_breaking_1S0     = true;
+	run_parameters.mid_point_approximation  = false;
+	run_parameters.calculate_and_store_P123 = true;
+	run_parameters.solve_faddeev		    = true;
+	run_parameters.production_run		    = true;
+	run_parameters.energy_input_file        = "lab_energies";
+	run_parameters.average  	  	        = "off";
+	run_parameters.output_folder  	        = "Output";
+	run_parameters.P123_folder  	        = "Output";
 }
 
 void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
@@ -408,114 +448,9 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 				}
 				
 				
-				if (option == "two_J_3N_max"){
-					run_parameters.two_J_3N_max= std::stoi(input);
-				}
-				else if (option == "Np_WP"){
-					run_parameters.Np_WP = std::stoi(input);
-				}
-				else if (option == "Nq_WP"){
-					run_parameters.Nq_WP = std::stoi(input);
-				}
-				else if (option == "J_2N_max"){
-					run_parameters.J_2N_max = std::stoi(input);
-				}
-				else if (option == "Nphi"){
-					run_parameters.Nphi = std::stoi(input);
-				}
-				else if (option == "Nx"){
-					run_parameters.Nx = std::stoi(input);
-				}
-				else if (option == "chebyshev_t"){
-					run_parameters.chebyshev_t = std::stod(input);
-				}
-				else if (option == "chebyshev_s"){
-					run_parameters.chebyshev_s = std::stod(input);
-				}
-				else if (option == "Np_per_WP"){
-					run_parameters.Np_per_WP = std::stoi(input);
-				}
-				else if (option == "Nq_per_WP"){
-					run_parameters.Nq_per_WP = std::stoi(input);
-				}
-				else if (option == "P123_omp_num_threads"){
-					run_parameters.P123_omp_num_threads = std::stoi(input);
-				}
-				
-				else if (option == "max_TFC"){
-					run_parameters.max_TFC = std::stoi(input);
-				}
-				else if (option == "parallel_run"){
-					if (input=="true" || input=="false"){
-						run_parameters.parallel_run = (input=="true");
-					}
-					else{
-						raise_error("Invalid value for input parameter parallel_run!");
-					}
-				}
-				else if (option == "P123_recovery"){
-					if (input=="true" || input=="false"){
-						run_parameters.P123_recovery = (input=="true");
-					}
-					else{
-						raise_error("Invalid value for input parameter P123_recovery!");
-					}
-				}
-				else if (option == "tensor_force"){
-					if (input=="true" || input=="false"){
-						run_parameters.tensor_force = (input=="true");
-					}
-					else{
-						raise_error("Invalid value for input parameter tensor_force!");
-					}
-				}
-				else if (option == "isospin_breaking_1S0"){
-					if (input=="true" || input=="false"){
-						run_parameters.isospin_breaking_1S0 = (input=="true");
-					}
-					else{
-						raise_error("Invalid value for input parameter isospin_breaking_1S0!");
-					}
-				}
-				else if (option == "mid_point_approximation"){
-					if (input=="true" || input=="false"){
-						run_parameters.mid_point_approximation = (input=="true");
-					}
-					else{
-						raise_error("Invalid value for input parameter mid_point_approximation!");
-					}
-				}
-				else if (option == "potential_model"){
-					run_parameters.potential_model = input;
-				}
-				else if (option == "p_grid_type"){
-					run_parameters.p_grid_type = input;
-				}
-				else if (option == "p_grid_filename"){
-					run_parameters.p_grid_filename = input;
-				}
-				else if (option == "q_grid_type"){
-					run_parameters.q_grid_type = input;
-				}
-				else if (option == "q_grid_filename"){
-					run_parameters.q_grid_filename = input;
-				}
-				else if (option == "parameter_walk"){
-					run_parameters.parameter_walk = input;
-				}
-				else if (option == "energy_input_file"){
-					run_parameters.energy_input_file = input;
-				}
-				else if (option == "average"){
-					run_parameters.average = input;
-				}
-				else if (option == "output_folder"){
-					run_parameters.output_folder = input;
-				}
-				else if (option == "P123_folder"){
-					run_parameters.P123_folder = input;
-				}
-				else{
+				bool valid_option_found = read_and_set_parameter(run_parameters, option, input);
+
+				if (valid_option_found==false){
 					unrecognised_option(arg);
 				}
 			}
@@ -535,34 +470,37 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 	/* Print system run parameters */
 	std::cout << std::endl;
 	std::cout << "Running program for:" << std::endl;
-	std::cout << "two_J_3N_max:                  " << run_parameters.two_J_3N_max            << std::endl;
-	std::cout << "Np_WP:                         " << run_parameters.Np_WP                   << std::endl;
-	std::cout << "Nq_WP:                         " << run_parameters.Nq_WP                   << std::endl;
-	std::cout << "J_2N_max:                      " << run_parameters.J_2N_max                << std::endl;
-	std::cout << "Nphi:                          " << run_parameters.Nphi                    << std::endl;
-	std::cout << "Nx:                            " << run_parameters.Nx                      << std::endl;
-	std::cout << "chebyshev sparseness:          " << run_parameters.chebyshev_t             << std::endl;
-	std::cout << "chebyshev scale:               " << run_parameters.chebyshev_s             << std::endl;
-	std::cout << "Np_per_WP:                     " << run_parameters.Np_per_WP               << std::endl;
-	std::cout << "Nq_per_WP:                     " << run_parameters.Nq_per_WP               << std::endl;
-	std::cout << "P123 omp number of threads:    " << run_parameters.P123_omp_num_threads    << std::endl;
+	std::cout << "two_J_3N_max:                  " << run_parameters.two_J_3N_max             << std::endl;
+	std::cout << "Np_WP:                         " << run_parameters.Np_WP                    << std::endl;
+	std::cout << "Nq_WP:                         " << run_parameters.Nq_WP                    << std::endl;
+	std::cout << "J_2N_max:                      " << run_parameters.J_2N_max                 << std::endl;
+	std::cout << "Nphi:                          " << run_parameters.Nphi                     << std::endl;
+	std::cout << "Nx:                            " << run_parameters.Nx                       << std::endl;
+	std::cout << "chebyshev sparseness:          " << run_parameters.chebyshev_t              << std::endl;
+	std::cout << "chebyshev scale:               " << run_parameters.chebyshev_s              << std::endl;
+	std::cout << "Np_per_WP:                     " << run_parameters.Np_per_WP                << std::endl;
+	std::cout << "Nq_per_WP:                     " << run_parameters.Nq_per_WP                << std::endl;
+	std::cout << "P123 omp number of threads:    " << run_parameters.P123_omp_num_threads     << std::endl;
 	if(run_parameters.parallel_run==true){
-	std::cout << "Channel index:                 " << run_parameters.channel_idx             << std::endl;
+	std::cout << "Channel index:                 " << run_parameters.channel_idx              << std::endl;
 	}
-	std::cout << "Parallel run:                  " << run_parameters.parallel_run    	     << std::endl;
-	std::cout << "P123-recovery mode on:         " << run_parameters.P123_recovery    	     << std::endl;
-	std::cout << "Tensor-force on:               " << run_parameters.tensor_force    	     << std::endl;
-	std::cout << "Isospin-breaking in 1S0:       " << run_parameters.isospin_breaking_1S0    << std::endl;
-	std::cout << "Mid-point approximation:       " << run_parameters.mid_point_approximation << std::endl;
-	std::cout << "Potential model:               " << run_parameters.potential_model 	     << std::endl;
-	std::cout << "p-momentum grid type:          " << run_parameters.p_grid_type     	     << std::endl;
-	std::cout << "p-momentum grid input file:    " << run_parameters.p_grid_filename 	     << std::endl;
-	std::cout << "q-momentum grid type:          " << run_parameters.q_grid_type     	     << std::endl;
-	std::cout << "q-momentum grid input file:    " << run_parameters.q_grid_filename 	     << std::endl;
-	std::cout << "Parameter walk:                " << run_parameters.parameter_walk  	     << std::endl;
-	std::cout << "Bin averaging:                 " << run_parameters.average         	     << std::endl;
-	std::cout << "Output folder:                 " << run_parameters.output_folder   	     << std::endl;
-	std::cout << "P123-matrix read/write folder: " << run_parameters.P123_folder     	     << std::endl;
+	std::cout << "Parallel run:                  " << run_parameters.parallel_run    	      << std::endl;
+	std::cout << "P123-recovery mode on:         " << run_parameters.P123_recovery    	      << std::endl;
+	std::cout << "Tensor-force on:               " << run_parameters.tensor_force    	      << std::endl;
+	std::cout << "Isospin-breaking in 1S0:       " << run_parameters.isospin_breaking_1S0     << std::endl;
+	std::cout << "Mid-point approximation:       " << run_parameters.mid_point_approximation  << std::endl;
+	std::cout << "Calculate P123 and store:      " << run_parameters.calculate_and_store_P123 << std::endl;
+	std::cout << "Solve Faddeev equation:        " << run_parameters.solve_faddeev 			  << std::endl;
+	std::cout << "Production run:                " << run_parameters.production_run			  << std::endl;
+	std::cout << "Potential model:               " << run_parameters.potential_model 	      << std::endl;
+	std::cout << "p-momentum grid type:          " << run_parameters.p_grid_type     	      << std::endl;
+	std::cout << "p-momentum grid input file:    " << run_parameters.p_grid_filename 	      << std::endl;
+	std::cout << "q-momentum grid type:          " << run_parameters.q_grid_type     	      << std::endl;
+	std::cout << "q-momentum grid input file:    " << run_parameters.q_grid_filename 	      << std::endl;
+	std::cout << "Parameter walk:                " << run_parameters.parameter_walk  	      << std::endl;
+	std::cout << "Bin averaging:                 " << run_parameters.average         	      << std::endl;
+	std::cout << "Output folder:                 " << run_parameters.output_folder   	      << std::endl;
+	std::cout << "P123-matrix read/write folder: " << run_parameters.P123_folder     	      << std::endl;
 	std::cout << std::endl;
 	
 	store_run_parameters(run_parameters);

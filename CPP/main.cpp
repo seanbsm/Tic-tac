@@ -57,7 +57,7 @@ For-loop over 3N channels chn"="(J3,T3,P3) ({alpha}_chn stored congruently in me
    - input:  {alpha}_chn, {p}_SWP, {q}, {E} (on-shell energies)
    - output: G_array of length len{alpha} x len{p} x len{q} x len{E}
  
- - Call function solve_faddeev_equation (Nalpha_chn = number of alpha in current 3N channel)
+ - Call function run_parameters.solve_faddeev_equation (Nalpha_chn = number of alpha in current 3N channel)
    - input: Nalpha_chn, Np_WP, Nq_WP, V_2N_..., C_2N_..., G_array, P123_array
    - method (Pade): U = A + KU; A = C^T PVC; K=C^T PVC G = AG
 			          = A + KA + KKA + KKKA + KKKKA + .... (Neumann sum)
@@ -159,17 +159,6 @@ int main(int argc, char* argv[]){
 	int**  deuteron_idx_arrays = NULL;		// Contains indices of deuteron-channels in given 3N-channel
 	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
 
-	/* Setting to store calculated P123 matrix in WP basis to h5-file */
-	bool calculate_and_store_P123 = false;
-	
-	/* Setting to solve Faddeev or not. Handy if we only want to
-	 * precalculate permutation matrices, or to calculate both permutation matrices
-	 * and solve Faddeev in a single run */
-	bool solve_faddeev		      = true;
-
-	/* Setting to do realistic, or fast toy-model, calculations for P123 */
-	bool production_run			  = true;
-
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
 	int J_2N_max 	 = run_parameters.J_2N_max;
@@ -218,14 +207,8 @@ int main(int argc, char* argv[]){
 	/* Potential model class pointers */
 	potential_model* pot_ptr  = potential_model::fetch_potential_ptr(run_parameters.potential_model);
 
-	/* Turn on/off tensor-force (off-diagonal l',l-couplings) terms */
-	bool tensor_force_true		 = true;
-
 	/* Turn on/off bin mid-point averaging */
-	bool mid_point_approximation = false;
-	if (run_parameters.average=="on"){
-		mid_point_approximation = true;
-	}
+	bool mid_point_approximation = (run_parameters.average=="on");
 
 	/* End of code segment for variables and arrays declaration */
 	/* ################################################################################################################### */
@@ -332,7 +315,7 @@ int main(int argc, char* argv[]){
 	int V_coup_array_size = 0;
 
 	/* Check if we can have coupled channels */
-	if (tensor_force_true){
+	if (run_parameters.tensor_force){
 		V_unco_array_size = Np_WP*Np_WP   * num_2N_unco_states;
 		V_coup_array_size = Np_WP*Np_WP*4 * num_2N_coup_states;
 	}
@@ -342,7 +325,7 @@ int main(int argc, char* argv[]){
 
 	V_WP_unco_array = new double [V_unco_array_size];
 	V_WP_coup_array = new double [V_coup_array_size];
-	if (solve_faddeev){
+	if (run_parameters.solve_faddeev){
 		//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
 		//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
 		//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
@@ -393,7 +376,7 @@ int main(int argc, char* argv[]){
 
 	double* C_WP_unco_array = new double [V_unco_array_size];
 	double* C_WP_coup_array = new double [V_coup_array_size];
-	if (solve_faddeev){
+	if (run_parameters.solve_faddeev){
 		printf("Constructing 2N SWPs ... \n");
 		make_swp_states(e_SWP_unco_array,
 						e_SWP_coup_array,
@@ -467,7 +450,7 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* Start of code segment for locating on-shell nucleon-deuteron states */
-	if (solve_faddeev){
+	if (run_parameters.solve_faddeev){
 
 		/* Use q-momentum bin ENERGY mid-points as on-shell energies if no default input is given */
 		if (default_Tlab_input==false){
@@ -696,7 +679,7 @@ int main(int argc, char* argv[]){
 		//else{
 		//	continue;
 		//}
-		if (calculate_and_store_P123){
+		if (run_parameters.calculate_and_store_P123){
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];
 			gauss(x_array, wx_array, Nx);
@@ -707,7 +690,7 @@ int main(int argc, char* argv[]){
 															   &P123_sparse_row_array,
 															   &P123_sparse_col_array,
 															   P123_sparse_dim,
-															   production_run,
+															   run_parameters.production_run,
 															   Np_WP, p_WP_array,
 														   	   Nq_WP, q_WP_array,
 														   	   Nx, x_array, wx_array,
@@ -753,7 +736,7 @@ int main(int argc, char* argv[]){
 			chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
 		}
-		else if (solve_faddeev){
+		else if (run_parameters.solve_faddeev){
 			//std::string P123_filename_2 =    "../../Data/permutation_matrices/P123_sparse_JTP_"
 			//						 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
 			//						 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
@@ -844,7 +827,7 @@ int main(int argc, char* argv[]){
 
 		/* End of code segment for permutation matrix construction */
 
-		if (solve_faddeev){
+		if (run_parameters.solve_faddeev){
 			/* Start of code segment for resolvent matrix (diagonal array) construction */
 
 			/* Resolvent array */

@@ -53,14 +53,16 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 													int Np_WP, double* p_WP_array,
 													int Np_per_WP, double* p_array, double* wp_array,
 													int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* two_T_3N_array,
-													potential_model* pot_ptr_nn,
-													potential_model* pot_ptr_np,
+													potential_model* pot_ptr,
 													run_params run_parameters){
 	
 	/* This test will be reused several times */
 	bool tensor_force_true = (run_parameters.tensor_force==true);
 
 	int J_2N_max = run_parameters.J_2N_max;
+
+	int Tz_nn = -1;
+	int Tz_np =  0;
 
 	/* Potential-model input arrays */
 	double V_WP_elements [6];	// Isoscalar wave-packet potential elements (WP)
@@ -253,18 +255,18 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 
 							/* We create an isoscalar potential */
 							if (isoscalar_type==0){ // Interaction must be np
-								pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_IS_elements);
+								pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_IS_elements);
 							}
 							else if (isoscalar_type==1){ // Interaction can be either nn or np with IS symmetry-conservation
-								pot_ptr_nn->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_nn_elements);
-								pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_np_elements);
+								pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
+								pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
 								for (int idx_element=0; idx_element<6; idx_element++){
 									V_IS_elements[idx_element] = (2./3)*V_nn_elements[idx_element] + (1./3)*V_np_elements[idx_element];
 								}
 							}
 							else if (isoscalar_type==2 || isoscalar_type==3){ // Interaction can be either np or nn with IS symmetry-breaking
-								pot_ptr_nn->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_nn_elements);
-								pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_np_elements);
+								pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
+								pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
 								
 								/* Extract 1S0-element, using coupling as according to tensor-force only (i.e. no coupling for 1S0) */
 								double V_nn_1S0_element = extract_potential_element_from_array(L_r, L_c, J_r, S_r, false, V_nn_elements);
@@ -312,18 +314,18 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 
 									/* We create an isoscalar potential */
 									if (coupled_via_T_3N==false && isoscalar_type==0){ // Interaction must be np
-										pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_IS_elements);
+										pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_IS_elements);
 									}
 									else if (coupled_via_T_3N==false && isoscalar_type==1){ // Interaction can be either nn or np with IS symmetry-conservation
-										pot_ptr_nn->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_nn_elements);
-										pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_np_elements);
+										pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
+										pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
 										for (int idx_element=0; idx_element<6; idx_element++){
 											V_IS_elements[idx_element] = (2./3)*V_nn_elements[idx_element] + (1./3)*V_np_elements[idx_element];
 										}
 									}
 									else if (coupled_via_T_3N==true){ // Interaction can be either np or nn with IS symmetry-breaking
-										pot_ptr_nn->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_nn_elements);
-										pot_ptr_np->V(p_in, p_out, coupled_model, S_r, J_r, T_r, V_np_elements);
+										pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
+										pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
 
 										/* Extract 1S0-element, using coupling as according to tensor-force only (i.e. no coupling for 1S0) */
 										double V_nn_1S0_element = extract_potential_element_from_array(L_r, L_c, J_r, S_r, false, V_nn_elements);

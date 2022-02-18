@@ -15,42 +15,10 @@
 malfliet_tjon::malfliet_tjon(){
 }
 
-void malfliet_tjon::setSystem(int Tz_in){
-	Tz = Tz_in;
+void malfliet_tjon::update_parameters(double* parameters){
 }
 
-void malfliet_tjon::setParameter(int index, floatType value){
-	parameters[index] = value;
-}
-
-void malfliet_tjon::update_parameters(){
-}
-
-void malfliet_tjon::retrieveSymmetric(bool &symmetric_in){
-	symmetric_in = symmetric;
-}
-
-void malfliet_tjon::retrieve_state_dep_labels(std::vector<std::string> &state_dep_labels_in){
-	state_dep_labels_in = state_dep_labels;
-}
-
-void malfliet_tjon::retrieve_state_dep_indices(std::vector<int> &state_dep_idx_lookup_in){
-	state_dep_idx_lookup_in = state_dep_idx_lookup;
-}
-
-void malfliet_tjon::retrieve_state_indep_labels(std::vector<std::string> &state_indep_labels_in){
-	state_indep_labels_in = state_indep_labels;
-}
-
-void malfliet_tjon::retrieve_state_indep_indices(std::vector<int> &state_indep_idx_lookup_in){
-	state_indep_idx_lookup_in = state_indep_idx_lookup;
-}
-
-void malfliet_tjon::retrieve_state_list(std::vector<int> &state_list_in){
-	state_list_in = state_list;
-}
-
-void malfliet_tjon::V(double &qi, double &qo, bool coupled, int &S, int &J, int &T, double *Varray){
+void malfliet_tjon::V(double &qi, double &qo, bool coupled, int &S, int &J, int &T, int &Tz, double *Varray){
 	
 	Varray[0] = 0;
 	Varray[1] = 0;

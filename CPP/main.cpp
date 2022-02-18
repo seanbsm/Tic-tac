@@ -216,8 +216,7 @@ int main(int argc, char* argv[]){
 	int* chn_3N_idx_array = NULL;
 
 	/* Potential model class pointers */
-	potential_model* pot_ptr_np  = potential_model::fetch_potential_ptr(run_parameters.potential_model, "np");
-	potential_model* pot_ptr_nn  = potential_model::fetch_potential_ptr(run_parameters.potential_model, "nn");
+	potential_model* pot_ptr  = potential_model::fetch_potential_ptr(run_parameters.potential_model);
 
 	/* Turn on/off tensor-force (off-diagonal l',l-couplings) terms */
 	bool tensor_force_true		 = true;
@@ -376,8 +375,7 @@ int main(int argc, char* argv[]){
 													   Np_WP, p_WP_array,
 													   Np_per_WP, p_array, wp_array,
 													   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, two_T_3N_array,
-													   pot_ptr_nn,
-													   pot_ptr_np,
+													   pot_ptr,
 													   run_parameters);
 		printf(" - Done \n");
 	}

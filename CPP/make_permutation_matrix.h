@@ -33,7 +33,7 @@
 
 /* Project headers */
 #include "error_management.h"
-#include "store_functionality.h"
+#include "disk_io_routines.h"
 #include "General_functions/matrix_routines.h"
 
 void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array,

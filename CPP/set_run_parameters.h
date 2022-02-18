@@ -10,7 +10,7 @@
 #include <algorithm>
 
 #include "type_defs.h"
-#include "store_functionality.h"
+#include "disk_io_routines.h"
 
 void read_input_list_and_set_parameters(run_params& run_parameters, std::string filename);
 void show_usage();

@@ -12,7 +12,7 @@ typedef std::complex<floatType> cfloatType;
 typedef std::complex<double> cdouble;
 
 typedef struct pw_3N_statespace{
-	int  dim;
+	int  Nalpha;
 	int  J_2N_max;
 	int* L_2N_array;
 	int* S_2N_array;

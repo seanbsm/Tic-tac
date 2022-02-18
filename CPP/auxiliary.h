@@ -1,19 +1,19 @@
 #ifndef AUXILIARY_H
 #define AUXILIARY_H
 
-#include<iostream>
-#include<stdio.h>
-#include<fstream>
-#include<math.h>
-#include<complex>
+#include <iostream>
+#include <stdio.h>
+#include <fstream>
+#include <math.h>
+#include <complex>
 #include <algorithm> // std::max, std::min
-#include"mkl.h"
-#include<fstream>
-#include<time.h>
-#include<omp.h>
-#include<gsl/gsl_sf_coupling.h>
-#include<gsl/gsl_fit.h>
-#include<stdlib.h>
+#include "mkl.h"
+#include <fstream>
+#include <time.h>
+#include <omp.h>
+#include <gsl/gsl_sf_coupling.h>
+#include <gsl/gsl_fit.h>
+#include <stdlib.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_complex_math.h>
 #include <gsl/gsl_errno.h>

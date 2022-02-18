@@ -23,7 +23,7 @@
 #include "make_swp_states.h"
 #include "make_resolvent.h"
 #include "solve_faddeev.h"
-#include "store_functionality.h"
+#include "disk_io_routines.h"
 
 /*
 
@@ -85,40 +85,6 @@ int main(int argc, char* argv[]){
 	// Handy for converting Tlab to Ecm
 	//std::cout << com_q_momentum_to_com_energy(lab_energy_to_com_momentum(13, -Ed_measured)) << std::endl;
 	//return 0;
-
-	/*#include "mkl.h"
-	std::complex<double> beta  = {0,0};
-	std::complex<double> alpha = {1,0};
-	size_t dim = 20000;//26*50*50/16;
-	size_t M = dim;
-	size_t N = dim-5000;
-	size_t K = dim;
-	size_t lda = dim;
-	size_t ldb = dim;
-	size_t ldc = dim;
-	cdouble* A_big = new cdouble [dim*dim];
-	cdouble* B_big = new cdouble [dim*dim];
-	cdouble* C_big = new cdouble [dim*dim];
-	for (int i=0; i<dim*dim; i++){
-		A_big[i] = 1.0*i/dim;
-		B_big[i] = 1.0*i/dim;
-		C_big[i] = 0;
-	}
-	cdouble* A = &A_big[0];
-	cdouble* B = &B_big[5000];
-	cdouble* C = &C_big[5000];
-	cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, &alpha, A, lda, B, ldb, &beta, C, ldc);
-	for (size_t r=0; r<M; r++){
-		for (size_t c=0; c<N; c++){
-			cdouble inner_product = 0;
-			for (size_t k=0; k<K; k++){
-				inner_product += alpha * A[r*lda + k] * B[k*ldb + c];
-			}
-			std::cout << "true r="<<r<<", c="<<c<< " " << inner_product.real() << " " << inner_product.imag() << std::endl;
-			std::cout << "calc r="<<r<<", c="<<c<< " " << C[r*ldc+c].real() << " " << C[r*ldc+c].imag() << std::endl;
-		}
-	}
-	return 0;*/
 
 	/* ------------------- Start main body of code here ------------------- */
 	/* ################################################################################################################### */
@@ -215,6 +181,7 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* Start of code segment for state space construction */
+	
 	printf("Constructing 3N partial-wave basis ... \n");
 	construct_symmetric_pw_states(N_chn_3N,
 								  &chn_3N_idx_array,
@@ -262,11 +229,6 @@ int main(int argc, char* argv[]){
 	q_WP_array = new double [Nq_WP+1];
 	make_q_bin_grid(Nq_WP, q_WP_array, run_parameters);
 	printf(" - Done \n");
-
-	//for (int i=0; i<Nq_WP+1; i++){
-	//	printf("%.10e\n", q_WP_array[i]);
-	//}
-	//return 0;
 
 	printf("Constructing p quadrature mesh per WP, for all WPs ... \n");
 	p_array  = new double [Np_per_WP*Np_WP];
@@ -326,32 +288,6 @@ int main(int argc, char* argv[]){
 	V_WP_unco_array = new double [V_unco_array_size];
 	V_WP_coup_array = new double [V_coup_array_size];
 	if (run_parameters.solve_faddeev){
-		//pot_ptr_np = potential_model::fetch_potential_ptr("LO_internal", "np");
-		//pot_ptr_nn = potential_model::fetch_potential_ptr("LO_internal", "nn");
-		//pot_ptr_np = potential_model::fetch_potential_ptr("N2LOopt", "np");
-		//pot_ptr_nn = potential_model::fetch_potential_ptr("N2LOopt", "nn");
-		//pot_ptr_np = potential_model::fetch_potential_ptr("Idaho_N3LO", "np");
-		//pot_ptr_nn = potential_model::fetch_potential_ptr("Idaho_N3LO", "nn");
-		//pot_ptr_np = potential_model::fetch_potential_ptr("malfliet_tjon", "np");
-		//pot_ptr_nn = potential_model::fetch_potential_ptr("malfliet_tjon", "nn");
-		//pot_ptr_np = potential_model::fetch_potential_ptr("nijmegen", "np");
-		//pot_ptr_nn = potential_model::fetch_potential_ptr("nijmegen", "nn");
-	
-		//double temparray [6];
-		//double qi = 5; double qo=10;
-		//int L=0; int S3=1; int J3=1; int S1=0; int J1=0;
-		//std::cout << "Potential vals:" << std::endl;
-		//pot_ptr_nn->V(qi, qo, false, L,S1,J1, temparray);
-		//std::cout << temparray[0] << std::endl;
-		//pot_ptr_nn->V(qi, qo, true,  L,S3,J3, temparray);
-		//std::cout << temparray[2] << std::endl;
-		//return 0;
-
-		//for (int i=0; i<Np_WP+1; i++){
-		//	std::cout << p_WP_array[i] << std::endl;
-		//}
-		//return 0;
-
 		printf("Constructing 2N-potential matrices in WP basis ... \n");
 		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array, num_2N_unco_states,
 													   V_WP_coup_array, num_2N_coup_states,
@@ -392,23 +328,7 @@ int main(int argc, char* argv[]){
 						run_parameters);
 		printf(" - Using E_bound = %.5f MeV \n", E_bound);
 		printf(" - Done \n");
-
-		//for (int i=0; i<Np_WP+1; i++){
-		//	printf("%.7e\n", p_WP_array[i]);
-		//}
-		//printf("\n");
-		//int idx_of_interest = unique_2N_idx(0, 1, 1, 0, tensor_force_true, false);
-		//for (int i=0; i<Np_WP+1; i++){
-		//	printf("%.7e\n", e_SWP_unco_array[i + idx_of_interest*(Np_WP+1)]);
-		//}
-		//return 0;
 	}
-	//return 0;
-	//for (int i=2; i<Nalpha; i++){
-	//	for (int j=0; j<2*Np_WP; j++){
-	//		printf("%.3f\n", e_SWP_unco_array[j]);
-	//	}
-	//}
 
 	/* End of code segment for scattering wave-packets construction */
 	/* ################################################################################################################### */

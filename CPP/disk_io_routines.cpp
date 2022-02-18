@@ -1,4 +1,4 @@
-#include "store_functionality.h"
+#include "disk_io_routines.h"
 
 /* Structs for compact storage */
 typedef struct pw_table{

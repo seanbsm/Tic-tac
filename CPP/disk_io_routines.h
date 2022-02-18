@@ -1,5 +1,5 @@
-#ifndef STORE_FUNCTIONALITY_H
-#define STORE_FUNCTIONALITY_H
+#ifndef DISK_IO_FUNCTIONALITY_H
+#define DISK_IO_FUNCTIONALITY_H
 
 #include <iostream>
 #include <iomanip>
@@ -33,7 +33,6 @@
 
 #include "type_defs.h"
 #include "error_management.h"
-#include "store_functionality.h"
 #include "General_functions/matrix_routines.h"
 
 void store_sep_complex_matrix(double* re_matrix_array,
@@ -186,4 +185,4 @@ void read_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 									   size_t  P123_sparse_dim,
 									   char*   filename);
 
-#endif // STORE_FUNCTIONALITY_H
+#endif // DISK_IO_FUNCTIONALITY_H

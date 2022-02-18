@@ -271,7 +271,7 @@ void construct_symmetric_pw_states(int&   N_chn_3N,
 
 	std::copy( chn_idx_temp.begin(), chn_idx_temp.end(), *chn_3N_idx_array_ptr );
 
-	pw_states.dim				=  Nalpha;
+	pw_states.Nalpha   			=  Nalpha;
 	pw_states.J_2N_max			=  J_2N_max;
 	pw_states.L_2N_array		= *L_2N_array_ptr;
 	pw_states.S_2N_array		= *S_2N_array_ptr;

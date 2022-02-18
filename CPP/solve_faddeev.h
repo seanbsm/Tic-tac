@@ -14,7 +14,7 @@
 
 #include "constants.h"
 #include "type_defs.h"
-#include "store_functionality.h"
+#include "disk_io_routines.h"
 #include "error_management.h"
 #include "make_pw_symm_states.h"
 #include "General_functions/matrix_routines.h"

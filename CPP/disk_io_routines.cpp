@@ -167,7 +167,7 @@ void store_run_parameters(run_params run_parameters){
 	output_file << "q_grid_filename   = " << run_parameters.q_grid_filename   << "\n";
 	output_file << "parameter_walk    = " << run_parameters.parameter_walk    << "\n";
 	output_file << "energy_input_file = " << run_parameters.energy_input_file << "\n";
-	output_file << "average           = " << run_parameters.average           << "\n";
+	output_file << "midpoint_approx   = " << run_parameters.midpoint_approx   << "\n";
 	output_file << "output_folder     = " << run_parameters.output_folder     << "\n";
 	output_file << "P123_folder       = " << run_parameters.P123_folder       << "\n";
 	

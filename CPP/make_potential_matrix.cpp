@@ -240,7 +240,7 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 						}
 
 						/* Calculate matrix element, using either mid-point approximation or quadrature */
-						if (run_parameters.mid_point_approximation==true){
+						if (run_parameters.midpoint_approx==true){
 							/* Average momentum */
 							double p_in  = 0.5*(bin_c_lower + bin_c_upper);
 							double p_out = 0.5*(bin_r_lower + bin_r_upper);

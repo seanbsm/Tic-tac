@@ -43,7 +43,7 @@ typedef struct run_params{
 	bool		P123_recovery;
 	bool 		tensor_force;
 	bool		isospin_breaking_1S0;
-	bool 		mid_point_approximation;
+	bool 		midpoint_approx;
 	bool		calculate_and_store_P123;
 	bool		solve_faddeev;
 	bool		production_run;
@@ -55,7 +55,6 @@ typedef struct run_params{
 	std::string q_grid_filename;
 	std::string parameter_walk;
 	std::string energy_input_file;
-	std::string average;
     std::string output_folder;
 	std::string P123_folder;
 } run_params;

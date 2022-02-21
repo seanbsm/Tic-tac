@@ -100,25 +100,11 @@ int main(int argc, char* argv[]){
 	int Np_WP = run_parameters.Np_WP;
 	int Nq_WP = run_parameters.Nq_WP;
 
-	bool default_Tlab_input = false;
-	double Tlab_min = 0;
-	double Tlab_max = 100;//500;
-
 	/* Current scattering energy */
 	size_t  num_T_lab	= 0;
 	double* T_lab_array = NULL;//new double [5] {7.49793, 12.7426, 22.4742, 37.4248, 52.3506};
 	double* q_com_array = NULL;
 	double* E_com_array = NULL;
-	
-	/* Use Tlab = 1, 2, 3, ..., num_T_lab (TEMPORARY IMPLEMENTATION) */
-	if (default_Tlab_input){
-		num_T_lab = 1;
-		T_lab_array = new double [num_T_lab];
-		for (size_t i=0; i<num_T_lab; i++){
-			T_lab_array[i] = i + 0.0001*(i==0);
-			//T_lab_array[i] = 3*i + 0.0001*(i==0);
-		}
-	}
 	
 	/* Index lookup arrays for keeping track of on-shell nucleon-deuteron channels in state space */
 	int*   q_com_idx_array     = NULL;
@@ -172,9 +158,6 @@ int main(int argc, char* argv[]){
 
 	/* Potential model class pointers */
 	potential_model* pot_ptr  = potential_model::fetch_potential_ptr(run_parameters.potential_model);
-
-	/* Turn on/off bin mid-point averaging */
-	bool mid_point_approximation = (run_parameters.average=="on");
 
 	/* End of code segment for variables and arrays declaration */
 	/* ################################################################################################################### */
@@ -373,122 +356,83 @@ int main(int argc, char* argv[]){
 	if (run_parameters.solve_faddeev){
 
 		/* Use q-momentum bin ENERGY mid-points as on-shell energies if no default input is given */
-		if (default_Tlab_input==false){
-			std::vector<size_t> q_WP_idx_vec;
+		std::vector<size_t> q_WP_idx_vec;
 
-			/* Special condition to reduce number of on-shell calculations */
-			double Eq_lower = 0;
-			double Eq_upper = 0;
-			double E_com    = 0;
-			double q_m		= 0;
-			std::vector<bool>   midpoint_idx_vector   (Nq_WP-1, false);
-			std::vector<double> T_lab_midpoint_vector (Nq_WP, false);
-			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
-				Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
-				Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
-				E_com	 = 0.5*(Eq_upper + Eq_lower);
-				q_m      = com_energy_to_com_q_momentum(E_com);
-				T_lab_midpoint_vector[q_WP_idx] = com_momentum_to_lab_energy(q_m, E_bound);
-			}
+		/* Special condition to reduce number of on-shell calculations */
+		double Eq_lower = 0;
+		double Eq_upper = 0;
+		double E_com    = 0;
+		double q_m		= 0;
+		std::vector<bool>   midpoint_idx_vector   (Nq_WP-1, false);
+		std::vector<double> T_lab_midpoint_vector (Nq_WP, false);
+		for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
+			Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
+			Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
+			E_com	 = 0.5*(Eq_upper + Eq_lower);
+			q_m      = com_energy_to_com_q_momentum(E_com);
+			T_lab_midpoint_vector[q_WP_idx] = com_momentum_to_lab_energy(q_m, E_bound);
+		}
 
-			//std::vector<double> T_lab_input_list = {1,2,3,4,5,9,10,13,22.7,35,53};
-			double* energy_input_array = NULL;
-			int		num_energy_input   = 0;
-			read_input_energies(energy_input_array, num_energy_input, run_parameters.energy_input_file);
-			//std::vector<double> T_lab_input_list = {  3,   4,   5,       6,
-			//										  9,  10,  11,      12,
-			//										 13,  16,  22.7,    28,
-			//										 30,  35,  42,      47.5,
-			//										 50,  53,  65,      93.5,
-			//										146, 155, 180, 220, 240};
+		double* energy_input_array = NULL;
+		int		num_energy_input   = 0;
+		read_input_energies(energy_input_array, num_energy_input, run_parameters.energy_input_file);
+
+		//std::vector<double> T_lab_input_list = {1,2,3,4,5,9,10,13,22.7,35,53};
+		//std::vector<double> T_lab_input_list = {  3,   4,   5,       6,
+		//										  9,  10,  11,      12,
+		//										 13,  16,  22.7,    28,
+		//										 30,  35,  42,      47.5,
+		//										 50,  53,  65,      93.5,
+		//										146, 155, 180, 220, 240};
 			
-			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP-1; q_WP_idx++){
-				double T_lab_lower = T_lab_midpoint_vector[q_WP_idx];
-				double T_lab_upper = T_lab_midpoint_vector[q_WP_idx+1];
-				for (int i=0; i<num_energy_input; i++){
-					double T_lab_input = energy_input_array[i];
-					/* See if input energy lies between two bin mid-points */
-					if (T_lab_lower<=T_lab_input && T_lab_input<=T_lab_upper){
-						midpoint_idx_vector[q_WP_idx] = true;
-					}
+		for (size_t q_WP_idx=0; q_WP_idx<Nq_WP-1; q_WP_idx++){
+			double T_lab_lower = T_lab_midpoint_vector[q_WP_idx];
+			double T_lab_upper = T_lab_midpoint_vector[q_WP_idx+1];
+			for (int i=0; i<num_energy_input; i++){
+				double T_lab_input = energy_input_array[i];
+				/* See if input energy lies between two bin mid-points */
+				if (T_lab_lower<=T_lab_input && T_lab_input<=T_lab_upper){
+					midpoint_idx_vector[q_WP_idx] = true;
 				}
 			}
-			/* Use on-shell midpoints to set on-shell bins */
-			std::vector<bool>   bin_idx_vector   (Nq_WP, false);
-			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP-1; q_WP_idx++){
-				if (midpoint_idx_vector[q_WP_idx]==true){
-					bin_idx_vector[q_WP_idx]   = true;
-					bin_idx_vector[q_WP_idx+1] = true;
-				}
+		}
+		/* Use on-shell midpoints to set on-shell bins */
+		std::vector<bool>   bin_idx_vector   (Nq_WP, false);
+		for (size_t q_WP_idx=0; q_WP_idx<Nq_WP-1; q_WP_idx++){
+			if (midpoint_idx_vector[q_WP_idx]==true){
+				bin_idx_vector[q_WP_idx]   = true;
+				bin_idx_vector[q_WP_idx+1] = true;
 			}
-			/* Append on-shell bin indices to q_WP_idx_vec */
-			for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
-				if (bin_idx_vector[q_WP_idx]==true){
-					q_WP_idx_vec.push_back(q_WP_idx);
-				}
+		}
+		/* Append on-shell bin indices to q_WP_idx_vec */
+		for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
+			if (bin_idx_vector[q_WP_idx]==true){
+				q_WP_idx_vec.push_back(q_WP_idx);
 			}
-			num_T_lab = q_WP_idx_vec.size();
+		}
+		num_T_lab = q_WP_idx_vec.size();
 
-			//for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
-			//	double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
-			//	double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
-			//	double E_com	 = 0.5*(Eq_upper + Eq_lower);
-			//	if (E_com<1 && q_WP_idx%5!=0){
-			//		continue;
-			//	}
-			//	else if (E_com<10 && q_WP_idx%2!=0){
-			//		continue;
-			//	}
-			//	else if (E_com>200){
-			//		continue;
-			//	}
-			//	double q_com = com_energy_to_com_q_momentum(E_com);
-			//	double T_lab = com_momentum_to_lab_energy(q_com, E_bound);
-			//	if (T_lab<Tlab_min || Tlab_max<T_lab){
-			//		continue;
-			//	}
-			//	else{
-			//		q_WP_idx_vec.push_back(q_WP_idx);
-			//		num_T_lab += 1;
-			//	}
-			//}
+		T_lab_array = new double [num_T_lab];
 
-			T_lab_array = new double [num_T_lab];
-
-			for (size_t Tlab_idx=0; Tlab_idx<num_T_lab; Tlab_idx++){
-				size_t q_WP_idx = q_WP_idx_vec[Tlab_idx];
-				double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
-				double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
-				double E_com = 0.5*(Eq_upper + Eq_lower);
-				//printf("%.10e\n",E_com);
-				double q = com_energy_to_com_q_momentum(E_com);
-				double T_lab = com_momentum_to_lab_energy(q, E_bound);
-
-				//std::cout << "Tlab " << T_lab << std::endl;
-				
-				T_lab_array[Tlab_idx] = T_lab;
-			}
+		for (size_t Tlab_idx=0; Tlab_idx<num_T_lab; Tlab_idx++){
+			size_t q_WP_idx = q_WP_idx_vec[Tlab_idx];
+			double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
+			double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
+			double E_com 	= 0.5*(Eq_upper + Eq_lower);
+			double q 	 	= com_energy_to_com_q_momentum(E_com);
+			double T_lab 	= com_momentum_to_lab_energy(q, E_bound);
+			T_lab_array[Tlab_idx] = T_lab;
 		}
 
 		/* Calculate on-shell momentum and energy in centre-of-mass frame */
-		//double mu	 = 2*Mp*Md/(Mp+Md);
 		q_com_array = new double [num_T_lab];
 		E_com_array = new double [num_T_lab];
-		//double mu	 = 2*Mp*Md/(Mp+Md);
+		
 		for (size_t i=0; i<num_T_lab; i++){
 			double q_com = lab_energy_to_com_momentum(T_lab_array[i], E_bound);
 			q_com_array[i] = q_com;
 			E_com_array[i] = com_q_momentum_to_com_energy(q_com); 
 		}
-
-		//for (int i=0; i<num_T_lab; i++){
-		//	printf("%.10e\n",E_com_array[i]);
-		//}
-		//return 0;
-		//for (int i=0; i<Nq_WP+1; i++){
-		//	printf("%.10e\n", 0.5*(q_WP_array[i] *q_WP_array[i])/mu1(E_bound));
-		//}
-		//return 0;
 
 		printf("Locating on-shell q-momentum WP-indices for %zu on-shell energies ... \n", num_T_lab);
 		q_com_idx_array = new int [num_T_lab];
@@ -594,16 +538,11 @@ int main(int argc, char* argv[]){
 		size_t	P123_sparse_dim		  = 0;
 
 		/* Default filename for current chn_3N - used for storage and reading P123 */
-		
-		//std::string permutation_matrices_folder = "../../Data/permutation_matrices/";
 		std::string P123_filename =    run_parameters.P123_folder + "/" + "P123_sparse_JP_"
 									 + to_string(two_J_3N) + "_" + to_string(P_3N)
 									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
-									 + "_J2max_" + to_string(J_2N_max) + ".h5";//_MF.h5";
-		//if (chn_3N==0 || chn_3N==2){}
-		//else{
-		//	continue;
-		//}
+									 + "_J2max_" + to_string(J_2N_max) + ".h5";
+									 
 		if (run_parameters.calculate_and_store_P123){
 			double* x_array  = new double [Nx];
 			double* wx_array = new double [Nx];
@@ -662,16 +601,7 @@ int main(int argc, char* argv[]){
 			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
 		}
 		else if (run_parameters.solve_faddeev){
-			//std::string P123_filename_2 =    "../../Data/permutation_matrices/P123_sparse_JTP_"
-			//						 + to_string(two_J_3N) + "_" + to_string(two_T_3N) + "_" + to_string(P_3N)
-			//						 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
-			//						 + "_J2max_" + to_string(J_2N_max) + ".h5";
 			printf("Reading P123 from h5 ... \n");
-			
-			//double* P123_sparse_val_array_t = NULL;
-			//int* 	P123_sparse_row_array_t = NULL;
-			//int* 	P123_sparse_col_array_t = NULL;
-			//size_t  P123_sparse_dim_t		= 0;
 
 			auto timestamp_P123_read_start = chrono::system_clock::now();
 			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array,
@@ -696,6 +626,8 @@ int main(int argc, char* argv[]){
 			chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
 			printf(" - Done. Time used: %.6f\n", time_P123_read.count());
 			
+			///* OLD CODE SNIPPET TO DOUBLE-CHECK ANY OPTIMIZATIONS OF P123 CALCULATON
+			// * SHOULD BE MOVED TO A UNIT-TEST */
 			//if (P123_sparse_dim_t==P123_sparse_dim){
 			//	//int row_idx = 0;
 			//	for (int idx=0; idx<P123_sparse_dim; idx++){
@@ -722,33 +654,6 @@ int main(int argc, char* argv[]){
 			//	raise_error("dim not right");
 			//}
 		}
-		
-		//double* P123_subarray = new double [Np_WP*Np_WP*Nq_WP*Nq_WP];
-		//for (int i=0; i<Np_WP*Np_WP*Nq_WP*Nq_WP; i++){
-		//	P123_subarray[i] = 0;
-		//}
-		//int idx_of_interest = 25-idx_alpha_lower;
-		//for (int nnz=0; nnz<P123_sparse_dim; nnz++){
-		//	int row = P123_sparse_row_array[nnz];
-		//	int col = P123_sparse_col_array[nnz];
-		//	double val = P123_sparse_val_array[nnz];
-		//	int ralpha = row / (Np_WP*Nq_WP);
-		//	int calpha = col / (Np_WP*Nq_WP);
-		//	int i = row % (Np_WP*Nq_WP);
-		//	int j = col % (Np_WP*Nq_WP);
-		//	if (ralpha==idx_of_interest && calpha==idx_of_interest){
-		//		P123_subarray[i*Np_WP*Nq_WP + j] = val;
-		//	}
-		//}
-		//for (int i=0; i<Np_WP*Nq_WP; i++){
-		//	for (int j=0; j<Np_WP*Nq_WP; j++){
-		//		double val = P123_subarray[i*Np_WP*Nq_WP + j];
-		//		if (val!=0){
-		//			std::cout << "i = " << i << "| j = " << j << "| val = " << val << std::endl;
-		//		}
-		//	}			
-		//}
-		//return 0;
 
 		/* End of code segment for permutation matrix construction */
 
@@ -776,24 +681,7 @@ int main(int argc, char* argv[]){
 													   T_2N_subarray,
 													   two_T_3N_array,
 													   run_parameters);
-				////printf("%.10f\n\n",com_energy_to_com_q_momentum(3.8306227657971945-1.9624153103111233, -1.9624153103111233));
-				//double q_com = com_energy_to_com_q_momentum(E_com);
-				//printf("E = %.15f MeV | Ecm = %.15f MeV | q = %.15f MeV:\n", E, E_com, q_com);
-				//int idx_of_interest = 25-idx_alpha_lower;
-				//printf("L=%d S=%d J=%d T=%d 2l=%d 2j=%d \n", L_2N_subarray[idx_of_interest],
-				//										  S_2N_subarray[idx_of_interest],
-				//										  J_2N_subarray[idx_of_interest],
-				//										  T_2N_subarray[idx_of_interest],
-				//										  L_1N_subarray[idx_of_interest],
-				//										  two_J_1N_subarray[idx_of_interest]);
-				//cdouble* G_subarray = &G_array[j*Nalpha_in_3N_chn*Np_WP*Nq_WP + idx_of_interest*Np_WP*Nq_WP];
-				//int idx_2N_of_interest = unique_2N_idx(0,1,1,0,tensor_force_true, false);
-				////std::cout << e_SWP_unco_array[idx_2N_of_interest*(Np_WP+1)] << std::endl;
-				//for (int i=0; i<Np_WP*Nq_WP; i++){
-				//	printf("%.15e %.15e\n", G_subarray[i].real(), G_subarray[i].imag());
-				//}
 			}
-			//return 0;
 			printf(" - Done \n");
 			
 
@@ -839,7 +727,9 @@ int main(int argc, char* argv[]){
 					                run_parameters);
 			printf(" - Done \n");
 
-			//std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
+			/* End of code segment for iterations of elastic Faddeev equations */
+			/* Start of code segment for storing on-shell U-matrix solutions */
+
 			std::string U_mat_filename = run_parameters.output_folder + "/" + "U_PW_elements"
 			                                                                + file_identification
 																	        + ".csv";
@@ -868,22 +758,10 @@ int main(int argc, char* argv[]){
 									    two_J_1N_subarray,
 									    U_mat_filename_t);
 
-			/* End of code segment for iterations of elastic Faddeev equations */
-			/* Start of code segment for storing on-shell U-matrix solutions */
-
-
-
 			/* End of code segment for storing on-shell U-matrix solutions */
 		}
 	}
 	/* End of looping over 3N-channels */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* Start of code segment for calculating scattering observables */
-	
-	/* End of code segment for calculating scattering observables */
-
 
 	/* -------------------- End main body of code here -------------------- */
 

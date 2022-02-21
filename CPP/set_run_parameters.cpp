@@ -32,6 +32,42 @@ std::string type_to_string(std::string input){
 	return input;
 }
 
+std::string create_input_printout_string(run_params run_parameters){
+	std::ostringstream output_string;
+	output_string << "Running program for:" << std::endl;
+	output_string << "two_J_3N_max:                  " << type_to_string(run_parameters.two_J_3N_max) 		  	  << "\n";
+	output_string << "Np_WP:                         " << type_to_string(run_parameters.Np_WP) 				  	  << "\n";
+	output_string << "Nq_WP:                         " << type_to_string(run_parameters.Nq_WP) 				  	  << "\n";
+	output_string << "J_2N_max:                      " << type_to_string(run_parameters.J_2N_max) 			  	  << "\n";
+	output_string << "Nphi:                          " << type_to_string(run_parameters.Nphi) 				  	  << "\n";
+	output_string << "Nx:                            " << type_to_string(run_parameters.Nx) 				  	  << "\n";
+	output_string << "chebyshev sparseness:          " << type_to_string(run_parameters.chebyshev_t) 		  	  << "\n";
+	output_string << "chebyshev scale:               " << type_to_string(run_parameters.chebyshev_s) 		  	  << "\n";
+	output_string << "Np_per_WP:                     " << type_to_string(run_parameters.Np_per_WP) 			  	  << "\n";
+	output_string << "Nq_per_WP:                     " << type_to_string(run_parameters.Nq_per_WP) 			  	  << "\n";
+	output_string << "P123-recovery mode on:         " << type_to_string(run_parameters.P123_recovery) 		  	  << "\n";
+	output_string << "P123 omp number of threads:    " << type_to_string(run_parameters.P123_omp_num_threads) 	  << "\n";
+	output_string << "Tensor-force on:               " << type_to_string(run_parameters.tensor_force) 		  	  << "\n";
+	output_string << "Isospin-breaking in 1S0:       " << type_to_string(run_parameters.isospin_breaking_1S0) 	  << "\n";
+	output_string << "Mid-point approximation:       " << type_to_string(run_parameters.midpoint_approx) 	  	  << "\n";
+	output_string << "Calculate P123 and store:      " << type_to_string(run_parameters.calculate_and_store_P123) << "\n";
+	output_string << "Solve Faddeev equation:        " << type_to_string(run_parameters.solve_faddeev)   	  	  << "\n";
+	output_string << "Production run:                " << type_to_string(run_parameters.production_run)  	  	  << "\n";
+	output_string << "Potential model:               " << type_to_string(run_parameters.potential_model) 	  	  << "\n";
+	output_string << "p-momentum grid type:          " << type_to_string(run_parameters.p_grid_type) 		  	  << "\n";
+	output_string << "p-momentum grid input file:    " << type_to_string(run_parameters.p_grid_filename) 	  	  << "\n";
+	output_string << "q-momentum grid type:          " << type_to_string(run_parameters.q_grid_type) 		  	  << "\n";
+	output_string << "q-momentum grid input file:    " << type_to_string(run_parameters.q_grid_filename) 	  	  << "\n";
+	output_string << "Parameter walk:                " << type_to_string(run_parameters.parameter_walk)		  	  << "\n";
+	output_string << "Output folder:                 " << type_to_string(run_parameters.output_folder) 		  	  << "\n";
+	output_string << "P123-matrix read/write folder: " << type_to_string(run_parameters.P123_folder) 		  	  << "\n";
+	output_string << "Parallel run:                  " << type_to_string(run_parameters.parallel_run)  		  	  << "\n";
+	if(run_parameters.parallel_run==true){
+	output_string << "Channel index:                 " << type_to_string(run_parameters.channel_idx) 		  	  << "\n";
+	}
+	return output_string.str();
+}
+
 bool read_and_set_parameter(run_params& run_parameters, std::string option, std::string input){
 
 	bool valid_option_found = true;
@@ -496,37 +532,7 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 
 	/* Print system run parameters */
 	std::cout << std::endl;
-	std::cout << "Running program for:" << std::endl;
-	std::cout << "two_J_3N_max:                  " << type_to_string(run_parameters.two_J_3N_max) 		  	  << "\n";
-	std::cout << "Np_WP:                         " << type_to_string(run_parameters.Np_WP) 				  	  << "\n";
-	std::cout << "Nq_WP:                         " << type_to_string(run_parameters.Nq_WP) 				  	  << "\n";
-	std::cout << "J_2N_max:                      " << type_to_string(run_parameters.J_2N_max) 			  	  << "\n";
-	std::cout << "Nphi:                          " << type_to_string(run_parameters.Nphi) 				  	  << "\n";
-	std::cout << "Nx:                            " << type_to_string(run_parameters.Nx) 				  	  << "\n";
-	std::cout << "chebyshev sparseness:          " << type_to_string(run_parameters.chebyshev_t) 		  	  << "\n";
-	std::cout << "chebyshev scale:               " << type_to_string(run_parameters.chebyshev_s) 		  	  << "\n";
-	std::cout << "Np_per_WP:                     " << type_to_string(run_parameters.Np_per_WP) 			  	  << "\n";
-	std::cout << "Nq_per_WP:                     " << type_to_string(run_parameters.Nq_per_WP) 			  	  << "\n";
-	std::cout << "P123-recovery mode on:         " << type_to_string(run_parameters.P123_recovery) 		  	  << "\n";
-	std::cout << "P123 omp number of threads:    " << type_to_string(run_parameters.P123_omp_num_threads) 	  << "\n";
-	std::cout << "Tensor-force on:               " << type_to_string(run_parameters.tensor_force) 		  	  << "\n";
-	std::cout << "Isospin-breaking in 1S0:       " << type_to_string(run_parameters.isospin_breaking_1S0) 	  << "\n";
-	std::cout << "Mid-point approximation:       " << type_to_string(run_parameters.midpoint_approx) 	  	  << "\n";
-	std::cout << "Calculate P123 and store:      " << type_to_string(run_parameters.calculate_and_store_P123) << "\n";
-	std::cout << "Solve Faddeev equation:        " << type_to_string(run_parameters.solve_faddeev)   	  	  << "\n";
-	std::cout << "Production run:                " << type_to_string(run_parameters.production_run)  	  	  << "\n";
-	std::cout << "Potential model:               " << type_to_string(run_parameters.potential_model) 	  	  << "\n";
-	std::cout << "p-momentum grid type:          " << type_to_string(run_parameters.p_grid_type) 		  	  << "\n";
-	std::cout << "p-momentum grid input file:    " << type_to_string(run_parameters.p_grid_filename) 	  	  << "\n";
-	std::cout << "q-momentum grid type:          " << type_to_string(run_parameters.q_grid_type) 		  	  << "\n";
-	std::cout << "q-momentum grid input file:    " << type_to_string(run_parameters.q_grid_filename) 	  	  << "\n";
-	std::cout << "Parameter walk:                " << type_to_string(run_parameters.parameter_walk)		  	  << "\n";
-	std::cout << "Output folder:                 " << type_to_string(run_parameters.output_folder) 		  	  << "\n";
-	std::cout << "P123-matrix read/write folder: " << type_to_string(run_parameters.P123_folder) 		  	  << "\n";
-	std::cout << "Parallel run:                  " << type_to_string(run_parameters.parallel_run)  		  	  << "\n";
-	if(run_parameters.parallel_run==true){
-	std::cout << "Channel index:                 " << type_to_string(run_parameters.channel_idx) 		  	  << "\n";
-	}
+	std::cout << create_input_printout_string(run_parameters);
 	std::cout << std::endl;
 	
 	store_run_parameters(run_parameters);

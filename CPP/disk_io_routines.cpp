@@ -152,24 +152,7 @@ void store_run_parameters(run_params run_parameters){
 	open_file(output_file, file_path, true);
 	
 	/* Append input */
-	output_file << "two_J_3N_max      = " << run_parameters.two_J_3N_max      << "\n";
-	output_file << "Np_WP             = " << run_parameters.Np_WP             << "\n";
-	output_file << "Nq_WP             = " << run_parameters.Nq_WP             << "\n";
-	output_file << "J_2N_max          = " << run_parameters.J_2N_max          << "\n";
-	output_file << "Nphi              = " << run_parameters.Nphi              << "\n";
-	output_file << "Nx                = " << run_parameters.Nx                << "\n";
-	output_file << "parallel_run      = " << run_parameters.parallel_run      << "\n";
-	output_file << "potential_model   = " << run_parameters.potential_model   << "\n";
-	output_file << "subfolder         = " << run_parameters.subfolder         << "\n";
-	output_file << "p_grid_type       = " << run_parameters.p_grid_type       << "\n";
-	output_file << "p_grid_filename   = " << run_parameters.p_grid_filename   << "\n";
-	output_file << "q_grid_type       = " << run_parameters.q_grid_type       << "\n";
-	output_file << "q_grid_filename   = " << run_parameters.q_grid_filename   << "\n";
-	output_file << "parameter_walk    = " << run_parameters.parameter_walk    << "\n";
-	output_file << "energy_input_file = " << run_parameters.energy_input_file << "\n";
-	output_file << "midpoint_approx   = " << run_parameters.midpoint_approx   << "\n";
-	output_file << "output_folder     = " << run_parameters.output_folder     << "\n";
-	output_file << "P123_folder       = " << run_parameters.P123_folder       << "\n";
+	output_file << create_input_printout_string(run_parameters);
 	
 	/* Close file */
 	output_file.close();

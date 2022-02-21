@@ -13,6 +13,8 @@
 #include "type_defs.h"
 #include "disk_io_routines.h"
 
+std::string create_input_printout_string(run_params run_parameters);
+
 void read_input_list_and_set_parameters(run_params& run_parameters, std::string filename);
 void show_usage();
 

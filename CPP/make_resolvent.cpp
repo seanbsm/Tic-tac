@@ -83,14 +83,16 @@ void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 											double   E,
 											int      Np_WP, double* e_SWP_unco_array, double* e_SWP_coup_array,
 											int      Nq_WP, double* q_WP_array,
-											int      Nalpha,
-											int*     L_2N_array,
-											int*     S_2N_array,
-											int*     J_2N_array,
-											int*     T_2N_array,
-											int*	 two_T_3N_array,
+											pw_3N_statespace pw_states,
 											run_params run_parameters){
 	
+	int  Nalpha			= pw_states.Nalpha;
+	int* L_2N_array		= pw_states.L_2N_array;
+	int* S_2N_array		= pw_states.S_2N_array;
+	int* J_2N_array		= pw_states.J_2N_array;
+	int* T_2N_array		= pw_states.T_2N_array;
+	int* two_T_3N_array = pw_states.two_T_3N_array;
+
 	/* This test will be reused several times */
 	bool tensor_force_true = (run_parameters.tensor_force==true);
 

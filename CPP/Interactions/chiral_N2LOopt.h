@@ -40,8 +40,6 @@ private:
 									  		   c1_n2lo_opt,
 									  		   c3_n2lo_opt,
 									  		   c4_n2lo_opt};
-									  
-	double *tempVarray = new double [6];
 public:
 	chiral_N2LOopt();
 

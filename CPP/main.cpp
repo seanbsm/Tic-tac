@@ -102,7 +102,7 @@ int main(int argc, char* argv[]){
 
 	/* Current scattering energy */
 	size_t  num_T_lab	= 0;
-	double* T_lab_array = NULL;//new double [5] {7.49793, 12.7426, 22.4742, 37.4248, 52.3506};
+	double* T_lab_array = NULL;
 	double* q_com_array = NULL;
 	double* E_com_array = NULL;
 	
@@ -140,17 +140,7 @@ int main(int argc, char* argv[]){
 	/* Quantum numbers of partial-wave expansion in state_3N_array.
 	 * All non-specified quantum numbers are either given by nature,
 	 * deduced from the values below, or disappear in summations later */
-	int  Nalpha   		= 0;		// Number of partial waves, set in dynamical state-space construction (by construct_symmetric_pw_states)
-	int* L_2N_array     = NULL;     // pair-nucleon state angular momentum
-	int* S_2N_array     = NULL;     // pair-nucleon state total spin
-	int* J_2N_array     = NULL;     // pair-nucleon state total angular momentum
-	int* T_2N_array     = NULL;     // pair-nucleon state total isospin
-	int* L_1N_array     = NULL;     // orbital-nucleon state angular momentum
-	int* two_J_1N_array = NULL; 	// orbital-nucleon state total angular momentum x2
-	int* two_J_3N_array = NULL; 	// three-nucleon state total angular momentum x2
-	int* two_T_3N_array = NULL; 	// three-nucleon state total isospin x2
-	int* P_3N_array 	= NULL; 	// three-nucleon state parity
-	pw_3N_statespace pw_states;		// struct to hold all 3N partial-wave quantum numbers
+	pw_3N_statespace pw_states;
 
 	/* Three-nucleon channel indexing (a 3N channel is defined by a set {two_J_3N, two_T_3N, P_3N}) */
 	int  N_chn_3N 		  = 0;
@@ -168,16 +158,6 @@ int main(int argc, char* argv[]){
 	printf("Constructing 3N partial-wave basis ... \n");
 	construct_symmetric_pw_states(N_chn_3N,
 								  &chn_3N_idx_array,
-								  Nalpha,
-								  &L_2N_array,
-								  &S_2N_array,
-								  &J_2N_array,
-								  &T_2N_array,
-								  &L_1N_array,
-								  &two_J_1N_array,
-								  &two_J_3N_array,
-								  &two_T_3N_array,
-								  &P_3N_array,
 								  pw_states,
 								  run_parameters);
 	printf(" - There are %d 3N-channels \n", N_chn_3N);
@@ -276,7 +256,7 @@ int main(int argc, char* argv[]){
 													   V_WP_coup_array, num_2N_coup_states,
 													   Np_WP, p_WP_array,
 													   Np_per_WP, p_array, wp_array,
-													   Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, two_T_3N_array,
+													   pw_states,
 													   pot_ptr,
 													   run_parameters);
 		printf(" - Done \n");
@@ -307,7 +287,7 @@ int main(int argc, char* argv[]){
 						num_2N_coup_states,
 						E_bound,
 						Np_WP, p_WP_array,
-						Nalpha, L_2N_array, S_2N_array, J_2N_array, T_2N_array, two_T_3N_array,
+						pw_states,
 						run_parameters);
 		printf(" - Using E_bound = %.5f MeV \n", E_bound);
 		printf(" - Done \n");
@@ -468,10 +448,10 @@ int main(int argc, char* argv[]){
 			int Nalpha_in_3N_chn = idx_alpha_upper - idx_alpha_lower;
 
 			/* Pointers to sub-arrays of PW state space corresponding to chn_3N */
-			int* L_2N_subarray 	   = &L_2N_array[idx_alpha_lower];
-			int* S_2N_subarray 	   = &S_2N_array[idx_alpha_lower];
-			int* J_2N_subarray 	   = &J_2N_array[idx_alpha_lower];
-			int* T_2N_subarray 	   = &T_2N_array[idx_alpha_lower];
+			int* L_2N_subarray 	   = &pw_states.L_2N_array[idx_alpha_lower];
+			int* S_2N_subarray 	   = &pw_states.S_2N_array[idx_alpha_lower];
+			int* J_2N_subarray 	   = &pw_states.J_2N_array[idx_alpha_lower];
+			int* T_2N_subarray 	   = &pw_states.T_2N_array[idx_alpha_lower];
 
 			std::vector<int> deuteron_chn_indices;
 
@@ -515,18 +495,22 @@ int main(int argc, char* argv[]){
 		int idx_alpha_upper  = chn_3N_idx_array[chn_3N+1];
 		int Nalpha_in_3N_chn = idx_alpha_upper - idx_alpha_lower;
 
-		/* Channel conserved 3N quantum numbers using first element in channel */
-		int two_J_3N = two_J_3N_array[idx_alpha_lower];
-		int P_3N 	 = P_3N_array    [idx_alpha_lower];
-
 		/* Pointers to sub-arrays of PW state space corresponding to chn_3N */
-		int* L_2N_subarray 	   = &L_2N_array[idx_alpha_lower];
-		int* S_2N_subarray 	   = &S_2N_array[idx_alpha_lower];
-		int* J_2N_subarray 	   = &J_2N_array[idx_alpha_lower];
-		int* T_2N_subarray 	   = &T_2N_array[idx_alpha_lower];
-		int* L_1N_subarray 	   = &L_1N_array[idx_alpha_lower];
-		int* two_J_1N_subarray = &two_J_1N_array[idx_alpha_lower];
-		int* two_T_3N_subarray = &two_T_3N_array[idx_alpha_lower];
+		pw_3N_statespace pw_substates;
+		pw_substates.Nalpha			= idx_alpha_upper - idx_alpha_lower;
+		pw_substates.L_2N_array 	= &pw_states.L_2N_array[idx_alpha_lower];
+		pw_substates.S_2N_array 	= &pw_states.S_2N_array[idx_alpha_lower];
+		pw_substates.J_2N_array 	= &pw_states.J_2N_array[idx_alpha_lower];
+		pw_substates.T_2N_array 	= &pw_states.T_2N_array[idx_alpha_lower];
+		pw_substates.L_1N_array 	= &pw_states.L_1N_array[idx_alpha_lower];
+		pw_substates.two_J_1N_array = &pw_states.two_J_1N_array[idx_alpha_lower];
+		pw_substates.two_T_3N_array = &pw_states.two_T_3N_array[idx_alpha_lower];
+		pw_substates.two_J_3N_array = &pw_states.two_J_3N_array[idx_alpha_lower];
+		pw_substates.P_3N_array		= &pw_states.P_3N_array[idx_alpha_lower];
+
+		/* Channel conserved 3N quantum numbers using first element in channel */
+		int two_J_3N = pw_substates.two_J_3N_array[0];
+		int P_3N 	 = pw_substates.P_3N_array[0];
 
 		printf("Working on 3N-channel J_3N=%.d/2, PAR=%.d (channel %.d of %.d) with %.d partial-wave states \n", two_J_3N, P_3N, chn_3N+1, N_chn_3N, Nalpha_in_3N_chn);
 
@@ -537,123 +521,19 @@ int main(int argc, char* argv[]){
 		int* 	P123_sparse_col_array = NULL;
 		size_t	P123_sparse_dim		  = 0;
 
-		/* Default filename for current chn_3N - used for storage and reading P123 */
-		std::string P123_filename =    run_parameters.P123_folder + "/" + "P123_sparse_JP_"
-									 + to_string(two_J_3N) + "_" + to_string(P_3N)
-									 + "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
-									 + "_J2max_" + to_string(J_2N_max) + ".h5";
-									 
-		if (run_parameters.calculate_and_store_P123){
-			double* x_array  = new double [Nx];
-			double* wx_array = new double [Nx];
-			gauss(x_array, wx_array, Nx);
-	
-			printf("Calculating P123 ... \n");
-			auto timestamp_P123_calc_start = chrono::system_clock::now();
-			calculate_permutation_matrices_for_all_3N_channels(&P123_sparse_val_array,
-															   &P123_sparse_row_array,
-															   &P123_sparse_col_array,
-															   P123_sparse_dim,
-															   run_parameters.production_run,
-															   Np_WP, p_WP_array,
-														   	   Nq_WP, q_WP_array,
-														   	   Nx, x_array, wx_array,
-															   Nphi,
-															   J_2N_max,
-														   	   Nalpha_in_3N_chn,
-														   	   L_2N_subarray,
-							  								   S_2N_subarray,
-							  								   J_2N_subarray,
-							  								   T_2N_subarray,
-							  								   L_1N_subarray,
-							  								   two_J_1N_subarray,
-															   two_T_3N_subarray,
-														 	   two_J_3N,
-															   P_3N,
-															   run_parameters,
-															   run_parameters.P123_folder);
-			auto timestamp_P123_calc_end = chrono::system_clock::now();
-			chrono::duration<double> time_P123_calc = timestamp_P123_calc_end - timestamp_P123_calc_start;
-			printf(" - Done. Time used: %.6f\n", time_P123_calc.count());
-	
-			printf("Storing P123 to h5 ... \n");
-			auto timestamp_P123_store_start = chrono::system_clock::now();
-			store_sparse_permutation_matrix_for_3N_channel_h5(P123_sparse_val_array,
-															  P123_sparse_row_array,
-															  P123_sparse_col_array,
-															  P123_sparse_dim,
-															  Np_WP, p_WP_array,
-															  Nq_WP, q_WP_array,
-															  Nalpha_in_3N_chn,
-															  L_2N_subarray,
-															  S_2N_subarray,
-															  J_2N_subarray,
-															  T_2N_subarray,
-															  L_1N_subarray,
-															  two_J_1N_subarray,
-															  two_T_3N_subarray,
-															  two_J_3N,
-															  P_3N,
-													   		  P123_filename,
-															  true);
-			auto timestamp_P123_store_end = chrono::system_clock::now();
-			chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
-			printf(" - Done. Time used: %.6f\n", time_P123_store.count());
-		}
-		else if (run_parameters.solve_faddeev){
-			printf("Reading P123 from h5 ... \n");
-
-			auto timestamp_P123_read_start = chrono::system_clock::now();
-			read_sparse_permutation_matrix_for_3N_channel_h5( &P123_sparse_val_array,
-															  &P123_sparse_row_array,
-															  &P123_sparse_col_array,
-															  P123_sparse_dim,
-															  Np_WP, p_WP_array,
-															  Nq_WP, q_WP_array,
-															  Nalpha_in_3N_chn,
-															  L_2N_subarray,
-															  S_2N_subarray,
-															  J_2N_subarray,
-															  T_2N_subarray,
-															  L_1N_subarray,
-															  two_J_1N_subarray,
-															  two_T_3N_subarray,
-															  two_J_3N,
-															  P_3N,
-													   		  P123_filename,
-															  true);
-			auto timestamp_P123_read_end = chrono::system_clock::now();
-			chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
-			printf(" - Done. Time used: %.6f\n", time_P123_read.count());
-			
-			///* OLD CODE SNIPPET TO DOUBLE-CHECK ANY OPTIMIZATIONS OF P123 CALCULATON
-			// * SHOULD BE MOVED TO A UNIT-TEST */
-			//if (P123_sparse_dim_t==P123_sparse_dim){
-			//	//int row_idx = 0;
-			//	for (int idx=0; idx<P123_sparse_dim; idx++){
-			//		//if (P123_sparse_row_array[idx]==row_idx){
-			//		bool check1 = (abs(P123_sparse_val_array_t[idx]-P123_sparse_val_array[idx])>1e-15);
-			//		bool check2 = (P123_sparse_row_array_t[idx]!=P123_sparse_row_array[idx]);
-			//		bool check3 = (P123_sparse_col_array_t[idx]!=P123_sparse_col_array[idx]);
-			//		if (check1||check2||check3){
-			//			std::cout << "Value wrong, idx: " << idx << std::endl;
-			//			std::cout << "BM val:   " << P123_sparse_val_array_t[idx] << std::endl;
-			//			std::cout << "BM row:   " << P123_sparse_row_array_t[idx] << std::endl;
-			//			std::cout << "BM col:   " << P123_sparse_col_array_t[idx] << std::endl;
-			//			std::cout << "Prog val: " << P123_sparse_val_array[idx] << std::endl;
-			//			std::cout << "Prog row: " << P123_sparse_row_array[idx] << std::endl;
-			//			std::cout << "Prog col: " << P123_sparse_col_array[idx] << std::endl;
-			//			raise_error("element mismatch");
-			//		}
-			//		//}
-			//	}
-			//}
-			//else{
-			//	std::cout << "BM dim:   " << P123_sparse_dim_t << std::endl;
-			//	std::cout << "Prog dim: " << P123_sparse_dim << std::endl;
-			//	raise_error("dim not right");
-			//}
-		}
+		fill_P123_arrays(&P123_sparse_val_array,
+						 &P123_sparse_row_array,
+						 &P123_sparse_col_array,
+						 P123_sparse_dim,
+						 run_parameters.production_run,
+						 Np_WP, p_WP_array,
+						 Nq_WP, q_WP_array,
+						 Nx,
+						 Nphi,
+						 J_2N_max,
+						 pw_substates,
+						 run_parameters,
+						 run_parameters.P123_folder);
 
 		/* End of code segment for permutation matrix construction */
 
@@ -674,12 +554,7 @@ int main(int argc, char* argv[]){
 													   e_SWP_unco_array,
 													   e_SWP_coup_array,
 													   Nq_WP, q_WP_array,
-													   Nalpha_in_3N_chn,
-													   L_2N_subarray,
-													   S_2N_subarray,
-													   J_2N_subarray,
-													   T_2N_subarray,
-													   two_T_3N_array,
+													   pw_substates,
 													   run_parameters);
 			}
 			printf(" - Done \n");
@@ -715,14 +590,7 @@ int main(int argc, char* argv[]){
 									deuteron_idx_array, num_deuteron_states,
 									Nq_WP,
 									Np_WP,
-									Nalpha_in_3N_chn,
-									L_2N_subarray,
-									S_2N_subarray,
-									J_2N_subarray,
-									T_2N_subarray,
-									L_1N_subarray, 
-									two_J_1N_subarray,
-									two_T_3N_subarray,
+									pw_substates,
 									file_identification,
 					                run_parameters);
 			printf(" - Done \n");
@@ -730,23 +598,20 @@ int main(int argc, char* argv[]){
 			/* End of code segment for iterations of elastic Faddeev equations */
 			/* Start of code segment for storing on-shell U-matrix solutions */
 
-			std::string U_mat_filename = run_parameters.output_folder + "/" + "U_PW_elements"
-			                                                                + file_identification
-																	        + ".csv";
-			store_U_matrix_elements_csv(U_array,
-									    q_com_idx_array,    (size_t) num_T_lab,
-							  		    deuteron_idx_array, (size_t) num_deuteron_states,
-									    L_1N_subarray, 
-									    two_J_1N_subarray,
-									    U_mat_filename);
+			//std::string U_mat_filename = run_parameters.output_folder + "/" + "U_PW_elements"
+			//                                                                + file_identification
+			//														        + ".csv";
+			//store_U_matrix_elements_csv(U_array,
+			//						    q_com_idx_array,    (size_t) num_T_lab,
+			//				  		    deuteron_idx_array, (size_t) num_deuteron_states,
+			//						    pw_substates,
+			//						    U_mat_filename);
 			
 			std::string U_mat_filename_t = run_parameters.output_folder + "/" + "U_PW_elements"
 			                                                                  + file_identification
 																	          + ".txt";
 			store_U_matrix_elements_txt(U_array,
 										run_parameters.potential_model,
-										two_J_3N,
-										P_3N,
 										Np_WP,
 										Nq_WP,
 										E_bound,
@@ -754,8 +619,7 @@ int main(int argc, char* argv[]){
 										E_com_array,
 									    q_com_idx_array,    (size_t) num_T_lab,
 							  		    deuteron_idx_array, (size_t) num_deuteron_states,
-									    L_1N_subarray, 
-									    two_J_1N_subarray,
+									    pw_substates,
 									    U_mat_filename_t);
 
 			/* End of code segment for storing on-shell U-matrix solutions */

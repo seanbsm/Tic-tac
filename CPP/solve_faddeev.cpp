@@ -1247,7 +1247,7 @@ void pade_method_solve(cdouble*  U_array,
 					 * If any are fulfilled, we set convergence to true for current on-shell element */
 					bool convergence_criteria_0 = (NM==NM_max);																				// Cannot go past max NM
 					bool convergence_criteria_1 = (NM-idx_best_PA>4);																		// If nothing better is found in the last 3 PAs, we assume we found the best
-					bool convergence_criteria_2 = (min_PA_diff<1e-4*std::abs(pade_approximants_array[idx_NDOS*(NM_max+1) + idx_best_PA]));	// If the difference is less than the 4th significant digit, we assume "good enough"
+					bool convergence_criteria_2 = (min_PA_diff<1e-6*std::abs(pade_approximants_array[idx_NDOS*(NM_max+1) + idx_best_PA]));	// If the difference is less than the 4th significant digit, we assume "good enough"
 					bool convergence_criteria_3 = (min_PA_diff<1e-7);																		// If we are below single precision resolution, assume convergence
 					
 					if (convergence_criteria_0 ||
@@ -1327,17 +1327,12 @@ void solve_faddeev_equations(cdouble*  U_array,
 					   		 int*      deuteron_idx_array, size_t num_deuteron_states,
 							 size_t    Nq_WP,
 							 size_t    Np_WP,
-							 size_t    Nalpha,
-							 int*      L_2N_array,
-							 int*      S_2N_array,
-							 int*      J_2N_array,
-							 int*      T_2N_array,
-							 int*      L_1N_array, 
-							 int*      two_J_1N_array,
-							 int*      two_T_3N_array,
+							 pw_3N_statespace pw_states,
 							 std::string file_identification,
 					         run_params run_parameters){
 	
+	size_t Nalpha = pw_states.Nalpha;
+
 	/* Test PVC- and CPVC-column multiplication routines with brute-force routines
 	 * WARNING: VERY SLOW TEST, ONLY FOR BENCHMARKING */
 	bool test_PVC_col_routine   = false;
@@ -1355,14 +1350,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 									   num_2N_unco_states,
 									   num_2N_coup_states,
 									   Np_WP,
-									   Nalpha,
-									   L_2N_array,
-									   S_2N_array,
-									   J_2N_array,
-									   T_2N_array,
-									   L_1N_array,
-									   two_J_1N_array,
-									   two_T_3N_array,
+									   pw_states,
 									   run_parameters);
 
 	/* Create VC-product pointer-arrays in column-major format */
@@ -1375,14 +1363,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 									   num_2N_unco_states,
 									   num_2N_coup_states,
 									   Np_WP,
-									   Nalpha,
-									   L_2N_array,
-									   S_2N_array,
-									   J_2N_array,
-									   T_2N_array,
-									   L_1N_array,
-									   two_J_1N_array,
-									   two_T_3N_array,
+									   pw_states,
 									   run_parameters);
 	
 	size_t  dense_dim = Nalpha * Nq_WP * Np_WP;
@@ -1503,16 +1484,18 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 										int  	 num_2N_unco_states,
 										int  	 num_2N_coup_states,
 										size_t   Np_WP,
-										size_t   Nalpha,
-										int*     L_2N_array,
-										int*     S_2N_array,
-										int*     J_2N_array,
-										int*     T_2N_array,
-							 			int*     L_1N_array, 
-							 			int*     two_J_1N_array,
-										int*     two_T_3N_array,
+										pw_3N_statespace pw_states,
 										run_params run_parameters){
 	
+	size_t Nalpha		  = pw_states.Nalpha;
+	int*   L_2N_array	  = pw_states.L_2N_array;
+	int*   S_2N_array	  = pw_states.S_2N_array;
+	int*   J_2N_array	  = pw_states.J_2N_array;
+	int*   T_2N_array	  = pw_states.T_2N_array;
+	int*   L_1N_array	  = pw_states.L_1N_array;
+	int*   two_J_1N_array = pw_states.two_J_1N_array;
+	int*   two_T_3N_array = pw_states.two_T_3N_array;
+
 	/* This test will be reused several times */
 	bool tensor_force_true = (run_parameters.tensor_force==true);
 	
@@ -1697,15 +1680,17 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 										int  	 num_2N_unco_states,
 										int  	 num_2N_coup_states,
 										size_t   Np_WP,
-										size_t   Nalpha,
-										int*     L_2N_array,
-										int*     S_2N_array,
-										int*     J_2N_array,
-										int*     T_2N_array,
-							 			int*     L_1N_array, 
-							 			int*     two_J_1N_array,
-										int*     two_T_3N_array,
+										pw_3N_statespace pw_states,
 										run_params run_parameters){
+	
+	size_t Nalpha		  = pw_states.Nalpha;
+	int*   L_2N_array	  = pw_states.L_2N_array;
+	int*   S_2N_array	  = pw_states.S_2N_array;
+	int*   J_2N_array	  = pw_states.J_2N_array;
+	int*   T_2N_array	  = pw_states.T_2N_array;
+	int*   L_1N_array	  = pw_states.L_1N_array;
+	int*   two_J_1N_array = pw_states.two_J_1N_array;
+	int*   two_T_3N_array = pw_states.two_T_3N_array;
 	
 	/* This test will be reused several times */
 	bool tensor_force_true = (run_parameters.tensor_force==true);

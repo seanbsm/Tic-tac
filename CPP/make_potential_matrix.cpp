@@ -52,10 +52,18 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 													double*  V_WP_coup_array, int num_2N_coup_states,
 													int Np_WP, double* p_WP_array,
 													int Np_per_WP, double* p_array, double* wp_array,
-													int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* two_T_3N_array,
+													pw_3N_statespace pw_states,
 													potential_model* pot_ptr,
 													run_params run_parameters){
 	
+	/* Make local pointers & variables */
+	int  Nalpha			= pw_states.Nalpha;
+	int* L_2N_array		= pw_states.L_2N_array;
+	int* S_2N_array		= pw_states.S_2N_array;
+	int* J_2N_array		= pw_states.J_2N_array;
+	int* T_2N_array		= pw_states.T_2N_array;
+	int* two_T_3N_array	= pw_states.two_T_3N_array;
+
 	/* This test will be reused several times */
 	bool tensor_force_true = (run_parameters.tensor_force==true);
 
@@ -65,17 +73,17 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 	int Tz_np =  0;
 
 	/* Potential-model input arrays */
-	double V_WP_elements [6];	// Isoscalar wave-packet potential elements (WP)
-	double V_IS_elements [6];	// Isoscalar (IS)
-	double V_nn_elements [6];	// neutron-neutron (nn)
-	double V_np_elements [6];	// neutron-proton (np)
+	//double V_WP_elements [6];	// Isoscalar wave-packet potential elements (WP)
+	//double V_IS_elements [6];	// Isoscalar (IS)
+	//double V_nn_elements [6];	// neutron-neutron (nn)
+	//double V_np_elements [6];	// neutron-proton (np)
 
 	/* Potential matrix indexing */
-	int idx_V_WP_uncoupled   = 0;
-	int idx_V_WP_upper_left  = 0;
-	int idx_V_WP_upper_right = 0;
-	int idx_V_WP_lower_left  = 0;
-	int idx_V_WP_lower_right = 0;
+	//int idx_V_WP_uncoupled   = 0;
+	//int idx_V_WP_upper_left  = 0;
+	//int idx_V_WP_upper_right = 0;
+	//int idx_V_WP_lower_left  = 0;
+	//int idx_V_WP_lower_right = 0;
 
 	/* Temporary track-keeping arrays for avoiding repeat matrix-calculations (initialize to false) */
 	int unco_array_size = num_2N_unco_states;
@@ -204,6 +212,20 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 				//}
 
 				/* Row p-momentum index loop */
+				//#pragma omp parallel	// Parallel looping is not thread-safe for chiral potential or funtional with nijmegen potential - out of my control...
+				//{
+				/* Potential-model input arrays */
+				double V_WP_elements [6];
+				double V_IS_elements [6];
+				double V_nn_elements [6];
+				double V_np_elements [6];
+				/* Potential matrix indexing */
+				int idx_V_WP_uncoupled   = 0;
+				int idx_V_WP_upper_left  = 0;
+				int idx_V_WP_upper_right = 0;
+				int idx_V_WP_lower_left  = 0;
+				int idx_V_WP_lower_right = 0;
+				//#pragma for
 				for (int idx_bin_r=0; idx_bin_r<Np_WP; idx_bin_r++){
 					double bin_r_lower = p_WP_array[idx_bin_r];
 					double bin_r_upper = p_WP_array[idx_bin_r + 1];
@@ -379,6 +401,7 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 						}
 					}
 				}
+				//}
 			}
 		}
 	}

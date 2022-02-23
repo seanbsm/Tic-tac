@@ -187,18 +187,21 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 												   int      Nx, double* x_array, double* wx_array,
 												   int      Nphi,
 												   int      J_2N_max,
-												   int      Nalpha,
-												   int*     L_2N_array,
-												   int*     S_2N_array,
-												   int*     J_2N_array,
-												   int*     T_2N_array,
-												   int*     L_1N_array,
-												   int*     two_J_1N_array,
-												   int*     two_T_3N_array,
-												   int      two_J_3N,
-												   int      P_3N,
+												   pw_3N_statespace pw_states,
 												   run_params run_parameters,
 												   std::string P123_folder){
+	
+	/* Make local pointers & variables */
+	int  Nalpha			= pw_states.Nalpha;
+	int* L_2N_array		= pw_states.L_2N_array;
+	int* S_2N_array		= pw_states.S_2N_array;
+	int* J_2N_array		= pw_states.J_2N_array;
+	int* T_2N_array		= pw_states.T_2N_array;
+	int* L_1N_array		= pw_states.L_1N_array;
+	int* two_J_1N_array = pw_states.two_J_1N_array;
+	int* two_T_3N_array	= pw_states.two_T_3N_array;
+	int  two_J_3N    	= pw_states.two_J_3N_array[0];
+	int  P_3N   	    = pw_states.P_3N_array[0];
 	
 	bool print_content = true;
 
@@ -880,16 +883,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 															  								  P123_dim_omp,
 															  								  Np_WP, p_array_WP_bounds,
 															  								  Nq_WP, q_array_WP_bounds,
-															  								  Nalpha,
-															  								  L_2N_array,
-															  								  S_2N_array,
-															  								  J_2N_array,
-															  								  T_2N_array,
-															  								  L_1N_array,
-															  								  two_J_1N_array,
-															  								  two_T_3N_array,
-															  								  two_J_3N,
-															  								  P_3N,
+															  								  pw_states,
 													   		  								  thread_filename,
 																							  false);
 
@@ -950,16 +944,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 							  								  num_elements_remaining,
 							  								  Np_WP, p_array_WP_bounds,
 							  								  Nq_WP, q_array_WP_bounds,
-							  								  Nalpha,
-							  								  L_2N_array,
-							  								  S_2N_array,
-							  								  J_2N_array,
-							  								  T_2N_array,
-							  								  L_1N_array,
-							  								  two_J_1N_array,
-															  two_T_3N_array,
-							  								  two_J_3N,
-							  								  P_3N,
+							  								  pw_states,
 					   		  								  thread_filename,
 															  false);
 			/* Increment the number of files stored for current thread */
@@ -992,17 +977,12 @@ void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,
 												 int      Nx, double* x_array, double* wx_array,
 												 int      Nphi,
 												 int      J_2N_max,
-												 int      Nalpha,
-												 int*     L_2N_array,
-												 int*     S_2N_array,
-												 int*     J_2N_array,
-												 int*     T_2N_array,
-												 int*     L_1N_array,
-												 int*     two_J_1N_array,
-												 int*     two_T_3N_array,
-												 int      two_J_3N,
-												 int      P_3N,
+												 pw_3N_statespace pw_states,
 												 std::string P123_folder){
+
+	int Nalpha 	 = pw_states.Nalpha;
+	int two_J_3N = pw_states.two_J_3N_array[0];
+	int P_3N  	 = pw_states.P_3N_array[0];
 
 	size_t P123_dense_dim = Nalpha * Nq_WP * Np_WP;
 
@@ -1077,16 +1057,7 @@ void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,
 													     current_P123_sparse_dim,
 													     Np_WP, p_array_WP_bounds,
 													     Nq_WP, q_array_WP_bounds,
-													     Nalpha,
-													     L_2N_array,
-													     S_2N_array,
-													     J_2N_array,
-													     T_2N_array,
-													     L_1N_array,
-													     two_J_1N_array,
-														 two_T_3N_array,
-													     two_J_3N,
-													     P_3N,
+													     pw_states,
 											   		     thread_filename,
 														 false);
 
@@ -1172,19 +1143,12 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 														int      Nx, double* x_array, double* wx_array,
 														int      Nphi,
 														int      J_2N_max,
-														int      Nalpha,
-														int*     L_2N_array,
-														int*     S_2N_array,
-														int*     J_2N_array,
-														int*     T_2N_array,
-														int*     L_1N_array,
-														int*     two_J_1N_array,
-														int*     two_T_3N_array,
-														int      two_J_3N,
-														int      P_3N,
+														pw_3N_statespace pw_states,
 														run_params run_parameters,
 														std::string P123_folder){
-	
+
+	int Nalpha = pw_states.Nalpha;
+
 	bool print_content = true;
 
 	/* Tells program whether to run calculation, or read P123-subarrays
@@ -1224,16 +1188,7 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 								  					  Nx, x_array, wx_array,
 													  Nphi,
 													  J_2N_max,
-								  					  Nalpha,
-								  					  L_2N_array,
-								  					  S_2N_array,
-								  					  J_2N_array,
-								  					  T_2N_array,
-								  					  L_1N_array,
-								  					  two_J_1N_array,
-													  two_T_3N_array,
-													  two_J_3N,
-													  P_3N,
+								  					  pw_states,
 													  run_parameters,
 													  P123_folder);
 		if (print_content){
@@ -1263,16 +1218,7 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 								  				Nx, x_array, wx_array,
 												Nphi,
 												J_2N_max,
-								  				Nalpha,
-								  				L_2N_array,
-								  				S_2N_array,
-								  				J_2N_array,
-								  				T_2N_array,
-								  				L_1N_array,
-								  				two_J_1N_array,
-												two_T_3N_array,
-												two_J_3N,
-												P_3N,
+								  				pw_states,
 												P123_folder);
 	if (print_content){
 		printf("   - Merge finished. \n");
@@ -1317,4 +1263,113 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 	}
 		
 	delete [] P123_val_dense_array;
+}
+
+void fill_P123_arrays(double** P123_sparse_val_array,
+					  int**    P123_sparse_row_array,
+					  int**    P123_sparse_col_array,
+					  size_t&  P123_sparse_dim,
+					  bool     production_run,
+					  int      Np_WP, double *p_array_WP_bounds,
+					  int      Nq_WP, double *q_array_WP_bounds,
+					  int      Nx,
+					  int      Nphi,
+					  int      J_2N_max,
+					  pw_3N_statespace pw_states,
+					  run_params run_parameters,
+					  std::string P123_folder){
+	
+	int two_J_3N = pw_states.two_J_3N_array[0];
+	int P_3N = pw_states.P_3N_array[0];
+	
+	/* Default filename for current chn_3N - used for storage and reading P123 */
+	std::string P123_filename = run_parameters.P123_folder + "/" + "P123_sparse_JP_"
+									+ to_string(two_J_3N) + "_" + to_string(P_3N)
+									+ "_Np_" + to_string(Np_WP) + "_Nq_" + to_string(Nq_WP)
+									+ "_J2max_" + to_string(J_2N_max) + ".h5";
+									
+	if (run_parameters.calculate_and_store_P123){
+		double* x_array  = new double [Nx];
+		double* wx_array = new double [Nx];
+		gauss(x_array, wx_array, Nx);
+
+		printf("Calculating P123 ... \n");
+		auto timestamp_P123_calc_start = chrono::system_clock::now();
+		calculate_permutation_matrices_for_all_3N_channels(P123_sparse_val_array,
+														   P123_sparse_row_array,
+														   P123_sparse_col_array,
+														   P123_sparse_dim,
+														   run_parameters.production_run,
+														   Np_WP, p_array_WP_bounds,
+														   Nq_WP, q_array_WP_bounds,
+														   Nx, x_array, wx_array,
+														   Nphi,
+														   J_2N_max,
+														   pw_states,
+														   run_parameters,
+														   run_parameters.P123_folder);
+		auto timestamp_P123_calc_end = chrono::system_clock::now();
+		chrono::duration<double> time_P123_calc = timestamp_P123_calc_end - timestamp_P123_calc_start;
+		printf(" - Done. Time used: %.6f\n", time_P123_calc.count());
+
+		printf("Storing P123 to h5 ... \n");
+		auto timestamp_P123_store_start = chrono::system_clock::now();
+		store_sparse_permutation_matrix_for_3N_channel_h5(*P123_sparse_val_array,
+														  *P123_sparse_row_array,
+														  *P123_sparse_col_array,
+														  P123_sparse_dim,
+														  Np_WP, p_array_WP_bounds,
+														  Nq_WP, q_array_WP_bounds,
+														  pw_states,
+														  P123_filename,
+														  true);
+		auto timestamp_P123_store_end = chrono::system_clock::now();
+		chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
+		printf(" - Done. Time used: %.6f\n", time_P123_store.count());
+	}
+	else if (run_parameters.solve_faddeev){
+		printf("Reading P123 from h5 ... \n");
+
+		auto timestamp_P123_read_start = chrono::system_clock::now();
+		read_sparse_permutation_matrix_for_3N_channel_h5(P123_sparse_val_array,
+														 P123_sparse_row_array,
+														 P123_sparse_col_array,
+														 P123_sparse_dim,
+														 Np_WP, p_array_WP_bounds,
+														 Nq_WP, q_array_WP_bounds,
+														 pw_states,
+														 P123_filename,
+														 true);
+		auto timestamp_P123_read_end = chrono::system_clock::now();
+		chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
+		printf(" - Done. Time used: %.6f\n", time_P123_read.count());
+		
+		///* OLD CODE SNIPPET TO DOUBLE-CHECK ANY OPTIMIZATIONS OF P123 CALCULATON
+		// * SHOULD BE MOVED TO A UNIT-TEST */
+		//if (P123_sparse_dim_t==P123_sparse_dim){
+		//	//int row_idx = 0;
+		//	for (int idx=0; idx<P123_sparse_dim; idx++){
+		//		//if (P123_sparse_row_array[idx]==row_idx){
+		//		bool check1 = (abs(P123_sparse_val_array_t[idx]-P123_sparse_val_array[idx])>1e-15);
+		//		bool check2 = (P123_sparse_row_array_t[idx]!=P123_sparse_row_array[idx]);
+		//		bool check3 = (P123_sparse_col_array_t[idx]!=P123_sparse_col_array[idx]);
+		//		if (check1||check2||check3){
+		//			std::cout << "Value wrong, idx: " << idx << std::endl;
+		//			std::cout << "BM val:   " << P123_sparse_val_array_t[idx] << std::endl;
+		//			std::cout << "BM row:   " << P123_sparse_row_array_t[idx] << std::endl;
+		//			std::cout << "BM col:   " << P123_sparse_col_array_t[idx] << std::endl;
+		//			std::cout << "Prog val: " << P123_sparse_val_array[idx] << std::endl;
+		//			std::cout << "Prog row: " << P123_sparse_row_array[idx] << std::endl;
+		//			std::cout << "Prog col: " << P123_sparse_col_array[idx] << std::endl;
+		//			raise_error("element mismatch");
+		//		}
+		//		//}
+		//	}
+		//}
+		//else{
+		//	std::cout << "BM dim:   " << P123_sparse_dim_t << std::endl;
+		//	std::cout << "Prog dim: " << P123_sparse_dim << std::endl;
+		//	raise_error("dim not right");
+		//}
+	}
 }

@@ -23,8 +23,6 @@ extern "C" {
 
 class nijmegen : public potential_model
 {
-private:
-	double *tempVarray = new double [6];
 public:
 	nijmegen();
 

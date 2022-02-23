@@ -9,6 +9,8 @@ void nijmegen::update_parameters(double* parameters){}
 
 void nijmegen::V(double &qi, double &qo, bool coupled, int &S, int &J, int &T, int &Tz, double *Varray){
 	
+	double tempVarray [6];
+
 	/* Empty out last set of elements */
 	tempVarray[0] = 0;
 	tempVarray[1] = 0;

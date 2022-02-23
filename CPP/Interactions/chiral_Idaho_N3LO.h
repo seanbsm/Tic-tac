@@ -61,8 +61,6 @@ private:
 												 d3_idaho_n3lo,
 												 d5_idaho_n3lo,
 												 d14_minus_d15_idaho_n3lo};
-	
-	double *tempVarray = new double [6];
 public:
 	chiral_Idaho_N3LO();
 	

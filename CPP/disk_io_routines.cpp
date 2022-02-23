@@ -270,8 +270,6 @@ void store_q_WP_boundaries_csv(size_t Nq_WP, double* q_WP_array,
 
 void store_U_matrix_elements_txt(std::complex<double>*    U_array,
 								 std::string 			  potential_model,
-								 int					  two_J,
-								 int					  P_3N,
 								 int					  Np_WP,
 								 int					  Nq_WP,
 								 double					  E_bound,
@@ -279,9 +277,13 @@ void store_U_matrix_elements_txt(std::complex<double>*    U_array,
 								 double*				  E_com_array,
 							     int* q_com_idx_array,	  size_t num_q_com,
 					  		     int* deuteron_idx_array, size_t num_deuteron_states,
-							     int* L_1N_array, 
-							     int* two_J_1N_array,
+							     pw_3N_statespace pw_states,
 							     std::string filename){
+
+	int	 two_J			= pw_states.two_J_3N_array[0];
+	int  P_3N 			= pw_states.P_3N_array[0];
+	int* L_1N_array		= pw_states.L_1N_array;
+	int* two_J_1N_array = pw_states.two_J_1N_array;
 	
 	/* Open file*/
 	std::ofstream result_file;
@@ -414,9 +416,12 @@ void store_U_matrix_elements_txt(std::complex<double>*    U_array,
 void store_U_matrix_elements_csv(std::complex<double>*    U_array,
 							     int* q_com_idx_array,	  size_t num_q_com,
 					  		     int* deuteron_idx_array, size_t num_deuteron_states,
-							     int* L_1N_array, 
-							     int* two_J_1N_array,
+							     pw_3N_statespace pw_states,
 							     std::string filename){
+	
+	int* L_1N_array		= pw_states.L_1N_array;
+	int* two_J_1N_array = pw_states.two_J_1N_array;
+
 	/* Open file*/
 	std::ofstream result_file;
 	result_file.open(filename);
@@ -577,18 +582,21 @@ void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_a
 													   size_t  P123_sparse_dim,
 													   int     Np_WP, double* p_WP_array,
 													   int     Nq_WP, double* q_WP_array,
-													   int     Nalpha,
-													   int*    L_2N_array,
-													   int*    S_2N_array,
-													   int*    J_2N_array,
-													   int*    T_2N_array,
-													   int*    L_1N_array, 
-													   int*    two_J_1N_array,
-													   int*    two_T_3N_array,
-													   int     two_J_3N,
-													   int     P_3N,
+													   pw_3N_statespace pw_states,
 													   std::string filename_in,
 													   bool print_content){
+	
+	/* Make local pointers & variables */
+	int  Nalpha			= pw_states.Nalpha;
+	int* L_2N_array		= pw_states.L_2N_array;
+	int* S_2N_array		= pw_states.S_2N_array;
+	int* J_2N_array		= pw_states.J_2N_array;
+	int* T_2N_array		= pw_states.T_2N_array;
+	int* L_1N_array		= pw_states.L_1N_array;
+	int* two_J_1N_array = pw_states.two_J_1N_array;
+	int* two_T_3N_array	= pw_states.two_T_3N_array;
+	int  two_J_3N    	= pw_states.two_J_3N_array[0];
+	int  P_3N   	    = pw_states.P_3N_array[0];
 
 	if (print_content){
 		printf("   - Setting up h5-file \n");
@@ -662,18 +670,21 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 													   size_t& P123_sparse_dim,
 													   int     Np_WP, double* p_WP_array,
 													   int     Nq_WP, double* q_WP_array,
-													   int     Nalpha,
-													   int*    L_2N_array,
-													   int*    S_2N_array,
-													   int*    J_2N_array,
-													   int*    T_2N_array,
-													   int*    L_1N_array, 
-													   int*    two_J_1N_array,
-													   int*    two_T_3N_array,
-													   int     two_J_3N,
-													   int     P_3N,
+													   pw_3N_statespace pw_states,
 													   std::string filename_in,
 													   bool    print_content){
+	
+	/* Make local pointers & variables */
+	int  Nalpha			= pw_states.Nalpha;
+	int* L_2N_array		= pw_states.L_2N_array;
+	int* S_2N_array		= pw_states.S_2N_array;
+	int* J_2N_array		= pw_states.J_2N_array;
+	int* T_2N_array		= pw_states.T_2N_array;
+	int* L_1N_array		= pw_states.L_1N_array;
+	int* two_J_1N_array = pw_states.two_J_1N_array;
+	int* two_T_3N_array	= pw_states.two_T_3N_array;
+	int  two_J_3N    	= pw_states.two_J_3N_array[0];
+	int  P_3N   	    = pw_states.P_3N_array[0];
 
 	/* Convert filename_in to char-array */
 	char filename[300];

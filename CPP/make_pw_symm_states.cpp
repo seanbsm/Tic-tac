@@ -61,16 +61,6 @@ int unique_2N_idx(int L_2N, int S_2N, int J_2N, int T_2N, bool coupled, run_para
 
 void construct_symmetric_pw_states(int&   N_chn_3N,
 								   int**  chn_3N_idx_array_ptr,
-								   int&   Nalpha,
-								   int**  L_2N_array_ptr,
-								   int**  S_2N_array_ptr,
-								   int**  J_2N_array_ptr,
-								   int**  T_2N_array_ptr,
-								   int**  L_1N_array_ptr,
-								   int**  two_J_1N_array_ptr,
-								   int**  two_J_3N_array_ptr,
-								   int**  two_T_3N_array_ptr,
-								   int**  P_3N_array_ptr,
 								   pw_3N_statespace& pw_states,
 								   run_params run_parameters){
 	
@@ -240,46 +230,35 @@ void construct_symmetric_pw_states(int&   N_chn_3N,
 	chn_idx_temp.push_back(Nalpha_temp);
 	
 	/* Write number of states found to input integer */
-	Nalpha = Nalpha_temp;
+	pw_states.Nalpha = Nalpha_temp;     
 
 	/* Write number of 3N channels found to input integer */
 	N_chn_3N = N_chn_3N_temp;
 	
-	/* Allocate arrays to input array pointers */
-	*L_2N_array_ptr     = new int [Nalpha];
-	*S_2N_array_ptr     = new int [Nalpha];
-	*J_2N_array_ptr     = new int [Nalpha];
-	*T_2N_array_ptr     = new int [Nalpha];
-	*L_1N_array_ptr     = new int [Nalpha];
-	*two_J_1N_array_ptr = new int [Nalpha];
-	*two_J_3N_array_ptr = new int [Nalpha];
-	*two_T_3N_array_ptr = new int [Nalpha];
-	*P_3N_array_ptr     = new int [Nalpha];
+	/* Allocate arrays to input array pointers */       
+	pw_states.J_2N_max			= J_2N_max;          
+	pw_states.L_2N_array		= new int [pw_states.Nalpha];
+	pw_states.S_2N_array		= new int [pw_states.Nalpha];
+	pw_states.J_2N_array		= new int [pw_states.Nalpha];
+	pw_states.T_2N_array		= new int [pw_states.Nalpha];
+	pw_states.L_1N_array		= new int [pw_states.Nalpha];
+	pw_states.two_J_1N_array	= new int [pw_states.Nalpha];
+	pw_states.two_J_3N_array	= new int [pw_states.Nalpha];
+	pw_states.two_T_3N_array	= new int [pw_states.Nalpha];
+	pw_states.P_3N_array		= new int [pw_states.Nalpha];
 
 	*chn_3N_idx_array_ptr = new int [N_chn_3N+1];
 
 	/* Write temporary vector contents to newly allocated arrays */
-	std::copy( L_2N_temp.begin(), L_2N_temp.end(), *L_2N_array_ptr );
-	std::copy( S_2N_temp.begin(), S_2N_temp.end(), *S_2N_array_ptr );
-	std::copy( J_2N_temp.begin(), J_2N_temp.end(), *J_2N_array_ptr );
-	std::copy( T_2N_temp.begin(), T_2N_temp.end(), *T_2N_array_ptr );
-	std::copy( L_1N_temp.begin(), L_1N_temp.end(), *L_1N_array_ptr );
-	std::copy( two_J_1N_temp.begin(), two_J_1N_temp.end(), *two_J_1N_array_ptr );
-	std::copy( two_J_3N_temp.begin(), two_J_3N_temp.end(), *two_J_3N_array_ptr );
-	std::copy( two_T_3N_temp.begin(), two_T_3N_temp.end(), *two_T_3N_array_ptr );
-	std::copy( P_3N_temp.begin(), P_3N_temp.end(), *P_3N_array_ptr );
+	std::copy( L_2N_temp.begin(), L_2N_temp.end(), pw_states.L_2N_array );
+	std::copy( S_2N_temp.begin(), S_2N_temp.end(), pw_states.S_2N_array );
+	std::copy( J_2N_temp.begin(), J_2N_temp.end(), pw_states.J_2N_array );
+	std::copy( T_2N_temp.begin(), T_2N_temp.end(), pw_states.T_2N_array );
+	std::copy( L_1N_temp.begin(), L_1N_temp.end(), pw_states.L_1N_array );
+	std::copy( two_J_1N_temp.begin(), two_J_1N_temp.end(), pw_states.two_J_1N_array );
+	std::copy( two_J_3N_temp.begin(), two_J_3N_temp.end(), pw_states.two_J_3N_array );
+	std::copy( two_T_3N_temp.begin(), two_T_3N_temp.end(), pw_states.two_T_3N_array );
+	std::copy( P_3N_temp.begin(), P_3N_temp.end(), pw_states.P_3N_array );
 
 	std::copy( chn_idx_temp.begin(), chn_idx_temp.end(), *chn_3N_idx_array_ptr );
-
-	pw_states.Nalpha   			=  Nalpha;
-	pw_states.J_2N_max			=  J_2N_max;
-	pw_states.L_2N_array		= *L_2N_array_ptr;
-	pw_states.S_2N_array		= *S_2N_array_ptr;
-	pw_states.J_2N_array		= *J_2N_array_ptr;
-	pw_states.T_2N_array		= *T_2N_array_ptr;
-	pw_states.L_1N_array		= *L_1N_array_ptr;
-	pw_states.two_J_1N_array	= *two_J_1N_array_ptr;
-	pw_states.two_J_3N_array	= *two_J_3N_array_ptr;
-	pw_states.two_T_3N_array	= *two_T_3N_array_ptr;
-	pw_states.P_3N_array		= *P_3N_array_ptr;
 }

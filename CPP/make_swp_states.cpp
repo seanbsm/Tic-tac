@@ -189,8 +189,16 @@ void make_swp_states(double* e_SWP_unco_array,
 					 int num_2N_coup_states,
 					 double& E_bound,
 					 int Np_WP, double* p_WP_array,
-					 int Nalpha, int* L_2N_array, int* S_2N_array, int* J_2N_array, int* T_2N_array, int* two_T_3N_array,
+					 pw_3N_statespace pw_states,
 					 run_params run_parameters){
+
+	/* Make local pointers & variables */
+	int  Nalpha			= pw_states.Nalpha;
+	int* L_2N_array		= pw_states.L_2N_array;
+	int* S_2N_array		= pw_states.S_2N_array;
+	int* J_2N_array		= pw_states.J_2N_array;
+	int* T_2N_array		= pw_states.T_2N_array;
+	int* two_T_3N_array	= pw_states.two_T_3N_array;
 	
 	/* This test will be reused several times */
 	bool tensor_force_true = (run_parameters.tensor_force==true);

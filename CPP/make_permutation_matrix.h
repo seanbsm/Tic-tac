@@ -32,6 +32,7 @@
 #include <ctime>
 
 /* Project headers */
+#include "make_pw_symm_states.h"
 #include "error_management.h"
 #include "disk_io_routines.h"
 #include "General_functions/matrix_routines.h"
@@ -45,16 +46,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 												   int      Nx, double* x_array, double* wx_array,
 												   int      Nphi,
 												   int      J_2N_max,
-												   int      Nalpha,
-												   int*     L_2N_array,
-												   int*     S_2N_array,
-												   int*     J_2N_array,
-												   int*     T_2N_array,
-												   int*     L_1N_array,
-												   int*     two_J_1N_array,
-												   int*     two_T_3N_array,
-												   int      two_J_3N,
-												   int      P_3N,
+												   pw_3N_statespace pw_states,
 												   run_params run_parameters,
 		 										   std::string P123_folder);
 
@@ -68,17 +60,22 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 														int      Nx, double* x_array, double* wx_array,
 														int      Nphi,
 														int      J_2N_max,
-														int      Nalpha,
-														int*     L_2N_array,
-														int*     S_2N_array,
-														int*     J_2N_array,
-														int*     T_2N_array,
-														int*     L_1N_array,
-														int*     two_J_1N_array,
-														int*     two_T_3N_array,
-														int      two_J_3N,
-												 		int      P_3N,
+														pw_3N_statespace pw_states,
 														run_params run_parameters,
 														std::string P123_folder);
+
+void fill_P123_arrays(double** P123_sparse_val_array,
+					  int**    P123_sparse_row_array,
+					  int**    P123_sparse_col_array,
+					  size_t&  P123_sparse_dim,
+					  bool     production_run,
+					  int      Np_WP, double *p_array_WP_bounds,
+					  int      Nq_WP, double *q_array_WP_bounds,
+					  int      Nx,
+					  int      Nphi,
+					  int      J_2N_max,
+					  pw_3N_statespace pw_states,
+					  run_params run_parameters,
+					  std::string P123_folder);
 
 #endif // PERMUTATION_OPERATORS_H

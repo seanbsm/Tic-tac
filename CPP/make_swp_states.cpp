@@ -184,6 +184,10 @@ void make_swp_bin_boundaries(double* eigenvalues,
 
 void store_swp_kinematics(swp_statespace swp_states,
 						  run_params run_parameters){
+	
+	/* Local pointer */
+	double* q_WP_array = swp_states.q_WP_array;
+
 	double* Eq_WP_boundaries   = new double [swp_states.Nq_WP+1];
 	double* Tlab_WP_boundaries = new double [swp_states.Nq_WP+1];
 	for (size_t q_WP_idx=0; q_WP_idx<swp_states.Nq_WP+1; q_WP_idx++){
@@ -202,7 +206,7 @@ void store_swp_kinematics(swp_statespace swp_states,
 		Tlab_WP_midpoints[q_WP_idx] = com_momentum_to_lab_energy(q_WP_midpoints[q_WP_idx], swp_states.E_bound);
 	}
 	
-	std::string q_kinematics_filename = run_parameters.output_folder + "/" + "q_kinematics_Nq_" + to_string(swp_states.Nq_WP) + ".txt";
+	std::string q_kinematics_filename = run_parameters.output_folder + "/" + "q_kinematics_Nq_" + std::to_string(swp_states.Nq_WP) + ".txt";
 	store_q_WP_kinematics_txt(swp_states.Nq_WP,
 							  swp_states.q_WP_array,
 							  Eq_WP_boundaries,

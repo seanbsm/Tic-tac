@@ -9,7 +9,9 @@
 #include "constants.h"
 #include "type_defs.h"
 #include "error_management.h"
+#include "disk_io_routines.h"
 #include "make_pw_symm_states.h"
+#include "General_functions/kinetic_conversion.h"
 
 void diagonalize_real_symm_matrix(float *A, float *w, float *z, int N);
 void diagonalize_real_symm_matrix(double *A, double *w, double *z, int N);

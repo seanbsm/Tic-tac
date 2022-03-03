@@ -182,6 +182,38 @@ void make_swp_bin_boundaries(double* eigenvalues,
 	//std::cout << std::endl;
 }
 
+void store_swp_kinematics(swp_statespace swp_states,
+						  run_params run_parameters){
+	double* Eq_WP_boundaries   = new double [swp_states.Nq_WP+1];
+	double* Tlab_WP_boundaries = new double [swp_states.Nq_WP+1];
+	for (size_t q_WP_idx=0; q_WP_idx<swp_states.Nq_WP+1; q_WP_idx++){
+		Eq_WP_boundaries[q_WP_idx]   = com_q_momentum_to_com_energy(q_WP_array[q_WP_idx]);
+		Tlab_WP_boundaries[q_WP_idx] = com_momentum_to_lab_energy(q_WP_array[q_WP_idx], swp_states.E_bound);
+	}
+	double* q_WP_midpoints     = new double [swp_states.Nq_WP];
+	double* Eq_WP_midpoints    = new double [swp_states.Nq_WP];
+	double* Tlab_WP_midpoints  = new double [swp_states.Nq_WP];
+	for (size_t q_WP_idx=0; q_WP_idx<swp_states.Nq_WP; q_WP_idx++){
+		double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(swp_states.E_bound);
+		double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(swp_states.E_bound);
+		double E_com = 0.5*(Eq_upper + Eq_lower);
+		q_WP_midpoints[q_WP_idx]    = com_energy_to_com_q_momentum(E_com);
+		Eq_WP_midpoints[q_WP_idx]   = E_com;
+		Tlab_WP_midpoints[q_WP_idx] = com_momentum_to_lab_energy(q_WP_midpoints[q_WP_idx], swp_states.E_bound);
+	}
+	
+	std::string q_kinematics_filename = run_parameters.output_folder + "/" + "q_kinematics_Nq_" + to_string(swp_states.Nq_WP) + ".txt";
+	store_q_WP_kinematics_txt(swp_states.Nq_WP,
+							  swp_states.q_WP_array,
+							  Eq_WP_boundaries,
+							  Tlab_WP_boundaries,
+							  q_WP_midpoints,
+							  Eq_WP_midpoints,
+							  Tlab_WP_midpoints,
+							  q_kinematics_filename);
+}
+
+
 void make_swp_states(double* e_SWP_unco_array,
 					 double* e_SWP_coup_array,
 					 double* C_WP_unco_array,
@@ -322,13 +354,6 @@ void make_swp_states(double* e_SWP_unco_array,
 					coupled_matrix  = true;
 				}
 
-                ///* Skip redundant calculations by only doing the coupled calculation when L_r==L_c */
-                //if (coupled_matrix){
-                //    if ( (L_r==L_c)==false ){
-                //        continue;
-                //    }
-                //}
-
 				/* Hamiltonian matrix pointer and dimension
                  * Indexing format of Hamitonian arrays: (channel index)*(num rows)*(num columns) + (row index)*(row length) + (column index) */
 				int     mat_dim   		= 0;
@@ -390,21 +415,8 @@ void make_swp_states(double* e_SWP_unco_array,
 				/* Hamiltonian eigenvalue array */
 				double eigenvalues [mat_dim];
 
-				//for (int i=0; i<mat_dim; i++){
-				//	for (int j=i; j<mat_dim; j++){
-				//		int idx = mat_dim*(mat_dim-1)/2 - (mat_dim-i)*(mat_dim-i-1)/2 + j;
-				//		if(coupled_matrix){printf("%.d %d %.8e\n", i, j, mat_ptr_H[idx]);}
-				//	}
-				//}
-				//printf("\n");
-
 				/* Diagonalize channel Hamiltonian - fill eigenvalues and C_array coefficients */
 				diagonalize_real_symm_matrix(mat_ptr_H, eigenvalues, mat_ptr_C, mat_dim);
-
-				//for (int i=0; i<mat_dim; i++){
-				//	if(coupled_matrix){printf("%.d %.8e\n", i, eigenvalues[i]);}
-				//}
-				//printf("\n");
 
 				/* Abort if unphysical bound states are found in eigenvalues,
 				   or if 3S1-bound state is missing */
@@ -438,4 +450,17 @@ void make_swp_states(double* e_SWP_unco_array,
 
 	delete [] H0_WP_unco_array;
 	delete [] H0_WP_coup_array;
+
+	/* TEMP */
+	swp_states.e_SWP_unco_array		= e_SWP_unco_array;
+	swp_states.e_SWP_coup_array		= e_SWP_coup_array;
+	swp_states.C_SWP_unco_array		= C_WP_unco_array;
+	swp_states.C_SWP_coup_array		= C_WP_coup_array;
+	swp_states.num_2N_unco_states	= num_2N_unco_states;
+	swp_states.num_2N_coup_states	= num_2N_coup_states;
+	swp_states.E_bound				= E_bound;
+
+	printf("Storing kinematic values of WP statespace to txt-file ... \n");
+	store_swp_kinematics(swp_states, run_parameters);
+	printf(" - Done \n");
 }

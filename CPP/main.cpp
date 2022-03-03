@@ -296,15 +296,6 @@ int main(int argc, char* argv[]){
 		printf(" - Done \n");
 	}
 
-	/* TEMP */
-	swp_states.e_SWP_unco_array		= e_SWP_unco_array;
-	swp_states.e_SWP_coup_array		= e_SWP_coup_array;
-	swp_states.C_SWP_unco_array		= C_WP_unco_array;
-	swp_states.C_SWP_coup_array		= C_WP_coup_array;
-	swp_states.num_2N_unco_states	= num_2N_unco_states;
-	swp_states.num_2N_coup_states	= num_2N_coup_states;
-	swp_states.E_bound				= E_bound;
-
 	/* End of code segment for scattering wave-packets construction */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */

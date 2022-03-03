@@ -7,6 +7,7 @@
 #include "mkl.h"
 
 #include "constants.h"
+#include "type_defs.h"
 #include "error_management.h"
 #include "make_pw_symm_states.h"
 
@@ -48,7 +49,8 @@ void make_swp_states(double* e_SWP_unco_array,
 					 int num_2N_unco_states,
 					 int num_2N_coup_states,
 					 double& E_bound,
-					 int Np_WP, double* p_WP_array,
+					 fwp_statespace   fwp_states,
+					 swp_statespace&  swp_states,
 					 pw_3N_statespace pw_states,
 					 run_params run_parameters);
 

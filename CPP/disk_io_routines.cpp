@@ -40,6 +40,32 @@ void open_readfile(std::ifstream &file,
     }
 }
 
+void read_parameter_sample_list(std::string filename, std::vector<double>& parameter_vector){
+	/* Define file with input */
+	std::ifstream infile(filename);
+	
+	std::string line;
+	std::string delimiter = " ";
+	double 	    value;
+
+	std::vector<std::string> str_vector;
+	
+	/* Loop through lines in file */
+	while (std::getline(infile, line)){
+		/* Solution copied from https://www.delftstack.com/howto/cpp/cpp-split-string-by-space/
+		 * and modified on 02/03/2022 */
+		size_t pos = 0;
+    	while ((pos = line.find(delimiter)) != string::npos){
+			double value = std::stod(line.substr(0, pos));
+    	    parameter_vector.push_back(value);
+    	    line.erase(0, pos + delimiter.length());
+    	}
+		/* Last value will not have a right-space */
+		double value = std::stod(line);
+    	parameter_vector.push_back(value);
+	}
+}
+
 void read_input_energies(double*& energy_array,
 						 int&	  num_energies,
 						 std::string file_path){
@@ -241,7 +267,7 @@ void store_q_WP_kinematics_txt(size_t Nq_WP,
 	result_file.close();
 }
 
-void store_q_WP_boundaries_csv(size_t Nq_WP, double* q_WP_array,
+void store_q_WP_boundaries_csv(fwp_statespace fwp_states,
 						   	   std::string filename){
 	
 	/* Open file*/
@@ -256,9 +282,9 @@ void store_q_WP_boundaries_csv(size_t Nq_WP, double* q_WP_array,
 				<< std::setprecision(8);
 	
 	/* Append array-values */
-	for (size_t i=0; i<Nq_WP+1; i++){
+	for (size_t i=0; i<fwp_states.Nq_WP+1; i++){
 		/* Append vector element */
-        result_file << q_WP_array[i] << "\n";
+        result_file << fwp_states.q_WP_array[i] << "\n";
 	}
 	
 	/* Close writing session */

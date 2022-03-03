@@ -59,6 +59,7 @@ std::string create_input_printout_string(run_params run_parameters){
 	output_string << "q-momentum grid type:          " << type_to_string(run_parameters.q_grid_type) 		  	  << "\n";
 	output_string << "q-momentum grid input file:    " << type_to_string(run_parameters.q_grid_filename) 	  	  << "\n";
 	output_string << "Parameter walk:                " << type_to_string(run_parameters.parameter_walk)		  	  << "\n";
+	output_string << "Parameter input file:          " << type_to_string(run_parameters.parameter_file)		  	  << "\n";
 	output_string << "Output folder:                 " << type_to_string(run_parameters.output_folder) 		  	  << "\n";
 	output_string << "P123-matrix read/write folder: " << type_to_string(run_parameters.P123_folder) 		  	  << "\n";
 	output_string << "Parallel run:                  " << type_to_string(run_parameters.parallel_run)  		  	  << "\n";
@@ -172,6 +173,14 @@ bool read_and_set_parameter(run_params& run_parameters, std::string option, std:
 			raise_error("Invalid value for input parameter production_run!");
 		}
 	}
+	else if (option == "parameter_walk"){
+		if (input=="true" || input=="false"){
+			run_parameters.parameter_walk = (input=="true");
+		}
+		else{
+			raise_error("Invalid value for input parameter parameter_walk!");
+		}
+	}
 	else if (option == "potential_model"){
 		run_parameters.potential_model = input;
 	}
@@ -190,8 +199,8 @@ bool read_and_set_parameter(run_params& run_parameters, std::string option, std:
 	else if (option == "q_grid_filename"){
 		run_parameters.q_grid_filename = input;
 	}
-	else if (option == "parameter_walk"){
-		run_parameters.parameter_walk = input;
+	else if (option == "parameter_file"){
+		run_parameters.parameter_file = input;
 	}
 	else if (option == "energy_input_file"){
 		run_parameters.energy_input_file = input;
@@ -338,10 +347,16 @@ void show_usage(){
 			  << std::endl;
 			  
 	std::cout << "parameter_walk:     Sets whether or not program is run as a walk over \n"
-			  << "                    model parameter space.\n"
-			  << "                    Possible options are (on, off).\n"
-			  << "Example:            parameter_walk=on -> Program loops over several \n"
-			  << "				                           model parameter sets.\n"
+			  << "                    model parameter space. (REQUIRES INPUT FILE, SEE parameter_file)\n"
+			  << "                    Possible options are (true, false).\n"
+			  << "Example:            parameter_walk=true -> Program loops over one or several \n"
+			  << "				                             model parameter sets.\n"
+			  << seperationLine
+			  << std::endl;
+			  
+	std::cout << "parameter_file:     File from which the code reads parameter input. Note that the number of parameters must \n"
+			  << "                    equal the number of potential model parameters \n"
+			  << "Example:            parameter_walk=Input/samples.txt -> Program reads samples.txt line-by-line and loops through values \n"
 			  << seperationLine
 			  << std::endl;
 	
@@ -428,7 +443,8 @@ void set_default_values(run_params& run_parameters){
 	run_parameters.q_grid_filename 	        = "";
 	run_parameters.P123_omp_num_threads     = omp_get_max_threads();
 	run_parameters.max_TFC				    = -1;
-	run_parameters.parameter_walk 	        = "off";
+	run_parameters.parameter_walk 	        = false;
+	run_parameters.parameter_file 	        = "none";
 	run_parameters.P123_recovery		    = false;
 	run_parameters.tensor_force			    = true;
 	run_parameters.isospin_breaking_1S0     = true;

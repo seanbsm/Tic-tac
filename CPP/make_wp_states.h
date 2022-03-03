@@ -21,13 +21,12 @@ void make_chebyshev_distribution(int N_WP,
 								 double scale,
 								 double	sparseness_degree);
 
-void make_p_bin_grid(int Np_WP, double* p_WP_array, run_params run_parameters);
-void make_q_bin_grid(int Nq_WP, double* q_WP_array, run_params run_parameters);
+void make_p_bin_grid(fwp_statespace& fwp_states, run_params run_parameters);
+void make_q_bin_grid(fwp_statespace& fwp_states, run_params run_parameters);
 
-void make_p_bin_quadrature_grids(int Np_WP, double* p_WP_array,
-								 int Np_per_WP, double* p_array, double* wp_array);
+void make_p_bin_quadrature_grids(fwp_statespace& fwp_states);
+void make_q_bin_quadrature_grids(fwp_statespace& fwp_states);
 
-void make_q_bin_quadrature_grids(int Nq_WP, double* q_WP_array,
-								 int Nq_per_WP, double* q_array, double* wq_array);
+void make_fwp_statespace(fwp_statespace& fwp_states, run_params run_parameters);
 
 #endif // MAKE_WP_STATES_H

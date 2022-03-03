@@ -12,7 +12,7 @@ class potential_model
 {
 public:
 	potential_model();
-	static potential_model *fetch_potential_ptr(std::string model);
+	static potential_model *fetch_potential_ptr(run_params run_parameters);
 	
 	virtual void update_parameters(double* parameters) = 0;
 	

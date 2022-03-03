@@ -36,6 +36,9 @@
 #include "error_management.h"
 #include "General_functions/matrix_routines.h"
 
+void read_parameter_sample_list(std::string filename,
+								std::vector<double>& parameter_vector);
+
 void read_input_energies(double*& energy_array,
 						 int&	  num_energies,
 						 std::string file_path);
@@ -67,7 +70,7 @@ void store_q_WP_kinematics_txt(size_t Nq_WP,
 							   double* Eq_WP_midpoint_array,
 							   double* Tlab_WP_midpoint_array,
 						       std::string filename);
-void store_q_WP_boundaries_csv(size_t Nq_WP, double* q_WP_array,
+void store_q_WP_boundaries_csv(fwp_statespace fwp_states,
 						   	   std::string filename);
 void store_U_matrix_elements_txt(std::complex<double>*    U_array,
 								 std::string 			  potential_model,

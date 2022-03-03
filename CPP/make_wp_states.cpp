@@ -43,39 +43,44 @@ void make_chebyshev_distribution(int N_WP,
 	boundary_array[0] = 0.0;
 }
 
-void make_p_bin_grid(int Np_WP, double* p_WP_array, run_params run_parameters){
+void make_p_bin_grid(fwp_statespace& fwp_states, run_params run_parameters){
 	if (run_parameters.p_grid_type=="chebyshev"){
 		double scale 			 = run_parameters.chebyshev_s;
 		double sparseness_degree = run_parameters.chebyshev_t;
-		make_chebyshev_distribution(Np_WP, p_WP_array,
+		make_chebyshev_distribution(fwp_states.Np_WP, fwp_states.p_WP_array,
 									scale,
 									sparseness_degree);
 	}
 	else if (run_parameters.p_grid_type=="custom"){
-		read_WP_boundaries_from_txt(p_WP_array, Np_WP, run_parameters.p_grid_filename);
+		read_WP_boundaries_from_txt(fwp_states.p_WP_array, fwp_states.Np_WP, run_parameters.p_grid_filename);
 	}
 	else{
 		raise_error("Unknown p-momentum gridtype specified.");
 	}
 }
-void make_q_bin_grid(int Nq_WP, double* q_WP_array, run_params run_parameters){
+void make_q_bin_grid(fwp_statespace& fwp_states, run_params run_parameters){
 	if (run_parameters.q_grid_type=="chebyshev"){
 		double scale 			 = run_parameters.chebyshev_s;
 		double sparseness_degree = run_parameters.chebyshev_t;
-		make_chebyshev_distribution(Nq_WP, q_WP_array,
+		make_chebyshev_distribution(fwp_states.Nq_WP, fwp_states.q_WP_array,
 									scale,
 									sparseness_degree);
 	}
 	else if (run_parameters.p_grid_type=="custom"){
-		read_WP_boundaries_from_txt(q_WP_array, Nq_WP, run_parameters.q_grid_filename);
+		read_WP_boundaries_from_txt(fwp_states.q_WP_array, fwp_states.Nq_WP, run_parameters.q_grid_filename);
 	}
 	else{
 		raise_error("Unknown q-momentum gridtype specified.");
 	}
 }
 
-void make_p_bin_quadrature_grids(int Np_WP, double* p_WP_array,
-								 int Np_per_WP, double* p_array, double* wp_array){
+void make_p_bin_quadrature_grids(fwp_statespace& fwp_states){
+	int 	Np_WP		= fwp_states.Np_WP;
+	double* p_WP_array	= fwp_states.p_WP_array;
+	int 	Np_per_WP	= fwp_states.Np_per_WP;
+	double* p_array		= fwp_states.p_array;
+	double* wp_array	= fwp_states.wp_array;
+
 	for (int idx_bin=0; idx_bin<Np_WP; idx_bin++){
 		double bin_lower_bound = p_WP_array[idx_bin];
 		double bin_upper_bound = p_WP_array[idx_bin+1];
@@ -88,8 +93,13 @@ void make_p_bin_quadrature_grids(int Np_WP, double* p_WP_array,
 		}
 	}
 }
-void make_q_bin_quadrature_grids(int Nq_WP, double* q_WP_array,
-								 int Nq_per_WP, double* q_array, double* wq_array){
+void make_q_bin_quadrature_grids(fwp_statespace& fwp_states){
+	int 	Nq_WP		= fwp_states.Nq_WP;
+	double* q_WP_array	= fwp_states.q_WP_array;
+	int 	Nq_per_WP	= fwp_states.Nq_per_WP;
+	double* q_array		= fwp_states.q_array;
+	double* wq_array	= fwp_states.wq_array;
+
 	for (int idx_bin=0; idx_bin<Nq_WP; idx_bin++){
 		double bin_lower_bound = q_WP_array[idx_bin];
 		double bin_upper_bound = q_WP_array[idx_bin+1];
@@ -101,4 +111,44 @@ void make_q_bin_quadrature_grids(int Nq_WP, double* q_WP_array,
 			updateRange_a_b(q_array_ptr, wq_array_ptr, bin_lower_bound, bin_upper_bound, Nq_per_WP);
 		}
 	}
+}
+
+void make_fwp_statespace(fwp_statespace& fwp_states, run_params run_parameters){
+	printf("Constructing wave-packet (WP) state space ... \n");
+
+	/* Copy space dimensions from input struct */
+	fwp_states.Np_WP 	= run_parameters.Np_WP;
+	fwp_states.Nq_WP 	= run_parameters.Nq_WP;
+	fwp_states.Np_per_WP = run_parameters.Np_per_WP;
+	fwp_states.Nq_per_WP = run_parameters.Nq_per_WP;
+
+	/* Make bin boundaries */
+	printf(" - Constructing wave-packet (WP) p-momentum bin boundaries ... \n");
+	fwp_states.p_WP_array = new double [fwp_states.Np_WP+1];
+	make_p_bin_grid(fwp_states, run_parameters);
+	printf("   - Done \n");
+	printf(" - Constructing wave-packet (WP) q-momentum bin boundaries ... \n");
+	fwp_states.q_WP_array = new double [fwp_states.Nq_WP+1];
+	make_q_bin_grid(fwp_states, run_parameters);
+	printf("   - Done \n");
+
+	/* Make Gauss-Legendre quadrature meshes inside each bin */
+	printf(" - Constructing p quadrature mesh per WP, for all WPs ... \n");
+	fwp_states.p_array  = new double [fwp_states.Np_per_WP * fwp_states.Np_WP];
+	fwp_states.wp_array = new double [fwp_states.Np_per_WP * fwp_states.Np_WP];
+	make_p_bin_quadrature_grids(fwp_states);
+	printf("   - Done \n");
+	printf(" - Constructing q quadrature mesh per WP, for all WPs ... \n");
+	fwp_states.q_array  = new double [fwp_states.Nq_per_WP * fwp_states.Nq_WP];
+	fwp_states.wq_array = new double [fwp_states.Nq_per_WP * fwp_states.Nq_WP];
+	make_q_bin_quadrature_grids(fwp_states);
+	printf("   - Done \n");
+
+	/* Store boundaries for post-processing of output  */
+	printf(" - Storing q boundaries to CSV-file ... \n");
+	std::string q_boundaries_filename = run_parameters.output_folder + "/" + "q_boundaries_Nq_" + std::to_string(fwp_states.Nq_WP) + ".csv";
+	store_q_WP_boundaries_csv(fwp_states, q_boundaries_filename);
+	printf("   - Done \n");
+
+	printf(" - Done \n");
 }

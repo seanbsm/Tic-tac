@@ -20,10 +20,12 @@
 #include "General_functions/kinetic_conversion.h"
 #include "Interactions/potential_model.h"
 #include "make_potential_matrix.h"
+#include "make_wp_states.h"
 #include "make_swp_states.h"
 #include "make_resolvent.h"
 #include "solve_faddeev.h"
 #include "disk_io_routines.h"
+#include "run_organizer.h"
 
 /*
 
@@ -132,6 +134,7 @@ int main(int argc, char* argv[]){
 	double* q_array  = NULL;
 	double* wp_array = NULL;
 	double* wq_array = NULL;
+	fwp_statespace fwp_states;
 
 	/* Potential matrices */
 	double* V_WP_unco_array = NULL;
@@ -147,24 +150,39 @@ int main(int argc, char* argv[]){
 	int* chn_3N_idx_array = NULL;
 
 	/* Potential model class pointers */
-	potential_model* pot_ptr  = potential_model::fetch_potential_ptr(run_parameters.potential_model);
+	potential_model* pot_ptr  = potential_model::fetch_potential_ptr(run_parameters);
 
 	/* End of code segment for variables and arrays declaration */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* Start of code segment for reading input model parameters (if enabled) */
+
+	std::vector<double> parameter_vector;
+	read_parameter_sample_list(run_parameters.parameter_file, parameter_vector);
+	//for (const auto &val : parameter_vector){
+	//	std::cout << val << std::endl;
+	//}
+
+	/* End of code segment for reading input model parameters (if enabled) */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* Start of code segment for state space construction */
 	
 	printf("Constructing 3N partial-wave basis ... \n");
-	construct_symmetric_pw_states(N_chn_3N,
-								  &chn_3N_idx_array,
-								  pw_states,
+	construct_symmetric_pw_states(pw_states,
 								  run_parameters);
+	/* TEMP */
+	N_chn_3N = pw_states.N_chn_3N;
+	chn_3N_idx_array = pw_states.chn_3N_idx_array;
+
 	printf(" - There are %d 3N-channels \n", N_chn_3N);
 
 	/* Allocate deuteron-channel index-lookup arrays */
-	deuteron_idx_arrays = new int* [N_chn_3N];
-	deuteron_num_array  = new int  [N_chn_3N];
+	solution_configuration solve_config;
+	solve_config.deuteron_idx_arrays = new int* [N_chn_3N];
+	solve_config.deuteron_num_array  = new int  [N_chn_3N];
 
 	/* Small script for finding the largest 3N-channel */
 	if (true){
@@ -184,33 +202,15 @@ int main(int argc, char* argv[]){
 	}
 	printf(" - Done \n");
 	
-	printf("Constructing wave-packet (WP) p-momentum bin boundaries ... \n");
-	p_WP_array = new double [Np_WP+1];
-	make_p_bin_grid(Np_WP, p_WP_array, run_parameters);
-	printf(" - Done \n");
-	printf("Constructing wave-packet (WP) q-momentum bin boundaries ... \n");
-	q_WP_array = new double [Nq_WP+1];
-	make_q_bin_grid(Nq_WP, q_WP_array, run_parameters);
-	printf(" - Done \n");
+	make_fwp_statespace(fwp_states, run_parameters);
 
-	printf("Constructing p quadrature mesh per WP, for all WPs ... \n");
-	p_array  = new double [Np_per_WP*Np_WP];
-	wp_array = new double [Np_per_WP*Np_WP];
-	make_p_bin_quadrature_grids(Np_WP, p_WP_array,
-								Np_per_WP, p_array, wp_array);
-	printf(" - Done \n");
-	printf("Constructing q quadrature mesh per WP, for all WPs ... \n");
-	q_array  = new double [Nq_per_WP*Nq_WP];
-	wq_array = new double [Nq_per_WP*Nq_WP];
-	make_q_bin_quadrature_grids(Nq_WP, q_WP_array,
-								Nq_per_WP, q_array, wq_array);
-	printf(" - Done \n");
-
-	printf("Storing q boundaries to CSV-file ... \n");
-	//std::string U_mat_foldername = "../../Data/Faddeev_code/U_matrix_elements/";
-	std::string q_boundaries_filename = run_parameters.output_folder + "/" + "q_boundaries_Nq_" + to_string(Nq_WP) + ".csv";
-	store_q_WP_boundaries_csv(Nq_WP, q_WP_array, q_boundaries_filename);
-	printf(" - Done \n");
+	/* TEMP */
+	p_array  = fwp_states.p_array;
+	q_array  = fwp_states.q_array;
+	wp_array = fwp_states.wp_array;
+	wq_array = fwp_states.wq_array;
+	p_WP_array = fwp_states.p_WP_array;
+	q_WP_array = fwp_states.q_WP_array;
 
 	/* End of code segment for state space construction */
 	/* ################################################################################################################### */
@@ -254,8 +254,7 @@ int main(int argc, char* argv[]){
 		printf("Constructing 2N-potential matrices in WP basis ... \n");
 		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array, num_2N_unco_states,
 													   V_WP_coup_array, num_2N_coup_states,
-													   Np_WP, p_WP_array,
-													   Np_per_WP, p_array, wp_array,
+													   fwp_states,
 													   pw_states,
 													   pot_ptr,
 													   run_parameters);
@@ -275,6 +274,9 @@ int main(int argc, char* argv[]){
 
 	double* C_WP_unco_array = new double [V_unco_array_size];
 	double* C_WP_coup_array = new double [V_coup_array_size];
+
+	swp_statespace swp_states;
+
 	if (run_parameters.solve_faddeev){
 		printf("Constructing 2N SWPs ... \n");
 		make_swp_states(e_SWP_unco_array,
@@ -286,12 +288,22 @@ int main(int argc, char* argv[]){
 						num_2N_unco_states,
 						num_2N_coup_states,
 						E_bound,
-						Np_WP, p_WP_array,
+						fwp_states,
+						swp_states,
 						pw_states,
 						run_parameters);
 		printf(" - Using E_bound = %.5f MeV \n", E_bound);
 		printf(" - Done \n");
 	}
+
+	/* TEMP */
+	swp_states.e_SWP_unco_array		= e_SWP_unco_array;
+	swp_states.e_SWP_coup_array		= e_SWP_coup_array;
+	swp_states.C_SWP_unco_array		= C_WP_unco_array;
+	swp_states.C_SWP_coup_array		= C_WP_coup_array;
+	swp_states.num_2N_unco_states	= num_2N_unco_states;
+	swp_states.num_2N_coup_states	= num_2N_coup_states;
+	swp_states.E_bound				= E_bound;
 
 	/* End of code segment for scattering wave-packets construction */
 	/* ################################################################################################################### */
@@ -335,147 +347,25 @@ int main(int argc, char* argv[]){
 	/* Start of code segment for locating on-shell nucleon-deuteron states */
 	if (run_parameters.solve_faddeev){
 
-		/* Use q-momentum bin ENERGY mid-points as on-shell energies if no default input is given */
-		std::vector<size_t> q_WP_idx_vec;
+		/* Locate and index on-shell bins from input energies */
+		find_on_shell_bins(solve_config,
+                           swp_states,
+                           run_parameters);
 
-		/* Special condition to reduce number of on-shell calculations */
-		double Eq_lower = 0;
-		double Eq_upper = 0;
-		double E_com    = 0;
-		double q_m		= 0;
-		std::vector<bool>   midpoint_idx_vector   (Nq_WP-1, false);
-		std::vector<double> T_lab_midpoint_vector (Nq_WP, false);
-		for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
-			Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
-			Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
-			E_com	 = 0.5*(Eq_upper + Eq_lower);
-			q_m      = com_energy_to_com_q_momentum(E_com);
-			T_lab_midpoint_vector[q_WP_idx] = com_momentum_to_lab_energy(q_m, E_bound);
-		}
+		/* TEMP */
+		num_T_lab	= solve_config.num_T_lab;
+		T_lab_array = solve_config.T_lab_array;
+		q_com_array = solve_config.q_com_array;
+		E_com_array = solve_config.E_com_array;
+		q_com_idx_array = solve_config.q_com_idx_array;
 
-		double* energy_input_array = NULL;
-		int		num_energy_input   = 0;
-		read_input_energies(energy_input_array, num_energy_input, run_parameters.energy_input_file);
-
-		//std::vector<double> T_lab_input_list = {1,2,3,4,5,9,10,13,22.7,35,53};
-		//std::vector<double> T_lab_input_list = {  3,   4,   5,       6,
-		//										  9,  10,  11,      12,
-		//										 13,  16,  22.7,    28,
-		//										 30,  35,  42,      47.5,
-		//										 50,  53,  65,      93.5,
-		//										146, 155, 180, 220, 240};
-			
-		for (size_t q_WP_idx=0; q_WP_idx<Nq_WP-1; q_WP_idx++){
-			double T_lab_lower = T_lab_midpoint_vector[q_WP_idx];
-			double T_lab_upper = T_lab_midpoint_vector[q_WP_idx+1];
-			for (int i=0; i<num_energy_input; i++){
-				double T_lab_input = energy_input_array[i];
-				/* See if input energy lies between two bin mid-points */
-				if (T_lab_lower<=T_lab_input && T_lab_input<=T_lab_upper){
-					midpoint_idx_vector[q_WP_idx] = true;
-				}
-			}
-		}
-		/* Use on-shell midpoints to set on-shell bins */
-		std::vector<bool>   bin_idx_vector   (Nq_WP, false);
-		for (size_t q_WP_idx=0; q_WP_idx<Nq_WP-1; q_WP_idx++){
-			if (midpoint_idx_vector[q_WP_idx]==true){
-				bin_idx_vector[q_WP_idx]   = true;
-				bin_idx_vector[q_WP_idx+1] = true;
-			}
-		}
-		/* Append on-shell bin indices to q_WP_idx_vec */
-		for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
-			if (bin_idx_vector[q_WP_idx]==true){
-				q_WP_idx_vec.push_back(q_WP_idx);
-			}
-		}
-		num_T_lab = q_WP_idx_vec.size();
-
-		T_lab_array = new double [num_T_lab];
-
-		for (size_t Tlab_idx=0; Tlab_idx<num_T_lab; Tlab_idx++){
-			size_t q_WP_idx = q_WP_idx_vec[Tlab_idx];
-			double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
-			double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
-			double E_com 	= 0.5*(Eq_upper + Eq_lower);
-			double q 	 	= com_energy_to_com_q_momentum(E_com);
-			double T_lab 	= com_momentum_to_lab_energy(q, E_bound);
-			T_lab_array[Tlab_idx] = T_lab;
-		}
-
-		/* Calculate on-shell momentum and energy in centre-of-mass frame */
-		q_com_array = new double [num_T_lab];
-		E_com_array = new double [num_T_lab];
+		/* Locate and index deuteron channels */
+		find_deuteron_channels(solve_config,
+                               pw_states);
+		/* TEMP */
+		deuteron_idx_arrays = solve_config.deuteron_idx_arrays;
+		deuteron_num_array = solve_config.deuteron_num_array;
 		
-		for (size_t i=0; i<num_T_lab; i++){
-			double q_com = lab_energy_to_com_momentum(T_lab_array[i], E_bound);
-			q_com_array[i] = q_com;
-			E_com_array[i] = com_q_momentum_to_com_energy(q_com); 
-		}
-
-		printf("Locating on-shell q-momentum WP-indices for %zu on-shell energies ... \n", num_T_lab);
-		q_com_idx_array = new int [num_T_lab];
-		for (size_t idx_Tlab=0; idx_Tlab<num_T_lab; idx_Tlab++){
-			double q_com = q_com_array[idx_Tlab];
-
-			int idx_q_bin = -1;
-			for (int q_idx_WP=0; q_idx_WP<Nq_WP; q_idx_WP++){
-				if (q_WP_array[q_idx_WP]<q_com and q_com<q_WP_array[q_idx_WP+1]){
-					idx_q_bin = q_idx_WP;
-					break;
-				}
-			}
-
-			if (idx_q_bin==-1){
-				printf("On-shell kinetic energy Tlab=%.3f MeV doesn't exist in WP state space \n", T_lab_array[idx_Tlab]);
-				raise_error("Invalid Tlab entered. Exiting ...");
-			}
-			else{
-				q_com_idx_array[idx_Tlab] = idx_q_bin;
-			}
-		}
-		printf(" - On-shell q-momentum WP bins found \n");
-
-		int deuteron_L = 0;
-		int deuteron_S = 1;
-		int deuteron_J = 1;
-		int deuteron_T = 0;
-		for (int chn_3N=0; chn_3N<N_chn_3N; chn_3N++){
-			/* Lower and upper limits on PW state space for channel */
-			int idx_alpha_lower  = chn_3N_idx_array[chn_3N];
-			int idx_alpha_upper  = chn_3N_idx_array[chn_3N+1];
-			int Nalpha_in_3N_chn = idx_alpha_upper - idx_alpha_lower;
-
-			/* Pointers to sub-arrays of PW state space corresponding to chn_3N */
-			int* L_2N_subarray 	   = &pw_states.L_2N_array[idx_alpha_lower];
-			int* S_2N_subarray 	   = &pw_states.S_2N_array[idx_alpha_lower];
-			int* J_2N_subarray 	   = &pw_states.J_2N_array[idx_alpha_lower];
-			int* T_2N_subarray 	   = &pw_states.T_2N_array[idx_alpha_lower];
-
-			std::vector<int> deuteron_chn_indices;
-
-			/* Find indices of deuteron-channels */
-			for (int idx_alpha=0; idx_alpha<Nalpha_in_3N_chn; idx_alpha++){
-				if (deuteron_L==L_2N_subarray[idx_alpha] &&
-				    deuteron_S==S_2N_subarray[idx_alpha] &&
-					deuteron_J==J_2N_subarray[idx_alpha] &&
-					deuteron_T==T_2N_subarray[idx_alpha]){
-					deuteron_chn_indices.push_back(idx_alpha);
-				}
-			}
-			
-			/* Copy vector content into array */
-			int* chn_3N_deuteron_indices_array = new int [deuteron_chn_indices.size()];
-			std::copy(deuteron_chn_indices.begin(), deuteron_chn_indices.end(), chn_3N_deuteron_indices_array);
-
-			/* Add array length and pointer to book-keeping arrays */
-			deuteron_idx_arrays[chn_3N] = chn_3N_deuteron_indices_array;
-			deuteron_num_array [chn_3N] = deuteron_chn_indices.size();
-		}
-		printf(" - Nucleon-deuteron channel indices found \n");
-
-		printf(" - Done \n");
 	}
 	/* End of code segment for locating on-shell nucleon-deuteron states */
 	/* ################################################################################################################### */

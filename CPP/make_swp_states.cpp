@@ -135,8 +135,11 @@ void look_for_unphysical_bound_states(double* eigenvalues,
 	
 	if (num_bound_states_found==0 and chn_3S1==false);
 	else if (num_bound_states_found==1 and chn_3S1==true);
-	else{
+	else if (num_bound_states_found!=0){
 		raise_error("Found unphysical bound states in NN-pair Hamiltonian eigenspectrum!");
+	}
+	else{
+		raise_error("Didn't find any bound states in NN-pair Hamiltonian eigenspectrum!");
 	}
 }
 
@@ -188,17 +191,34 @@ void make_swp_states(double* e_SWP_unco_array,
 					 int num_2N_unco_states,
 					 int num_2N_coup_states,
 					 double& E_bound,
-					 int Np_WP, double* p_WP_array,
+					 fwp_statespace  fwp_states,
+					 swp_statespace& swp_states,
 					 pw_3N_statespace pw_states,
 					 run_params run_parameters){
 
-	/* Make local pointers & variables */
+	/* Make local pointers & variables for pw-statespace */
 	int  Nalpha			= pw_states.Nalpha;
 	int* L_2N_array		= pw_states.L_2N_array;
 	int* S_2N_array		= pw_states.S_2N_array;
 	int* J_2N_array		= pw_states.J_2N_array;
 	int* T_2N_array		= pw_states.T_2N_array;
 	int* two_T_3N_array	= pw_states.two_T_3N_array;
+	/* Make local pointers & variables for WP-statespace */
+	int 	Np_WP		= fwp_states.Np_WP;
+	double* p_WP_array	= fwp_states.p_WP_array;
+	/* Make local pointers & variables for SWP-statespace */
+	//double* e_SWP_unco_array   = swp_states.e_SWP_unco_array;
+	//double* e_SWP_coup_array   = swp_states.e_SWP_coup_array;
+	//double* C_WP_unco_array	   = swp_states.C_WP_unco_array;
+	//double* C_WP_coup_array	   = swp_states.C_WP_coup_array;
+	//int 	num_2N_unco_states = swp_states.num_2N_unco_states;
+	//int 	num_2N_coup_states = swp_states.num_2N_coup_states;
+	//double& E_bound			   = swp_states.E_bound;
+
+	/* Copy pointers and variables from fwp-statespace */
+	swp_states.Np_WP 	  = fwp_states.Np_WP;
+	swp_states.Nq_WP 	  = fwp_states.Nq_WP;
+	swp_states.q_WP_array = fwp_states.q_WP_array;
 	
 	/* This test will be reused several times */
 	bool tensor_force_true = (run_parameters.tensor_force==true);

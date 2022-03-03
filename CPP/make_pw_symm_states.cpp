@@ -59,9 +59,7 @@ int unique_2N_idx(int L_2N, int S_2N, int J_2N, int T_2N, bool coupled, run_para
 	return unique_idx;
 }
 
-void construct_symmetric_pw_states(int&   N_chn_3N,
-								   int**  chn_3N_idx_array_ptr,
-								   pw_3N_statespace& pw_states,
+void construct_symmetric_pw_states(pw_3N_statespace& pw_states,
 								   run_params run_parameters){
 	
 	int J_2N_max	 = run_parameters.J_2N_max;
@@ -233,7 +231,7 @@ void construct_symmetric_pw_states(int&   N_chn_3N,
 	pw_states.Nalpha = Nalpha_temp;     
 
 	/* Write number of 3N channels found to input integer */
-	N_chn_3N = N_chn_3N_temp;
+	int N_chn_3N = N_chn_3N_temp;
 	
 	/* Allocate arrays to input array pointers */       
 	pw_states.J_2N_max			= J_2N_max;          
@@ -246,8 +244,10 @@ void construct_symmetric_pw_states(int&   N_chn_3N,
 	pw_states.two_J_3N_array	= new int [pw_states.Nalpha];
 	pw_states.two_T_3N_array	= new int [pw_states.Nalpha];
 	pw_states.P_3N_array		= new int [pw_states.Nalpha];
+	pw_states.chn_3N_idx_array  = new int [N_chn_3N+1];
+	pw_states.N_chn_3N			= N_chn_3N;
 
-	*chn_3N_idx_array_ptr = new int [N_chn_3N+1];
+	//*chn_3N_idx_array_ptr = new int [N_chn_3N+1];
 
 	/* Write temporary vector contents to newly allocated arrays */
 	std::copy( L_2N_temp.begin(), L_2N_temp.end(), pw_states.L_2N_array );
@@ -259,6 +259,5 @@ void construct_symmetric_pw_states(int&   N_chn_3N,
 	std::copy( two_J_3N_temp.begin(), two_J_3N_temp.end(), pw_states.two_J_3N_array );
 	std::copy( two_T_3N_temp.begin(), two_T_3N_temp.end(), pw_states.two_T_3N_array );
 	std::copy( P_3N_temp.begin(), P_3N_temp.end(), pw_states.P_3N_array );
-
-	std::copy( chn_idx_temp.begin(), chn_idx_temp.end(), *chn_3N_idx_array_ptr );
+	std::copy( chn_idx_temp.begin(), chn_idx_temp.end(), pw_states.chn_3N_idx_array );
 }

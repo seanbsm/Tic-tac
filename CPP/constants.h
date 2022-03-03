@@ -28,13 +28,11 @@ const floatType fpi 	    = 92.2;				     // pion decay constant 				 [MeV] 		(us
 const floatType mpi 	    = 138.039;			     // pion_0 mass 						 [MeV] 		(average of pi+, pi-, and pi0 masses)
 const floatType hbarc       = 197.327;               // MeV fm
 
-
-
-
-
-
-
-
+/* Deuteron NN quantum numbers */
+const int deuteron_L = 0;   // Orbital angular momentum
+const int deuteron_S = 1;   // Total spin
+const int deuteron_J = 1;   // Total angular momentum
+const int deuteron_T = 0;   // Total isospin
 
 
 /* LO_INTERNAL CONSTANTS */

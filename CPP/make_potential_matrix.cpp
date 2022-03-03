@@ -50,19 +50,24 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 /* Construct 2N potential matrices <k|v|k_p> for all 3N partial wave channels */
 void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, int num_2N_unco_states,
 													double*  V_WP_coup_array, int num_2N_coup_states,
-													int Np_WP, double* p_WP_array,
-													int Np_per_WP, double* p_array, double* wp_array,
+													fwp_statespace 	 fwp_states,
 													pw_3N_statespace pw_states,
 													potential_model* pot_ptr,
 													run_params run_parameters){
 	
-	/* Make local pointers & variables */
+	/* Make local pointers & variables for pw-statespace */
 	int  Nalpha			= pw_states.Nalpha;
 	int* L_2N_array		= pw_states.L_2N_array;
 	int* S_2N_array		= pw_states.S_2N_array;
 	int* J_2N_array		= pw_states.J_2N_array;
 	int* T_2N_array		= pw_states.T_2N_array;
 	int* two_T_3N_array	= pw_states.two_T_3N_array;
+	/* Make local pointers & variables for WP-statespace */
+	int 	Np_WP		= fwp_states.Np_WP;
+	double* p_WP_array	= fwp_states.p_WP_array;
+	int 	Np_per_WP	= fwp_states.Np_per_WP;
+	double* p_array		= fwp_states.p_array;
+	double* wp_array	= fwp_states.wp_array;
 
 	/* This test will be reused several times */
 	bool tensor_force_true = (run_parameters.tensor_force==true);

@@ -15,8 +15,7 @@ double extract_potential_element_from_array(int L, int Lp, int J, int S, bool co
 
 void calculate_potential_matrices_array_in_WP_basis(double* V_WP_unco_array, int num_2N_unco_states,
 													double* V_WP_coup_array, int num_2N_coup_states,
-													int Np_WP, double* p_WP_array,
-													int Np, double* p_array, double* wp_array,
+													fwp_statespace 	 fwp_states,
 													pw_3N_statespace pw_states,
 													potential_model* pot_ptr,
 													run_params run_parameters);

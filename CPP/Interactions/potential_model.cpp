@@ -5,6 +5,7 @@
 
 /* Include present potentials */
 #include "chiral_LO_internal.h"
+#include "chiral_twobody.h"
 #include "chiral_N2LOopt.h"
 #include "chiral_Idaho_N3LO.h"
 #include "malfliet_tjon.h"
@@ -14,8 +15,10 @@
 potential_model::potential_model(){
 }
 
-potential_model *potential_model::fetch_potential_ptr(std::string model){
+potential_model *potential_model::fetch_potential_ptr(run_params run_parameters){
 	
+	std::string model = run_parameters.potential_model;
+
 	if (model=="LO_internal"){
 		chiral_LO_internal *pot_ptr = new chiral_LO_internal(MN, 0, 100);
 		
@@ -23,6 +26,13 @@ potential_model *potential_model::fetch_potential_ptr(std::string model){
 				  << "This range is by default set to Jmin=0 and Jmax=100. If you really require calculations for Jmax>100, you can change this \n"
 				  << "BEFORE compilation in potential_model.cpp " << std::endl;
 
+		return pot_ptr;
+	}
+	else if (model=="IS_LO" 	 ||
+			 model=="IS_NLO" 	 ||
+			 model=="IS_N2LO"){
+		chiral_twobody *pot_ptr = new chiral_twobody();
+		pot_ptr->call_preset(model);
 		return pot_ptr;
 	}
 	else if (model=="N2LOopt"){
@@ -41,10 +51,6 @@ potential_model *potential_model::fetch_potential_ptr(std::string model){
 		nijmegen* pot_ptr = new nijmegen();
 		return pot_ptr;
 	}
-	//else if (model=="chiral-twobody"){
-	//	chp* pot_ptr = new chp();
-	//	return pot_ptr;
-	//}
 	else{
 		std::cout << "Invalid potential model entered. Exiting ..." << std::endl;
 		exit(-1);

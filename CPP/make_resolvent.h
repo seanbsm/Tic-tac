@@ -35,8 +35,7 @@ cdouble resolvent_continuum_continuum(double E, double Eb,
 
 void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 											double   E,
-											int      Np_WP, double* e_SWP_unco_array, double* e_SWP_coup_array,
-											int      Nq_WP, double* q_WP_array,
+											swp_statespace swp_states,
 											pw_3N_statespace pw_states,
 											run_params run_parameters);
 

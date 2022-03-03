@@ -37,7 +37,9 @@
 #include "General_functions/matrix_routines.h"
 
 void read_parameter_sample_list(std::string filename,
-								std::vector<double>& parameter_vector);
+								std::vector<double>& parameter_vector,
+								int& num_param,
+								int& num_param_sets);
 
 void read_input_energies(double*& energy_array,
 						 int&	  num_energies,

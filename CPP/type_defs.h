@@ -62,9 +62,9 @@ typedef struct solution_configuration{
 	double* T_lab_array;			// On-shell lab  energies  (T_lab)
 	double* q_com_array;			// On-shell c.m. q-momenta (q_com)
 	double* E_com_array;			// On-shell c.m. energies  (E_com)
-	int*   q_com_idx_array;			// Index-array for on-shell q-bins
-	int**  deuteron_idx_arrays;		// Index-array deuteron-channels in given 3N-channel
-	int*   deuteron_num_array;		// Contains number of deuteron-channels in given 3N-channel
+	int*    q_com_idx_array;		// Index-array for on-shell q-bins
+	int**   deuteron_idx_arrays;	// Index-array deuteron-channels in given 3N-channel
+	int*    deuteron_num_array;		// Contains number of deuteron-channels in given 3N-channel
 } solution_configuration;
 
 typedef struct run_params{

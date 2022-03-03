@@ -578,11 +578,11 @@ subroutine chp_preset_ispot_lo(parameter_array)
 
   !if (use_parameter_array) then
   !  ! LO contact terms
-  !  Ct_1S0 = parameter_array(0)
-  !  Ct_3S1 = parameter_array(1)
+  Ct_1S0 = parameter_array(0)
+  Ct_3S1 = parameter_array(1)
   !else
-  Ct_1S0 = -1.12073397972979993D-01
-  Ct_3S1 = -3.60868520937899992D-02
+  !    Ct_1S0 = -1.12073397972979993D-01
+  !    Ct_3S1 = -3.60868520937899992D-02
   !end if
 
   call initialize_chiral_potential
@@ -720,19 +720,19 @@ subroutine chp_preset_ispot_nlo(parameter_array)
   real (8) :: C_3P2
 
   !if (use_parameter_array) then
-  Ct_1S0pp  = parameter_array(0)
-  Ct_3S1pp  = parameter_array(1)
-  Ct_1S0np  = parameter_array(2)
+  Ct_1S0nn  = parameter_array(0)
+  Ct_1S0np  = parameter_array(1)
+  Ct_1S0pp  = parameter_array(2)
+  Ct_3S1pp  = parameter_array(3)
   Ct_3S1np  = parameter_array(3)
-  Ct_1S0nn  = parameter_array(4)
-  Ct_3S1nn  = parameter_array(5)
-  C_1S0     = parameter_array(6)
-  C_3P0     = parameter_array(7)
-  C_1P1     = parameter_array(8)
-  C_3P1     = parameter_array(9)
-  C_3S1     = parameter_array(10)
-  C_3S1_3D1 = parameter_array(11)
-  C_3P2     = parameter_array(12)
+  Ct_3S1nn  = parameter_array(3)
+  C_1S0     = parameter_array(4)
+  C_3P0     = parameter_array(5)
+  C_1P1     = parameter_array(6)
+  C_3P1     = parameter_array(7)
+  C_3S1     = parameter_array(8)
+  C_3S1_3D1 = parameter_array(9)
+  C_3P2     = parameter_array(10)
   !else
   !  Ct_1S0pp  = -1.54250208697730012D-01
   !  Ct_3S1pp  = -1.48057121689049997D-01
@@ -899,22 +899,22 @@ subroutine chp_preset_ispot_n2lo(parameter_array)
   real (8) :: c4
 
   !if (use_parameter_array) then
-  Ct_1S0pp  = parameter_array(0)
-  Ct_3S1pp  = parameter_array(1)
-  Ct_1S0np  = parameter_array(2)
-  Ct_3S1np  = parameter_array(3)
-  Ct_1S0nn  = parameter_array(4)
-  Ct_3S1nn  = parameter_array(5)
-  C_1S0     = parameter_array(6)
-  C_3P0     = parameter_array(7)
-  C_1P1     = parameter_array(8)
-  C_3P1     = parameter_array(9)
-  C_3S1     = parameter_array(10)
-  C_3S1_3D1 = parameter_array(11)
-  C_3P2     = parameter_array(12)
-  c1        = parameter_array(13)
-  c3        = parameter_array(14)
-  c4        = parameter_array(15)
+  c1        = parameter_array(0)
+  c3        = parameter_array(1)
+  c4        = parameter_array(2)
+  Ct_1S0nn  = parameter_array(3)
+  Ct_1S0np  = parameter_array(4)
+  Ct_1S0pp  = parameter_array(5)
+  Ct_3S1pp  = parameter_array(6)
+  Ct_3S1np  = parameter_array(6)
+  Ct_3S1nn  = parameter_array(6)
+  C_1S0     = parameter_array(7)
+  C_3P0     = parameter_array(8)
+  C_1P1     = parameter_array(9)
+  C_3P1     = parameter_array(10)
+  C_3S1     = parameter_array(11)
+  C_3S1_3D1 = parameter_array(12)
+  C_3P2     = parameter_array(13)
   !else
   !  Ct_1S0pp  = -1.54250208697730012D-01
   !  Ct_3S1pp  = -1.48057121689049997D-01

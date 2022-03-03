@@ -224,6 +224,22 @@ void construct_symmetric_pw_states(pw_3N_statespace& pw_states,
 		}
 	}
 
+	printf("   - There are %d 3N-channels \n", N_chn_3N_temp);
+
+	/* Find the largest 3N-channel size */
+	int largest_Nalpha 	   = 0;
+	for (int chn_3N=0; chn_3N<N_chn_3N_temp; chn_3N++){
+		int idx_alpha_lower  = chn_idx_temp[chn_3N];
+		int idx_alpha_upper  = chn_idx_temp[chn_3N+1];
+		int Nalpha_in_3N_chn = idx_alpha_upper - idx_alpha_lower;
+
+		if (Nalpha_in_3N_chn>largest_Nalpha){
+			largest_Nalpha 	   = Nalpha_in_3N_chn;
+		}
+	}
+	printf("   - The are %d partial-wave states in the largest channel(s) \n", largest_Nalpha);
+	printf(" - Done \n");
+
 	/* Append the state space size as well - this allows for simpler indexing */
 	chn_idx_temp.push_back(Nalpha_temp);
 	

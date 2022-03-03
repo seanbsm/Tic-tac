@@ -40,7 +40,7 @@ void open_readfile(std::ifstream &file,
     }
 }
 
-void read_parameter_sample_list(std::string filename, std::vector<double>& parameter_vector){
+void read_parameter_sample_list(std::string filename, std::vector<double>& parameter_vector, int& num_params, int& num_param_sets){
 	/* Define file with input */
 	std::ifstream infile(filename);
 	
@@ -50,6 +50,8 @@ void read_parameter_sample_list(std::string filename, std::vector<double>& param
 
 	std::vector<std::string> str_vector;
 	
+	bool first_line = true;
+
 	/* Loop through lines in file */
 	while (std::getline(infile, line)){
 		/* Solution copied from https://www.delftstack.com/howto/cpp/cpp-split-string-by-space/
@@ -63,7 +65,13 @@ void read_parameter_sample_list(std::string filename, std::vector<double>& param
 		/* Last value will not have a right-space */
 		double value = std::stod(line);
     	parameter_vector.push_back(value);
+		if (first_line){
+			num_params = parameter_vector.size();
+			first_line = false;
+		}
 	}
+
+	num_param_sets = parameter_vector.size() / num_params;
 }
 
 void read_input_energies(double*& energy_array,

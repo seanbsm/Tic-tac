@@ -121,19 +121,7 @@ int main(int argc, char* argv[]){
 		raise_error("Cannot have even two_J_3N_max");
 	}
 
-	/* Wave-packet 3N momentum boundaries */
-	double* p_WP_array  = NULL;
-	double* q_WP_array  = NULL;
-
 	/* Quadrature 3N momenta per WP cell */
-	int Nphi		 = run_parameters.Nphi;
-	int Nx 			 = run_parameters.Nx;
-	int Np_per_WP	 = run_parameters.Np_per_WP;
-	int Nq_per_WP	 = run_parameters.Nq_per_WP;
-	double* p_array  = NULL;
-	double* q_array  = NULL;
-	double* wp_array = NULL;
-	double* wq_array = NULL;
 	fwp_statespace fwp_states;
 
 	/* Potential matrices */
@@ -159,7 +147,9 @@ int main(int argc, char* argv[]){
 	/* Start of code segment for reading input model parameters (if enabled) */
 
 	std::vector<double> parameter_vector;
-	read_parameter_sample_list(run_parameters.parameter_file, parameter_vector);
+	int	num_params;
+	int num_param_sets;
+	read_parameter_sample_list(run_parameters.parameter_file, parameter_vector, num_params, num_param_sets);
 	//for (const auto &val : parameter_vector){
 	//	std::cout << val << std::endl;
 	//}
@@ -177,40 +167,12 @@ int main(int argc, char* argv[]){
 	N_chn_3N = pw_states.N_chn_3N;
 	chn_3N_idx_array = pw_states.chn_3N_idx_array;
 
-	printf(" - There are %d 3N-channels \n", N_chn_3N);
-
 	/* Allocate deuteron-channel index-lookup arrays */
 	solution_configuration solve_config;
 	solve_config.deuteron_idx_arrays = new int* [N_chn_3N];
 	solve_config.deuteron_num_array  = new int  [N_chn_3N];
-
-	/* Small script for finding the largest 3N-channel */
-	if (true){
-		int largest_Nalpha 	   = 0;
-		int largest_Nalpha_idx = 0;
-		for (int chn_3N=0; chn_3N<N_chn_3N; chn_3N++){
-			int idx_alpha_lower  = chn_3N_idx_array[chn_3N];
-			int idx_alpha_upper  = chn_3N_idx_array[chn_3N+1];
-			int Nalpha_in_3N_chn = idx_alpha_upper - idx_alpha_lower;
-
-			if (Nalpha_in_3N_chn>largest_Nalpha){
-				largest_Nalpha 	   = Nalpha_in_3N_chn;
-				largest_Nalpha_idx = chn_3N;
-			}
-		}
-		printf(" - Channel number %d is the largest channel (%d partial-wave states) \n", largest_Nalpha_idx, largest_Nalpha);
-	}
-	printf(" - Done \n");
 	
 	make_fwp_statespace(fwp_states, run_parameters);
-
-	/* TEMP */
-	p_array  = fwp_states.p_array;
-	q_array  = fwp_states.q_array;
-	wp_array = fwp_states.wp_array;
-	wq_array = fwp_states.wq_array;
-	p_WP_array = fwp_states.p_WP_array;
-	q_WP_array = fwp_states.q_WP_array;
 
 	/* End of code segment for state space construction */
 	/* ################################################################################################################### */
@@ -251,6 +213,10 @@ int main(int argc, char* argv[]){
 	V_WP_unco_array = new double [V_unco_array_size];
 	V_WP_coup_array = new double [V_coup_array_size];
 	if (run_parameters.solve_faddeev){
+		printf("Setting model parameters ... \n");
+		pot_ptr->update_parameters(&parameter_vector[0]);
+		printf(" - Done \n");
+
 		printf("Constructing 2N-potential matrices in WP basis ... \n");
 		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array, num_2N_unco_states,
 													   V_WP_coup_array, num_2N_coup_states,
@@ -300,41 +266,6 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
-	/* Start of code segment for storing kinematics of WP statespace */
-
-	double* Eq_WP_boundaries   = new double [Nq_WP+1];
-	double* Tlab_WP_boundaries = new double [Nq_WP+1];
-	for (size_t q_WP_idx=0; q_WP_idx<Nq_WP+1; q_WP_idx++){
-		Eq_WP_boundaries[q_WP_idx]   = com_q_momentum_to_com_energy(q_WP_array[q_WP_idx]);
-		Tlab_WP_boundaries[q_WP_idx] = com_momentum_to_lab_energy(q_WP_array[q_WP_idx], E_bound);
-	}
-	double* q_WP_midpoints     = new double [Nq_WP];
-	double* Eq_WP_midpoints    = new double [Nq_WP];
-	double* Tlab_WP_midpoints  = new double [Nq_WP];
-	for (size_t q_WP_idx=0; q_WP_idx<Nq_WP; q_WP_idx++){
-		double Eq_lower = 0.5*(q_WP_array[q_WP_idx]   * q_WP_array[q_WP_idx])  /mu1(E_bound);
-		double Eq_upper = 0.5*(q_WP_array[q_WP_idx+1] * q_WP_array[q_WP_idx+1])/mu1(E_bound);
-		double E_com = 0.5*(Eq_upper + Eq_lower);
-		q_WP_midpoints[q_WP_idx]    = com_energy_to_com_q_momentum(E_com);
-		Eq_WP_midpoints[q_WP_idx]   = E_com;
-		Tlab_WP_midpoints[q_WP_idx] = com_momentum_to_lab_energy(q_WP_midpoints[q_WP_idx], E_bound);
-	}
-	printf("Storing kinematic values of WP statespace to txt-file ... \n");
-	std::string q_kinematics_filename = run_parameters.output_folder + "/" + "q_kinematics_Nq_" + to_string(Nq_WP) + ".txt";
-	store_q_WP_kinematics_txt(Nq_WP,
-							  q_WP_array,
-							  Eq_WP_boundaries,
-							  Tlab_WP_boundaries,
-							  q_WP_midpoints,
-							  Eq_WP_midpoints,
-							  Tlab_WP_midpoints,
-							  q_kinematics_filename);
-	printf(" - Done \n");
-
-	/* End of code segment for storing kinematics of WP statespace */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
 	/* Start of code segment for locating on-shell nucleon-deuteron states */
 	if (run_parameters.solve_faddeev){
 
@@ -379,6 +310,7 @@ int main(int argc, char* argv[]){
 		/* Pointers to sub-arrays of PW state space corresponding to chn_3N */
 		pw_3N_statespace pw_substates;
 		pw_substates.Nalpha			= idx_alpha_upper - idx_alpha_lower;
+		pw_substates.J_2N_max		= pw_states.J_2N_max;
 		pw_substates.L_2N_array 	= &pw_states.L_2N_array[idx_alpha_lower];
 		pw_substates.S_2N_array 	= &pw_states.S_2N_array[idx_alpha_lower];
 		pw_substates.J_2N_array 	= &pw_states.J_2N_array[idx_alpha_lower];
@@ -407,11 +339,7 @@ int main(int argc, char* argv[]){
 						 &P123_sparse_col_array,
 						 P123_sparse_dim,
 						 run_parameters.production_run,
-						 Np_WP, p_WP_array,
-						 Nq_WP, q_WP_array,
-						 Nx,
-						 Nphi,
-						 J_2N_max,
+						 fwp_states,
 						 pw_substates,
 						 run_parameters,
 						 run_parameters.P123_folder);
@@ -426,15 +354,10 @@ int main(int argc, char* argv[]){
 			
 			printf("Constructing 3N resolvents ... \n");
 			for (int j=0; j<num_T_lab; j++){
-				double E_com = E_com_array[j];
-				//double E_com = 0.03873911528416455;
-				double E = E_com + E_bound;
+				double E = E_com_array[j] + E_bound;
 				calculate_resolvent_array_in_SWP_basis(&G_array[j*Nalpha_in_3N_chn*Np_WP*Nq_WP],
 													   E,
-													   Np_WP,
-													   e_SWP_unco_array,
-													   e_SWP_coup_array,
-													   Nq_WP, q_WP_array,
+													   swp_states,
 													   pw_substates,
 													   run_parameters);
 			}
@@ -448,7 +371,7 @@ int main(int argc, char* argv[]){
 			
 			cdouble* U_array = new cdouble [num_T_lab * num_deuteron_states * num_deuteron_states];
 
-            std::string file_identification =   "_Np_" + std::to_string(Np_WP)
+            std::string file_identification =   "_Np_"   + std::to_string(Np_WP)
 									          + "_Nq_"   + std::to_string(Nq_WP)
 									          + "_JP_"   + std::to_string(two_J_3N)
 									          + "_"      + std::to_string(P_3N)

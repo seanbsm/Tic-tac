@@ -32,6 +32,7 @@
 #include <ctime>
 
 /* Project headers */
+#include "type_defs.h"
 #include "make_pw_symm_states.h"
 #include "error_management.h"
 #include "disk_io_routines.h"
@@ -69,11 +70,7 @@ void fill_P123_arrays(double** P123_sparse_val_array,
 					  int**    P123_sparse_col_array,
 					  size_t&  P123_sparse_dim,
 					  bool     production_run,
-					  int      Np_WP, double *p_array_WP_bounds,
-					  int      Nq_WP, double *q_array_WP_bounds,
-					  int      Nx,
-					  int      Nphi,
-					  int      J_2N_max,
+					  fwp_statespace fwp_states,
 					  pw_3N_statespace pw_states,
 					  run_params run_parameters,
 					  std::string P123_folder);

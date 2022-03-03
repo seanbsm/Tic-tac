@@ -1270,17 +1270,22 @@ void fill_P123_arrays(double** P123_sparse_val_array,
 					  int**    P123_sparse_col_array,
 					  size_t&  P123_sparse_dim,
 					  bool     production_run,
-					  int      Np_WP, double *p_array_WP_bounds,
-					  int      Nq_WP, double *q_array_WP_bounds,
-					  int      Nx,
-					  int      Nphi,
-					  int      J_2N_max,
+					  fwp_statespace fwp_states,
 					  pw_3N_statespace pw_states,
 					  run_params run_parameters,
 					  std::string P123_folder){
 	
+	int     Np_WP 			  = fwp_states.Np_WP;
+	int     Nq_WP 			  = fwp_states.Nq_WP;
+	double* p_array_WP_bounds = fwp_states.p_WP_array;
+	double* q_array_WP_bounds = fwp_states.q_WP_array;
+
+	int J_2N_max = pw_states.J_2N_max;
 	int two_J_3N = pw_states.two_J_3N_array[0];
-	int P_3N = pw_states.P_3N_array[0];
+	int P_3N 	 = pw_states.P_3N_array[0];
+
+	int Nphi = run_parameters.Nphi;
+	int Nx   = run_parameters.Nx;
 	
 	/* Default filename for current chn_3N - used for storage and reading P123 */
 	std::string P123_filename = run_parameters.P123_folder + "/" + "P123_sparse_JP_"

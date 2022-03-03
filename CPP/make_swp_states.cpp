@@ -325,6 +325,7 @@ void make_swp_states(double* e_SWP_unco_array,
 	construct_free_hamiltonian(&H0_WP_coup_array[Np_WP], Np_WP, p_WP_array);
 	
 	/* Row state */
+	printf(" - Diagonalizing 2N Hamiltonians and constructing SWP boundaries ... \n");
     for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
         int L_r = L_2N_array[idx_alpha_r];
         int S_r = S_2N_array[idx_alpha_r];
@@ -444,6 +445,7 @@ void make_swp_states(double* e_SWP_unco_array,
 			}
 		}
 	}
+	printf("   - Done \n");
 
 	/* Delete temporary arrays */
 	delete [] check_list_unco;
@@ -464,7 +466,7 @@ void make_swp_states(double* e_SWP_unco_array,
 	swp_states.num_2N_coup_states	= num_2N_coup_states;
 	swp_states.E_bound				= E_bound;
 
-	printf("Storing kinematic values of WP statespace to txt-file ... \n");
+	printf(" - Storing kinematic values of WP statespace to txt-file ... \n");
 	store_swp_kinematics(swp_states, run_parameters);
-	printf(" - Done \n");
+	printf("   - Done \n");
 }

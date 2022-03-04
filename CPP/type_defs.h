@@ -56,16 +56,25 @@ typedef struct swp_statespace{
 } swp_statespace;
 
 /* Struct containing all information regarding on-shell indices for on-shell
- * energies and corresponding bins, as well as deuteron channels */ 
+ * energies and corresponding bins, as well as deuteron channels, for ALL 3N channels */ 
 typedef struct solution_configuration{
 	size_t  num_T_lab;				// Number of on-shell bins/energies to calculate
 	double* T_lab_array;			// On-shell lab  energies  (T_lab)
 	double* q_com_array;			// On-shell c.m. q-momenta (q_com)
 	double* E_com_array;			// On-shell c.m. energies  (E_com)
 	int*    q_com_idx_array;		// Index-array for on-shell q-bins
-	int**   deuteron_idx_arrays;	// Index-array deuteron-channels in given 3N-channel
-	int*    deuteron_num_array;		// Contains number of deuteron-channels in given 3N-channel
+	int**   deuteron_idx_arrays;	// Index-arrays deuteron-channels in all 3N-channels
+	int*    deuteron_num_array;		// Contains number of deuteron-channels in all 3N-channels
 } solution_configuration;
+
+/* Struct containing all information regarding on-shell indices for on-shell
+ * bins, as well as deuteron channels, for GIVEN 3N channel */ 
+typedef struct channel_os_indexing{
+	size_t  num_T_lab;				// Number of on-shell bins/energies to calculate
+	int*    q_com_idx_array;		// Index-array for on-shell q-bins
+	int*    deuteron_idx_array;		// Index-array for deuteron-channels in given 3N-channel
+	int     num_deuteron_states;	// Number of deuteron-channels in given 3N-channel
+} channel_os_indexing;
 
 typedef struct run_params{
 	int         two_J_3N_max;

@@ -237,7 +237,7 @@ void construct_symmetric_pw_states(pw_3N_statespace& pw_states,
 			largest_Nalpha 	   = Nalpha_in_3N_chn;
 		}
 	}
-	printf("   - The are %d partial-wave states in the largest channel(s) \n", largest_Nalpha);
+	printf("   - There are %d partial-wave states in the largest channel(s) \n", largest_Nalpha);
 	printf(" - Done \n");
 
 	/* Append the state space size as well - this allows for simpler indexing */

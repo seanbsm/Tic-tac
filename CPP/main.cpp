@@ -102,24 +102,9 @@ int main(int argc, char* argv[]){
 	int Np_WP = run_parameters.Np_WP;
 	int Nq_WP = run_parameters.Nq_WP;
 
-	/* Current scattering energy */
-	size_t  num_T_lab	= 0;
-	double* T_lab_array = NULL;
-	double* q_com_array = NULL;
-	double* E_com_array = NULL;
-	
-	/* Index lookup arrays for keeping track of on-shell nucleon-deuteron channels in state space */
-	int*   q_com_idx_array     = NULL;
-	int**  deuteron_idx_arrays = NULL;		// Contains indices of deuteron-channels in given 3N-channel
-	int*   deuteron_num_array  = NULL;		// Contains number of deuteron-channels in given 3N-channel
-
 	/* PWE truncation */
 	/* Maximum (max) values for J_2N and J_3N (minimum is set to 0 and 1, respectively)*/
 	int J_2N_max 	 = run_parameters.J_2N_max;
-	int two_J_3N_max = run_parameters.two_J_3N_max;
-	if ( two_J_3N_max%2==0 ||  two_J_3N_max<=0 ){
-		raise_error("Cannot have even two_J_3N_max");
-	}
 
 	/* Quadrature 3N momenta per WP cell */
 	fwp_statespace fwp_states;
@@ -132,10 +117,6 @@ int main(int argc, char* argv[]){
 	 * All non-specified quantum numbers are either given by nature,
 	 * deduced from the values below, or disappear in summations later */
 	pw_3N_statespace pw_states;
-
-	/* Three-nucleon channel indexing (a 3N channel is defined by a set {two_J_3N, two_T_3N, P_3N}) */
-	int  N_chn_3N 		  = 0;
-	int* chn_3N_idx_array = NULL;
 
 	/* Potential model class pointers */
 	potential_model* pot_ptr  = potential_model::fetch_potential_ptr(run_parameters);
@@ -163,14 +144,11 @@ int main(int argc, char* argv[]){
 	printf("Constructing 3N partial-wave basis ... \n");
 	construct_symmetric_pw_states(pw_states,
 								  run_parameters);
-	/* TEMP */
-	N_chn_3N = pw_states.N_chn_3N;
-	chn_3N_idx_array = pw_states.chn_3N_idx_array;
 
 	/* Allocate deuteron-channel index-lookup arrays */
 	solution_configuration solve_config;
-	solve_config.deuteron_idx_arrays = new int* [N_chn_3N];
-	solve_config.deuteron_num_array  = new int  [N_chn_3N];
+	solve_config.deuteron_idx_arrays = new int* [pw_states.N_chn_3N];
+	solve_config.deuteron_num_array  = new int  [pw_states.N_chn_3N];
 	
 	make_fwp_statespace(fwp_states, run_parameters);
 
@@ -274,19 +252,9 @@ int main(int argc, char* argv[]){
                            swp_states,
                            run_parameters);
 
-		/* TEMP */
-		num_T_lab	= solve_config.num_T_lab;
-		T_lab_array = solve_config.T_lab_array;
-		q_com_array = solve_config.q_com_array;
-		E_com_array = solve_config.E_com_array;
-		q_com_idx_array = solve_config.q_com_idx_array;
-
 		/* Locate and index deuteron channels */
 		find_deuteron_channels(solve_config,
                                pw_states);
-		/* TEMP */
-		deuteron_idx_arrays = solve_config.deuteron_idx_arrays;
-		deuteron_num_array = solve_config.deuteron_num_array;
 		
 	}
 	/* End of code segment for locating on-shell nucleon-deuteron states */
@@ -295,7 +263,7 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* Start of looping over 3N-channels */
 
-	for (int chn_3N=0; chn_3N<N_chn_3N; chn_3N++){
+	for (int chn_3N=0; chn_3N<pw_states.N_chn_3N; chn_3N++){
 
 		if (run_parameters.parallel_run==true && chn_3N!=run_parameters.channel_idx){
 			continue;
@@ -303,9 +271,8 @@ int main(int argc, char* argv[]){
 
 		/* Start of 3N-channel setup */
 		/* Lower and upper limits on PW state space for channel */
-		int idx_alpha_lower  = chn_3N_idx_array[chn_3N];
-		int idx_alpha_upper  = chn_3N_idx_array[chn_3N+1];
-		int Nalpha_in_3N_chn = idx_alpha_upper - idx_alpha_lower;
+		int idx_alpha_lower  = pw_states.chn_3N_idx_array[chn_3N];
+		int idx_alpha_upper  = pw_states.chn_3N_idx_array[chn_3N+1];
 
 		/* Pointers to sub-arrays of PW state space corresponding to chn_3N */
 		pw_3N_statespace pw_substates;
@@ -321,11 +288,18 @@ int main(int argc, char* argv[]){
 		pw_substates.two_J_3N_array = &pw_states.two_J_3N_array[idx_alpha_lower];
 		pw_substates.P_3N_array		= &pw_states.P_3N_array[idx_alpha_lower];
 
+		/* Setup struct containing all indexing relvant for desired on-shell U-matrix solutions */
+		channel_os_indexing chn_os_indexing;
+		chn_os_indexing.num_T_lab			= solve_config.num_T_lab;
+		chn_os_indexing.q_com_idx_array		= solve_config.q_com_idx_array;
+		chn_os_indexing.num_deuteron_states = solve_config.deuteron_num_array[chn_3N];
+		chn_os_indexing.deuteron_idx_array  = solve_config.deuteron_idx_arrays[chn_3N];
+
 		/* Channel conserved 3N quantum numbers using first element in channel */
 		int two_J_3N = pw_substates.two_J_3N_array[0];
 		int P_3N 	 = pw_substates.P_3N_array[0];
 
-		printf("Working on 3N-channel J_3N=%.d/2, PAR=%.d (channel %.d of %.d) with %.d partial-wave states \n", two_J_3N, P_3N, chn_3N+1, N_chn_3N, Nalpha_in_3N_chn);
+		printf("Working on 3N-channel J_3N=%.d/2, PAR=%.d (channel %.d of %.d) with %.d partial-wave states \n", two_J_3N, P_3N, chn_3N+1, pw_states.N_chn_3N, pw_substates.Nalpha);
 
 		/* End of 3N-channel setup */
 		/* Start of code segment for permutation matrix construction */
@@ -350,12 +324,13 @@ int main(int argc, char* argv[]){
 			/* Start of code segment for resolvent matrix (diagonal array) construction */
 
 			/* Resolvent array */
-			cdouble* G_array = new cdouble [Nalpha_in_3N_chn * Np_WP * Nq_WP * num_T_lab];
+			size_t dense_dim = pw_substates.Nalpha * swp_states.Np_WP * swp_states.Nq_WP;
+			cdouble* G_array = new cdouble [dense_dim * chn_os_indexing.num_T_lab];
 			
 			printf("Constructing 3N resolvents ... \n");
-			for (int j=0; j<num_T_lab; j++){
-				double E = E_com_array[j] + E_bound;
-				calculate_resolvent_array_in_SWP_basis(&G_array[j*Nalpha_in_3N_chn*Np_WP*Nq_WP],
+			for (int j=0; j<chn_os_indexing.num_T_lab; j++){
+				double E = solve_config.E_com_array[j] + swp_states.E_bound;
+				calculate_resolvent_array_in_SWP_basis(&G_array[j*dense_dim],
 													   E,
 													   swp_states,
 													   pw_substates,
@@ -366,13 +341,13 @@ int main(int argc, char* argv[]){
 
 			/* End of code segment for resolvent matrix (diagonal array) construction */
 			/* Start of code segment for iterations of elastic Faddeev equations */
-			int 	 num_deuteron_states = deuteron_num_array[chn_3N];
-			int* 	 deuteron_idx_array  = deuteron_idx_arrays[chn_3N];
 			
-			cdouble* U_array = new cdouble [num_T_lab * num_deuteron_states * num_deuteron_states];
+			cdouble* U_array = new cdouble [chn_os_indexing.num_T_lab
+										  * chn_os_indexing.num_deuteron_states
+										  * chn_os_indexing.num_deuteron_states];
 
-            std::string file_identification =   "_Np_"   + std::to_string(Np_WP)
-									          + "_Nq_"   + std::to_string(Nq_WP)
+            std::string file_identification =   "_Np_"   + std::to_string(swp_states.Np_WP)
+									          + "_Nq_"   + std::to_string(swp_states.Nq_WP)
 									          + "_JP_"   + std::to_string(two_J_3N)
 									          + "_"      + std::to_string(P_3N)
 									          + "_Jmax_" + std::to_string(J_2N_max);
@@ -384,16 +359,10 @@ int main(int argc, char* argv[]){
 									P123_sparse_row_array,
 									P123_sparse_col_array,
 									P123_sparse_dim,
-									C_WP_unco_array,
-									C_WP_coup_array,
 									V_WP_unco_array,
 									V_WP_coup_array,
-									num_2N_unco_states,
-									num_2N_coup_states,
-									q_com_idx_array, num_T_lab,
-									deuteron_idx_array, num_deuteron_states,
-									Nq_WP,
-									Np_WP,
+									swp_states,
+									chn_os_indexing,
 									pw_substates,
 									file_identification,
 					                run_parameters);
@@ -401,28 +370,15 @@ int main(int argc, char* argv[]){
 
 			/* End of code segment for iterations of elastic Faddeev equations */
 			/* Start of code segment for storing on-shell U-matrix solutions */
-
-			//std::string U_mat_filename = run_parameters.output_folder + "/" + "U_PW_elements"
-			//                                                                + file_identification
-			//														        + ".csv";
-			//store_U_matrix_elements_csv(U_array,
-			//						    q_com_idx_array,    (size_t) num_T_lab,
-			//				  		    deuteron_idx_array, (size_t) num_deuteron_states,
-			//						    pw_substates,
-			//						    U_mat_filename);
 			
 			std::string U_mat_filename_t = run_parameters.output_folder + "/" + "U_PW_elements"
 			                                                                  + file_identification
 																	          + ".txt";
 			store_U_matrix_elements_txt(U_array,
-										run_parameters.potential_model,
-										Np_WP,
-										Nq_WP,
-										E_bound,
-										T_lab_array,
-										E_com_array,
-									    q_com_idx_array,    (size_t) num_T_lab,
-							  		    deuteron_idx_array, (size_t) num_deuteron_states,
+										solve_config,
+										chn_os_indexing,
+										run_parameters,
+										swp_states,
 									    pw_substates,
 									    U_mat_filename_t);
 

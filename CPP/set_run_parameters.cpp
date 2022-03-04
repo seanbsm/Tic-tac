@@ -545,6 +545,9 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 		std::cout << "NOTE: Nq_WP is smaller than number of threads. P123 parallellism is with respect to Nq_WP." << std::endl;
 		std::cout << "      -> Setting P123_omp_num_threads=Nq_WP." << std::endl;
 	}
+	if ( run_parameters.two_J_3N_max%2==0 ||  run_parameters.two_J_3N_max<=0 ){
+		raise_error("Cannot have even two_J_3N_max!");
+	}
 
 	/* Print system run parameters */
 	std::cout << std::endl;

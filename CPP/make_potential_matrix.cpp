@@ -62,7 +62,7 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 	int* J_2N_array		= pw_states.J_2N_array;
 	int* T_2N_array		= pw_states.T_2N_array;
 	int* two_T_3N_array	= pw_states.two_T_3N_array;
-	/* Make local pointers & variables for WP-statespace */
+	/* Make local pointers & variables for FWP-statespace */
 	int 	Np_WP		= fwp_states.Np_WP;
 	double* p_WP_array	= fwp_states.p_WP_array;
 	int 	Np_per_WP	= fwp_states.Np_per_WP;

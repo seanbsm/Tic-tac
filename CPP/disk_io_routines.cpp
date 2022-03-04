@@ -303,22 +303,33 @@ void store_q_WP_boundaries_csv(fwp_statespace fwp_states,
 }
 
 void store_U_matrix_elements_txt(std::complex<double>*    U_array,
-								 std::string 			  potential_model,
-								 int					  Np_WP,
-								 int					  Nq_WP,
-								 double					  E_bound,
-								 double*				  T_lab_array,
-								 double*				  E_com_array,
-							     int* q_com_idx_array,	  size_t num_q_com,
-					  		     int* deuteron_idx_array, size_t num_deuteron_states,
+								 solution_configuration solve_config,
+								 channel_os_indexing chn_os_indexing,
+								 run_params run_parameters,
+								 swp_statespace swp_states,
 							     pw_3N_statespace pw_states,
 							     std::string filename){
-
+	
+	/* Make local variable for run-parameters */
+	std::string potential_model = run_parameters.potential_model;
+	/* Make local pointers for solution-configuration */
+	double*	T_lab_array = solve_config.T_lab_array;
+	double*	E_com_array = solve_config.E_com_array;
+	/* Make local pointers & variables for pw-statespace */
 	int	 two_J			= pw_states.two_J_3N_array[0];
 	int  P_3N 			= pw_states.P_3N_array[0];
 	int* L_1N_array		= pw_states.L_1N_array;
 	int* two_J_1N_array = pw_states.two_J_1N_array;
-	
+	/* Make local pointers & variables for SWP-statespace */
+	int	   Np_WP   = swp_states.Np_WP;
+	int	   Nq_WP   = swp_states.Nq_WP;
+	double E_bound = swp_states.E_bound;
+	/* Make local pointers & variables for on-shell channel-indexing */
+	int*   q_com_idx_array		= chn_os_indexing.q_com_idx_array;
+	int*   deuteron_idx_array	= chn_os_indexing.deuteron_idx_array;
+	size_t num_q_com			= (size_t) chn_os_indexing.num_T_lab;
+	size_t num_deuteron_states	= (size_t) chn_os_indexing.num_deuteron_states;
+
 	/* Open file*/
 	std::ofstream result_file;
 	result_file.open(filename);
@@ -656,7 +667,7 @@ void store_sparse_permutation_matrix_for_3N_channel_h5(double* P123_sparse_val_a
 	write_integer_to_h5(Nq_WP,           "Nq_WP",           file_id);
 
 	unsigned long long int P123_sparse_dim_temp = P123_sparse_dim;
-	write_integer_to_h5(P123_sparse_dim_temp, "P123_sparse_dim", file_id);
+	write_ULL_integer_to_h5(P123_sparse_dim_temp, "P123_sparse_dim", file_id);
 
 	/* Write p-momentum WP boundaries */
 	if (print_content){

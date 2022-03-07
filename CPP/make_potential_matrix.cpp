@@ -103,7 +103,7 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 		matrix_calculated_coup_array[i] = false;
 	}
 
-	printf(" - There are %d uncoupled 2N-channels and %d coupled 2N-channels \n", unco_array_size, coup_array_size);
+	printf("   - There are %d uncoupled 2N-channels and %d coupled 2N-channels \n", unco_array_size, coup_array_size);
 
 	/* Row state */
 	for (int idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
@@ -200,7 +200,7 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 					}
 				}
 
-				printf("   - Working on matrix <L'=%d|V(S=%d, J=%d, T=%d)|L=%d> ", L_r, S_r, J_r, T_r, L_c);
+				printf("     - Working on matrix <L'=%d|V(S=%d, J=%d, T=%d)|L=%d> ", L_r, S_r, J_r, T_r, L_c);
 				if (coupled_via_L_2N){
 					printf("(coupled matrix via L_2N -> calculation includes all couplings of L' and L.)");
 				}

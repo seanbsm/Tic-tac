@@ -109,10 +109,6 @@ int main(int argc, char* argv[]){
 	/* Quadrature 3N momenta per WP cell */
 	fwp_statespace fwp_states;
 
-	/* Potential matrices */
-	double* V_WP_unco_array = NULL;
-	double* V_WP_coup_array = NULL;
-
 	/* Quantum numbers of partial-wave expansion in state_3N_array.
 	 * All non-specified quantum numbers are either given by nature,
 	 * deduced from the values below, or disappear in summations later */
@@ -156,112 +152,8 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
 	/* ################################################################################################################### */
-	/* Start of code segment for potential matrix construction */
-
-	int num_2N_unco_states = 0;
-	int num_2N_coup_states = 0;
-	if (run_parameters.tensor_force==true){
-		num_2N_unco_states = 2*(J_2N_max+1);
-		num_2N_coup_states =    J_2N_max;
-		if (run_parameters.isospin_breaking_1S0==true){
-			num_2N_unco_states -= 1;
-			num_2N_coup_states += 1;
-		}
-	}
-	else{
-		num_2N_unco_states = 4*J_2N_max + 2;
-		if (run_parameters.isospin_breaking_1S0==true){
-			num_2N_unco_states -= 1;
-			num_2N_coup_states  = 1;
-		}
-	}
-
-	int V_unco_array_size = 0;
-	int V_coup_array_size = 0;
-
-	/* Check if we can have coupled channels */
-	if (run_parameters.tensor_force){
-		V_unco_array_size = Np_WP*Np_WP   * num_2N_unco_states;
-		V_coup_array_size = Np_WP*Np_WP*4 * num_2N_coup_states;
-	}
-	else{
-		V_unco_array_size = Np_WP*Np_WP * num_2N_unco_states;
-	}
-
-	V_WP_unco_array = new double [V_unco_array_size];
-	V_WP_coup_array = new double [V_coup_array_size];
-	if (run_parameters.solve_faddeev){
-		printf("Setting model parameters ... \n");
-		pot_ptr->update_parameters(&parameter_vector[0]);
-		printf(" - Done \n");
-
-		printf("Constructing 2N-potential matrices in WP basis ... \n");
-		calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array, num_2N_unco_states,
-													   V_WP_coup_array, num_2N_coup_states,
-													   fwp_states,
-													   pw_states,
-													   pot_ptr,
-													   run_parameters);
-		printf(" - Done \n");
-	}
-
-	/* End of code segment for potential matrix construction */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* Start of code segment for scattering wave-packets construction */
-
-	double  E_bound = 0;
-
-	double* e_SWP_unco_array = new double [  (Np_WP+1) * num_2N_unco_states];
-	double* e_SWP_coup_array = new double [2*(Np_WP+1) * num_2N_coup_states];
-
-	double* C_WP_unco_array = new double [V_unco_array_size];
-	double* C_WP_coup_array = new double [V_coup_array_size];
-
-	swp_statespace swp_states;
-
-	if (run_parameters.solve_faddeev){
-		printf("Constructing 2N SWPs ... \n");
-		make_swp_states(e_SWP_unco_array,
-						e_SWP_coup_array,
-						C_WP_unco_array,
-						C_WP_coup_array,
-						V_WP_unco_array,
-						V_WP_coup_array,
-						num_2N_unco_states,
-						num_2N_coup_states,
-						E_bound,
-						fwp_states,
-						swp_states,
-						pw_states,
-						run_parameters);
-		printf(" - Using E_bound = %.5f MeV \n", E_bound);
-		printf(" - Done \n");
-	}
-
-	/* End of code segment for scattering wave-packets construction */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* Start of code segment for locating on-shell nucleon-deuteron states */
-	if (run_parameters.solve_faddeev){
-
-		/* Locate and index on-shell bins from input energies */
-		find_on_shell_bins(solve_config,
-                           swp_states,
-                           run_parameters);
-
-		/* Locate and index deuteron channels */
-		find_deuteron_channels(solve_config,
-                               pw_states);
-		
-	}
-	/* End of code segment for locating on-shell nucleon-deuteron states */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
-	/* ################################################################################################################### */
 	/* Start of looping over 3N-channels */
+
 
 	for (int chn_3N=0; chn_3N<pw_states.N_chn_3N; chn_3N++){
 
@@ -269,6 +161,9 @@ int main(int argc, char* argv[]){
 			continue;
 		}
 
+		/* ################################################################################################################### */
+		/* ################################################################################################################### */
+		/* ################################################################################################################### */
 		/* Start of 3N-channel setup */
 		/* Lower and upper limits on PW state space for channel */
 		int idx_alpha_lower  = pw_states.chn_3N_idx_array[chn_3N];
@@ -287,21 +182,17 @@ int main(int argc, char* argv[]){
 		pw_substates.two_T_3N_array = &pw_states.two_T_3N_array[idx_alpha_lower];
 		pw_substates.two_J_3N_array = &pw_states.two_J_3N_array[idx_alpha_lower];
 		pw_substates.P_3N_array		= &pw_states.P_3N_array[idx_alpha_lower];
-
-		/* Setup struct containing all indexing relvant for desired on-shell U-matrix solutions */
-		channel_os_indexing chn_os_indexing;
-		chn_os_indexing.num_T_lab			= solve_config.num_T_lab;
-		chn_os_indexing.q_com_idx_array		= solve_config.q_com_idx_array;
-		chn_os_indexing.num_deuteron_states = solve_config.deuteron_num_array[chn_3N];
-		chn_os_indexing.deuteron_idx_array  = solve_config.deuteron_idx_arrays[chn_3N];
-
-		/* Channel conserved 3N quantum numbers using first element in channel */
+		
 		int two_J_3N = pw_substates.two_J_3N_array[0];
 		int P_3N 	 = pw_substates.P_3N_array[0];
 
-		printf("Working on 3N-channel J_3N=%.d/2, PAR=%.d (channel %.d of %.d) with %.d partial-wave states \n", two_J_3N, P_3N, chn_3N+1, pw_states.N_chn_3N, pw_substates.Nalpha);
+		printf("Working on 3N-channel J_3N=%.d/2, PAR=%.d (channel %.d of %.d) with %.d partial-wave states \n",
+				two_J_3N, P_3N, chn_3N+1, pw_states.N_chn_3N, pw_substates.Nalpha);
 
 		/* End of 3N-channel setup */
+		/* ################################################################################################################### */
+		/* ################################################################################################################### */
+		/* ################################################################################################################### */
 		/* Start of code segment for permutation matrix construction */
 		double* P123_sparse_val_array = NULL;
 		int* 	P123_sparse_row_array = NULL;
@@ -309,81 +200,242 @@ int main(int argc, char* argv[]){
 		size_t	P123_sparse_dim		  = 0;
 
 		fill_P123_arrays(&P123_sparse_val_array,
-						 &P123_sparse_row_array,
-						 &P123_sparse_col_array,
-						 P123_sparse_dim,
-						 run_parameters.production_run,
-						 fwp_states,
-						 pw_substates,
-						 run_parameters,
-						 run_parameters.P123_folder);
+						&P123_sparse_row_array,
+						&P123_sparse_col_array,
+						P123_sparse_dim,
+						run_parameters.production_run,
+						fwp_states,
+						pw_substates,
+						run_parameters,
+						run_parameters.P123_folder);
 
 		/* End of code segment for permutation matrix construction */
-
+		/* ################################################################################################################### */
+		/* ################################################################################################################### */
+		/* ################################################################################################################### */
 		if (run_parameters.solve_faddeev){
-			/* Start of code segment for resolvent matrix (diagonal array) construction */
 
-			/* Resolvent array */
-			size_t dense_dim = pw_substates.Nalpha * swp_states.Np_WP * swp_states.Nq_WP;
-			cdouble* G_array = new cdouble [dense_dim * chn_os_indexing.num_T_lab];
+			/* Convert row-major sparse format to column-major */
+			printf(" - Converting P123 from COO to CSC format ... \n");
+			printf("   - Converting row- to column-major format ... \n");
+			size_t  dense_dim = pw_substates.Nalpha * fwp_states.Nq_WP * fwp_states.Np_WP;
+			unsorted_sparse_to_coo_col_major_sorter(&P123_sparse_val_array,
+													&P123_sparse_row_array,
+													&P123_sparse_col_array,
+													P123_sparse_dim,
+													dense_dim);
+			printf("     - Done \n");
+
+			/* Convert from COO format to CSC format */
+			printf("   - Converting COO to CSC format ... \n");
+			size_t* P123_sparse_col_array_csc = new size_t [dense_dim+1];
+			coo_to_csc_format_converter(P123_sparse_col_array,
+										P123_sparse_col_array_csc,
+										P123_sparse_dim,
+										dense_dim);
+			printf("     - Done \n");
+
+			printf(" - Looping through input parameter sets ... \n");
+			for (int idx_param_set=0; idx_param_set<num_params; idx_param_set++){
+
+				printf("   - Setting model parameters ... \n");
+				pot_ptr->update_parameters(&parameter_vector[0]);
+				printf("     - Done \n");
+
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* Start of code segment for potential matrix construction */
+
+				int num_2N_unco_states = 0;
+				int num_2N_coup_states = 0;
+				if (run_parameters.tensor_force==true){
+					num_2N_unco_states = 2*(J_2N_max+1);
+					num_2N_coup_states =    J_2N_max;
+					if (run_parameters.isospin_breaking_1S0==true){
+						num_2N_unco_states -= 1;
+						num_2N_coup_states += 1;
+					}
+				}
+				else{
+					num_2N_unco_states = 4*J_2N_max + 2;
+					if (run_parameters.isospin_breaking_1S0==true){
+						num_2N_unco_states -= 1;
+						num_2N_coup_states  = 1;
+					}
+				}
+
+				int V_unco_array_size = 0;
+				int V_coup_array_size = 0;
+
+				/* Check if we can have coupled channels */
+				if (run_parameters.tensor_force){
+					V_unco_array_size = Np_WP*Np_WP   * num_2N_unco_states;
+					V_coup_array_size = Np_WP*Np_WP*4 * num_2N_coup_states;
+				}
+				else{
+					V_unco_array_size = Np_WP*Np_WP * num_2N_unco_states;
+				}
+
+				/* Potential matrices */
+				double* V_WP_unco_array = new double [V_unco_array_size];
+				double* V_WP_coup_array = new double [V_coup_array_size];
+
+				printf(" - Constructing 2N-potential matrices in WP basis ... \n");
+				calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array, num_2N_unco_states,
+															V_WP_coup_array, num_2N_coup_states,
+															fwp_states,
+															pw_states,
+															pot_ptr,
+															run_parameters);
+				printf("   - Done \n");
+
+				/* End of code segment for potential matrix construction */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* Start of code segment for scattering wave-packets construction */
+
+				double  E_bound = 0;
+
+				double* e_SWP_unco_array = new double [  (Np_WP+1) * num_2N_unco_states];
+				double* e_SWP_coup_array = new double [2*(Np_WP+1) * num_2N_coup_states];
+
+				double* C_WP_unco_array = new double [V_unco_array_size];
+				double* C_WP_coup_array = new double [V_coup_array_size];
+
+				swp_statespace swp_states;
+
+				printf(" - Constructing 2N SWPs ... \n");
+				make_swp_states(e_SWP_unco_array,
+								e_SWP_coup_array,
+								C_WP_unco_array,
+								C_WP_coup_array,
+								V_WP_unco_array,
+								V_WP_coup_array,
+								num_2N_unco_states,
+								num_2N_coup_states,
+								E_bound,
+								fwp_states,
+								swp_states,
+								pw_states,
+								run_parameters);
+				printf("   - Using E_bound = %.5f MeV \n", E_bound);
+				printf("   - Done \n");
+
+				/* End of code segment for scattering wave-packets construction */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* Start of code segment for locating on-shell nucleon-deuteron states */
+
+				/* Locate and index on-shell bins from input energies */
+				find_on_shell_bins(solve_config,
+								swp_states,
+								run_parameters);
+
+				/* Locate and index deuteron channels */
+				find_deuteron_channels(solve_config,
+									pw_states);
 			
-			printf("Constructing 3N resolvents ... \n");
-			for (int j=0; j<chn_os_indexing.num_T_lab; j++){
-				double E = solve_config.E_com_array[j] + swp_states.E_bound;
-				calculate_resolvent_array_in_SWP_basis(&G_array[j*dense_dim],
-													   E,
-													   swp_states,
-													   pw_substates,
-													   run_parameters);
-			}
-			printf(" - Done \n");
-			
+				/* End of code segment for locating on-shell nucleon-deuteron states */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
 
-			/* End of code segment for resolvent matrix (diagonal array) construction */
-			/* Start of code segment for iterations of elastic Faddeev equations */
-			
-			cdouble* U_array = new cdouble [chn_os_indexing.num_T_lab
-										  * chn_os_indexing.num_deuteron_states
-										  * chn_os_indexing.num_deuteron_states];
+				std::string file_identification =   "_Np_"   + std::to_string(swp_states.Np_WP)
+												+ "_Nq_"   + std::to_string(swp_states.Nq_WP)
+												+ "_JP_"   + std::to_string(two_J_3N)
+												+ "_"      + std::to_string(P_3N)
+												+ "_Jmax_" + std::to_string(J_2N_max);
+				std::string U_mat_filename_t = run_parameters.output_folder + "/" + "U_PW_elements"
+																			+ file_identification
+																			+ ".txt";
 
-            std::string file_identification =   "_Np_"   + std::to_string(swp_states.Np_WP)
-									          + "_Nq_"   + std::to_string(swp_states.Nq_WP)
-									          + "_JP_"   + std::to_string(two_J_3N)
-									          + "_"      + std::to_string(P_3N)
-									          + "_Jmax_" + std::to_string(J_2N_max);
+				/* Setup struct containing all indexing relvant for desired on-shell U-matrix solutions */
+				channel_os_indexing chn_os_indexing;
+				chn_os_indexing.num_T_lab			= solve_config.num_T_lab;
+				chn_os_indexing.q_com_idx_array		= solve_config.q_com_idx_array;
+				chn_os_indexing.num_deuteron_states = solve_config.deuteron_num_array[chn_3N];
+				chn_os_indexing.deuteron_idx_array  = solve_config.deuteron_idx_arrays[chn_3N];
 
-			printf("Solving Faddeev equations ... \n");
-			solve_faddeev_equations(U_array,
-									G_array,
-									P123_sparse_val_array,
-									P123_sparse_row_array,
-									P123_sparse_col_array,
-									P123_sparse_dim,
-									V_WP_unco_array,
-									V_WP_coup_array,
-									swp_states,
-									chn_os_indexing,
-									pw_substates,
-									file_identification,
-					                run_parameters);
-			printf(" - Done \n");
+				/* Start of code segment for resolvent matrix (diagonal array) construction */
 
-			/* End of code segment for iterations of elastic Faddeev equations */
-			/* Start of code segment for storing on-shell U-matrix solutions */
-			
-			std::string U_mat_filename_t = run_parameters.output_folder + "/" + "U_PW_elements"
-			                                                                  + file_identification
-																	          + ".txt";
-			store_U_matrix_elements_txt(U_array,
-										solve_config,
-										chn_os_indexing,
-										run_parameters,
+				/* Resolvent array */
+				size_t dense_dim = pw_substates.Nalpha * swp_states.Np_WP * swp_states.Nq_WP;
+				cdouble* G_array = new cdouble [dense_dim * chn_os_indexing.num_T_lab];
+				
+				printf(" - Constructing 3N resolvents ... \n");
+				for (int j=0; j<chn_os_indexing.num_T_lab; j++){
+					double E = solve_config.E_com_array[j] + swp_states.E_bound;
+					calculate_resolvent_array_in_SWP_basis(&G_array[j*dense_dim],
+															E,
+															swp_states,
+															pw_substates,
+															run_parameters);
+				}
+				printf("   - Done \n");
+				
+
+				/* End of code segment for resolvent matrix (diagonal array) construction */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* Start of code segment for iterations of elastic Faddeev equations */
+				
+				cdouble* U_array = new cdouble [chn_os_indexing.num_T_lab
+											  * chn_os_indexing.num_deuteron_states
+											  * chn_os_indexing.num_deuteron_states];
+
+				printf(" - Solving Faddeev equation ... \n");
+				solve_faddeev_equations(U_array,
+										G_array,
+										P123_sparse_val_array,
+										P123_sparse_row_array,
+										P123_sparse_col_array_csc,
+										P123_sparse_dim,
+										V_WP_unco_array,
+										V_WP_coup_array,
 										swp_states,
-									    pw_substates,
-									    U_mat_filename_t);
+										chn_os_indexing,
+										pw_substates,
+										file_identification,
+										run_parameters);
+				printf("   - Done \n");
 
-			/* End of code segment for storing on-shell U-matrix solutions */
+				/* End of code segment for iterations of elastic Faddeev equations */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* Start of code segment for storing on-shell U-matrix solutions */
+
+				store_U_matrix_elements_txt(U_array,
+											solve_config,
+											chn_os_indexing,
+											run_parameters,
+											swp_states,
+											pw_substates,
+											U_mat_filename_t);
+
+				/* End of code segment for storing on-shell U-matrix solutions */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* Delete 3N-channel, model-dependent arrays */
+				delete [] V_WP_unco_array;
+				delete [] V_WP_coup_array;
+				delete [] e_SWP_unco_array;
+				delete [] e_SWP_coup_array;
+				delete [] C_WP_unco_array;
+				delete [] C_WP_coup_array;
+				delete [] G_array;
+				delete [] U_array;
+			}
 		}
+		/* Delete 3N-channel, model-independent arrays */
+		delete [] P123_sparse_val_array;
+		delete [] P123_sparse_row_array;
+		delete [] P123_sparse_col_array;
 	}
 	/* End of looping over 3N-channels */
 

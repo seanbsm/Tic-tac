@@ -899,7 +899,7 @@ void write_ULL_integer_to_h5(unsigned long long int integer, char* int_name, hid
 	status      = H5Dclose(dataset_id);
 	status      = H5Sclose(group_id);
 }
-void read_ULL_integer_from_h5(unsigned long long& integer, char* int_name, char* filename){
+void read_ULL_integer_from_h5(unsigned long long int& integer, char* int_name, char* filename){
 
 	hid_t  file_id;
 	hid_t  dataset_id;
@@ -914,7 +914,7 @@ void read_ULL_integer_from_h5(unsigned long long& integer, char* int_name, char*
 						 H5P_DEFAULT);
 
 	/* Read from file into N_h5 */
-	unsigned long long N_h5 [1];
+	unsigned long long int N_h5 [1];
 	status = H5Dread (dataset_id,
 					  H5T_NATIVE_ULLONG,
 					  H5S_ALL,

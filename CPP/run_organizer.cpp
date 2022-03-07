@@ -93,7 +93,7 @@ void find_on_shell_bins(solution_configuration& solve_config,
 		solve_config.E_com_array[i] = com_q_momentum_to_com_energy(q_com); 
 	}
 
-	printf("Locating on-shell q-momentum WP-indices for %zu on-shell energies ... \n", num_T_lab);
+	printf(" - Locating on-shell q-momentum WP-indices for %zu on-shell energies ... \n", num_T_lab);
 	solve_config.q_com_idx_array = new int [num_T_lab];
 	for (size_t idx_Tlab=0; idx_Tlab<num_T_lab; idx_Tlab++){
 		double q_com = solve_config.q_com_array[idx_Tlab];
@@ -114,7 +114,7 @@ void find_on_shell_bins(solution_configuration& solve_config,
 			solve_config.q_com_idx_array[idx_Tlab] = idx_q_bin;
 		}
 	}
-	printf(" - On-shell q-momentum WP bins found \n");
+	printf("   - On-shell q-momentum WP bins found \n");
 }
 
 void find_deuteron_channels(solution_configuration& solve_config,
@@ -152,7 +152,7 @@ void find_deuteron_channels(solution_configuration& solve_config,
 		solve_config.deuteron_idx_arrays[chn_3N] = chn_3N_deuteron_indices_array;
 		solve_config.deuteron_num_array [chn_3N] = deuteron_chn_indices.size();
 	}
-	printf(" - Nucleon-deuteron channel indices found \n");
+	printf("   - Nucleon-deuteron channel indices found \n");
 
-	printf(" - Done \n");
+	printf("   - Done \n");
 }

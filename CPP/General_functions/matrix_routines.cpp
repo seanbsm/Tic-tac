@@ -530,7 +530,7 @@ void unsorted_sparse_to_coo_col_major_sorter(double** mat_val_array,
 											 size_t   mat_sparse_dim,
 											 int      mat_dense_dim){
 
-	printf("   - Creating reshuffling vector for column-major COO-format \n");
+	printf("     - Creating reshuffling vector for column-major COO-format \n");
 	std::vector<size_t> unsorted_idx_vector (mat_sparse_dim, 0);
 	for (size_t idx=0; idx<mat_sparse_dim; idx++){
 		unsorted_idx_vector[idx] = (size_t)(*mat_col_array)[idx]*mat_dense_dim + (size_t)(*mat_row_array)[idx];
@@ -540,7 +540,7 @@ void unsorted_sparse_to_coo_col_major_sorter(double** mat_val_array,
 	auto sorted_indices = sort_indexes(unsorted_idx_vector);
 
 	/* Sort row indices */
-	printf("   - Reshuffling row-indices \n");
+	printf("     - Reshuffling row-indices \n");
 	int* mat_row_array_coo_CM = new int [mat_sparse_dim];
 	for (size_t i=0; i<mat_sparse_dim; i++){
 		mat_row_array_coo_CM[i] = (*mat_row_array)[sorted_indices[i]];
@@ -548,7 +548,7 @@ void unsorted_sparse_to_coo_col_major_sorter(double** mat_val_array,
 	delete [] *mat_row_array;
 	*mat_row_array = mat_row_array_coo_CM;
 
-	printf("   - Reshuffling column-indices \n");
+	printf("     - Reshuffling column-indices \n");
 	int* mat_col_array_coo_CM = new int [mat_sparse_dim];
 	for (size_t i=0; i<mat_sparse_dim; i++){
 		mat_col_array_coo_CM[i] = (*mat_col_array)[sorted_indices[i]];
@@ -556,7 +556,7 @@ void unsorted_sparse_to_coo_col_major_sorter(double** mat_val_array,
 	delete [] *mat_col_array;
 	*mat_col_array = mat_col_array_coo_CM;
 
-	printf("   - Reshuffling values \n");
+	printf("     - Reshuffling values \n");
 	double* mat_val_array_coo_CM = new double [mat_sparse_dim];
 	for (size_t i=0; i<mat_sparse_dim; i++){
 		mat_val_array_coo_CM[i] = (*mat_val_array)[sorted_indices[i]];

@@ -1018,7 +1018,7 @@ void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,
 			std::strcpy(filename_char, thread_filename.c_str());
 				
 			/* Retrieve number of P123-elements in current file */
-			unsigned long long current_P123_sparse_dim = 0;
+			unsigned long long int current_P123_sparse_dim = 0;
 			read_ULL_integer_from_h5(current_P123_sparse_dim, "P123_sparse_dim", filename_char);
 
 			P123_dim += current_P123_sparse_dim;

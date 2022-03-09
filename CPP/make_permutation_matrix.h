@@ -37,6 +37,7 @@
 #include "error_management.h"
 #include "disk_io_routines.h"
 #include "General_functions/matrix_routines.h"
+#include "General_functions/templates.h"
 
 void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array,
 												   int*		max_TFC_array,

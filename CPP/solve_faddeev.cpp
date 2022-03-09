@@ -296,8 +296,6 @@ cdouble pade_approximant(cdouble* a_coeff_array, size_t N, size_t M, cdouble z){
 	return P_det/Q_det;
 }
 
-#include <fstream>
-#include <iomanip>
 void store_array(cdouble* array, size_t array_length, std::string filename){
 	/* Open file*/
 	std::ofstream result_file;
@@ -863,7 +861,7 @@ void pade_method_solve(cdouble*  U_array,
 	timestamp_end = std::chrono::system_clock::now();
 	std::chrono::duration<double> time = timestamp_end - timestamp_start;
 	printf("         - Time generating CPVC-rows:     %.6f \n", time.count()); fflush(stdout);
-	printf("         - Done \n", time.count()); fflush(stdout);
+	printf("         - Done \n"); fflush(stdout);
 	
 	/* First Neumann-term */
 	printf("       - Extracting on-shell Neumann-series terms a_n=A*K^n for n=%d. \n",0); fflush(stdout);
@@ -1383,8 +1381,6 @@ void solve_faddeev_equations(cdouble*  U_array,
 	//	}
 	//}
 	
-	
-	
 	/* Test optimized routine for PVC columns */
 	if (test_PVC_col_routine){
 		printf("   - Testing PVC-column routine ... \n");
@@ -1433,8 +1429,6 @@ void solve_faddeev_equations(cdouble*  U_array,
 	}
 	else{
 		printf("     - Solving Faddeev equation using a dense direct solver (WARNING: CAN TAKE LONG) ... \n");
-		//auto timestamp_solve_start = std::chrono::system_clock::now();
-
 		faddeev_dense_solver(U_array,
 						     G_array,
 						     q_com_idx_array,	 num_q_com,
@@ -1448,10 +1442,6 @@ void solve_faddeev_equations(cdouble*  U_array,
 						     P123_sparse_row_array,
 						     P123_sparse_col_array_csc,
 						     P123_sparse_dim);
-
-		//auto timestamp_solve_end = std::chrono::system_clock::now();
-		//std::chrono::duration<double> time_solve = timestamp_solve_end - timestamp_solve_start;
-		//printf("   - Done. Time used: %.6f\n", time_solve.count());
 	}
 
 	auto timestamp_solve_end = std::chrono::system_clock::now();

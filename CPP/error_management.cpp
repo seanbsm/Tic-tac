@@ -19,6 +19,12 @@ void check_h5_read_call(herr_t ret){
 	}
 }
 
+void check_h5_write_call(herr_t ret){
+	if (ret<0){
+		raise_error("Erroneous control return-value from calling H5Dwrite()");
+	}
+}
+
 void check_h5_read_table_call(herr_t ret){
 	if (ret<0){
 		raise_error("Erroneous control return-value from calling H5TBread_table()");

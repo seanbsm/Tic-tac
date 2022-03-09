@@ -11,6 +11,7 @@
 #include "mkl_dss.h"
 #include "mkl_spblas.h"
 
+#include "templates.h"
 #include "../error_management.h"
 
 void dot_MV(double *A, double *B, double *C, int N, int M);

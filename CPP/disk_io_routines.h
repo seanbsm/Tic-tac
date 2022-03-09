@@ -126,14 +126,14 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 													   std::string filename_in,
 													   bool print_content);
 
-void write_integer_to_h5(int integer, char* int_name, hid_t file_id);
-void read_integer_from_h5(int& integer, char* int_name, char* filename);
+void write_integer_to_h5(int integer, const char* int_name, hid_t file_id);
+void read_integer_from_h5(int& integer, const char* int_name, const char* filename);
 
-void write_ULL_integer_to_h5(unsigned long long int integer, char* int_name, hid_t file_id);
-void read_ULL_integer_from_h5(unsigned long long int& integer, char* int_name, char* filename);
+void write_ULL_integer_to_h5(unsigned long long int integer, const char* int_name, hid_t file_id);
+void read_ULL_integer_from_h5(unsigned long long int& integer, const char* int_name, const char* filename);
 
-void write_WP_boundaries_to_h5(double* WP_boundaries, int N_WP, char* mesh_name, hid_t file_id);
-void read_WP_boundaries_from_h5(double* WP_boundaries, int N_WP, char* mesh_name, char* filename);
+void write_WP_boundaries_to_h5(double* WP_boundaries, int N_WP, const char* mesh_name, hid_t file_id);
+void read_WP_boundaries_from_h5(double* WP_boundaries, int N_WP, const char* mesh_name, const char* filename);
 
 void write_PW_statespace_to_h5(int   Nalpha,
 							   int*  L_2N_array,
@@ -156,7 +156,7 @@ void read_PW_statespace_to_h5(int  Nalpha,
 							  int* two_T_3N_array,
 							  int* two_J_3N_array,
 							  int* P_3N_array,
-							  char* filename);
+							  const char* filename);
 
 void write_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 										int*    P123_sparse_row_array,
@@ -167,6 +167,6 @@ void read_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 									   int*    P123_sparse_row_array,
 									   int*    P123_sparse_col_array,
 									   size_t  P123_sparse_dim,
-									   char*   filename);
+									   const char*   filename);
 
 #endif // DISK_IO_FUNCTIONALITY_H

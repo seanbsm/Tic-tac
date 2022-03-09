@@ -39,8 +39,8 @@ double com_q_momentum_to_com_energy(double q_com){
 	return 3*q_com*q_com/(4*MN);
 }
 
-double lab_energy_to_com_energy(double T_lab, int Tz){
-}
-
-double com_energy_to_lab_energy(double T_com, int Tz){
-}
+//double lab_energy_to_com_energy(double T_lab, int Tz){
+//}
+//
+//double com_energy_to_lab_energy(double T_com, int Tz){
+//}

@@ -13,7 +13,7 @@ int unique_2N_idx(int L_2N, int S_2N, int J_2N, int T_2N, bool coupled, run_para
 	
 	bool state_1S0 = (S_2N==0 && J_2N==0 && L_2N==0 && T_2N==1);
 
-	int unique_idx;
+	int unique_idx = -1;
 	if (run_parameters.tensor_force==true){
 		if (coupled){
 			/* Unique index for all coupled states if tensor force is on */

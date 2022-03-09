@@ -236,10 +236,10 @@ int main(int argc, char* argv[]){
 			printf("     - Done \n");
 
 			printf(" - Looping through input parameter sets ... \n");
-			for (int idx_param_set=0; idx_param_set<num_params; idx_param_set++){
+			for (int idx_param_set=0; idx_param_set<num_param_sets; idx_param_set++){
 
 				printf("   - Setting model parameters ... \n");
-				pot_ptr->update_parameters(&parameter_vector[0]);
+				pot_ptr->update_parameters(&parameter_vector[idx_param_set*num_params]);
 				printf("     - Done \n");
 
 				/* ################################################################################################################### */

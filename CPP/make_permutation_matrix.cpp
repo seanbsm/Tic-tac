@@ -1,28 +1,6 @@
 
 #include "make_permutation_matrix.h"
 
-/* Copied from: https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes */
-template <typename T>
-std::vector<size_t> sort_indexes(const std::vector<T> &v) {
-
-  // initialize original index locations
-  std::vector<size_t> idx(v.size());
-  std::iota(idx.begin(), idx.end(), 0);
-
-  // sort indexes based on comparing values in v
-  // using std::stable_sort instead of std::sort
-  // to avoid unnecessary index re-orderings
-  // when v contains elements of equal values 
-  std::stable_sort(idx.begin(), idx.end(),
-       [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
-
-  return idx;
-}
-
-/* Add this if 6j takes a while */
-void precalculate_Wigner_6j_symbols(){
-}
-
 int factorial(int n){
     if(n > 1)
         return n * factorial(n - 1);
@@ -564,7 +542,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	/* Calculate all Plm needed for given input angles using gsl.
 	 * The 1st argument is set to GSL_SF_LEGENDRE_NONE, meaning we calculate the "unnormalized associated Legendre polynomials Plm"
 	 * The 4th argument is set to -1, which means we use the Condon-Shortley phase factor (-1)^m */
-	printf("     - Calculating polynomials \n", tot_size_needed);
+	printf("     - Calculating polynomials \n");
 	fflush(stdout);
 	for (int x_idx=0; x_idx<Nx; x_idx++){
 		double x = x_array[x_idx];
@@ -703,10 +681,8 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	auto timestamp_P123_tot_start = chrono::system_clock::now();
 	
 	int    num_rows_calculated  [P123_omp_num_threads];
-	double tot_calculation_time [P123_omp_num_threads];
 	for (int thread_idx=0; thread_idx<P123_omp_num_threads; thread_idx++){
 		num_rows_calculated [thread_idx] = 0;
-		tot_calculation_time[thread_idx] = 0;
 	}
 	
 	omp_set_num_threads(P123_omp_num_threads);
@@ -1075,15 +1051,44 @@ void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,
 		delete [] P123_sparse_col_subarray;
 	}
 
+	printf("   - Sorting random-order P123-elements to row-major COO-format \n"); fflush(stdout);
 	/* Index array to sort */
-	printf("   - Creating sorting vector for row-major COO-format \n"); fflush(stdout);
+	printf("     - Creating index-vector \n"); fflush(stdout);
 	std::vector<size_t> P123_idx_vector (P123_dim, 0);
+	#pragma omp parallel
 	for (size_t idx=0; idx<P123_dim; idx++){
-		P123_idx_vector[idx] = (size_t)(*P123_row_array)[idx]*P123_dense_dim + (size_t)(*P123_col_array)[idx];
+		size_t coo_array_idx = (size_t)(*P123_row_array)[idx]*P123_dense_dim + (size_t)(*P123_col_array)[idx];
+		if ((size_t)(*P123_row_array)[idx] > P123_dense_dim){
+			raise_error("Encountered row-index larger than dense dimension!");
+		}
+		if ((size_t)(*P123_col_array)[idx] > P123_dense_dim){
+			raise_error("Encountered column-index larger than dense dimension!");
+		}
+		if(coo_array_idx>P123_dense_dim*P123_dense_dim){
+			raise_error("coo_array_idx=row_idx*dense_dim + col_idx was larger than dense_dim^2!");
+		}
+		P123_idx_vector[idx] = coo_array_idx;
 	}
 
 	/* Sort indices using template (Warning - lambda expression - requires C++11 or newer compiler) */
-	auto sorted_indices = sort_indexes(P123_idx_vector);
+	printf("     - Creating sorting-vector \n"); fflush(stdout);
+	std::vector<size_t> sorted_indices;
+	try{
+		sorted_indices = sort_indexes(P123_idx_vector);
+	}
+	catch(...){
+		raise_error("Sorting failed!");
+	}
+	printf("       - Done \n"); fflush(stdout);
+	printf("     - Verifying no index-overflow has occured ... \n"); fflush(stdout);
+	for (size_t i=0; i<P123_dim; i++){
+		if (sorted_indices[i]>=P123_dim){
+			raise_error("Non-zero index of P123-array was larger than P123_dim");
+		}
+	}
+
+	/* Free up memory - the next few steps are very memory intensive */
+	P123_idx_vector.clear();
 
 	///* Sorting test */
 	//std::vector<int> test_vec (10, 0);;
@@ -1099,6 +1104,7 @@ void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,
 	/* Sort row indices */
 	printf("     - Sorting random-order row indices \n"); fflush(stdout);
 	int* sparse_idx_array_temp = new int [P123_dim];
+	#pragma omp parallel
 	for (size_t i=0; i<P123_dim; i++){
 		sparse_idx_array_temp[i] = (*P123_row_array)[sorted_indices[i]];
 	}
@@ -1115,6 +1121,7 @@ void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,
 
 	/* Sort column indices */
 	printf("     - Sorting random-order column indices \n"); fflush(stdout);
+	#pragma omp parallel
 	for (size_t i=0; i<P123_dim; i++){
 		sparse_idx_array_temp[i] = (*P123_col_array)[sorted_indices[i]];
 	}
@@ -1125,6 +1132,7 @@ void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,
 
 	/* Sort values */
 	printf("     - Sorting random-order P123-values \n"); fflush(stdout);
+	#pragma omp parallel
 	for (size_t i=0; i<P123_dim; i++){
 		sparse_val_array_temp[i] = (*P123_val_sparse_array)[sorted_indices[i]];
 	}

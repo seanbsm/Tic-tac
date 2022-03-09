@@ -829,7 +829,7 @@ void read_sparse_permutation_matrix_for_3N_channel_h5(double** P123_sparse_val_a
 									  filename);
 }
 
-void write_integer_to_h5(int integer, char* int_name, hid_t file_id){
+void write_integer_to_h5(int integer, const char* int_name, hid_t file_id){
 	hid_t   group_id;
 	hid_t   dataset_id;
 	herr_t  status;
@@ -841,13 +841,13 @@ void write_integer_to_h5(int integer, char* int_name, hid_t file_id){
 	N_h5[0]     = integer;
 	group_id    = H5Screate_simple(1, dim_N, NULL);
 	dataset_id  = H5Dcreate(file_id, int_name, H5T_NATIVE_INT, group_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	status      = H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5);
+	status      = H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5); check_h5_write_call(status);
 	
 	/* Close dataset and group */
-	status      = H5Dclose(dataset_id);
-	status      = H5Sclose(group_id);
+	status      = H5Dclose(dataset_id); check_h5_close_call(status);
+	status      = H5Sclose(group_id); check_h5_close_call(status);
 }
-void read_integer_from_h5(int& integer, char* int_name, char* filename){
+void read_integer_from_h5(int& integer, const char* int_name, const char* filename){
 
 	hid_t  file_id;
 	hid_t  dataset_id;
@@ -875,13 +875,11 @@ void read_integer_from_h5(int& integer, char* int_name, char* filename){
 	integer = N_h5[0];
 
 	/* Close file */
-	status = H5Dclose(dataset_id);
-	check_h5_close_call(status);
-	status = H5Fclose(file_id);
-	check_h5_close_call(status);
+	status = H5Dclose(dataset_id); check_h5_close_call(status);
+	status = H5Fclose(file_id); check_h5_close_call(status);
 }
 
-void write_ULL_integer_to_h5(unsigned long long int integer, char* int_name, hid_t file_id){
+void write_ULL_integer_to_h5(unsigned long long int integer, const char* int_name, hid_t file_id){
 	hid_t   group_id;
 	hid_t   dataset_id;
 	herr_t  status;
@@ -893,13 +891,13 @@ void write_ULL_integer_to_h5(unsigned long long int integer, char* int_name, hid
 	N_h5[0]     = integer;
 	group_id    = H5Screate_simple(1, dim_N, NULL);
 	dataset_id  = H5Dcreate(file_id, int_name, H5T_NATIVE_ULLONG, group_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-	status      = H5Dwrite(dataset_id, H5T_NATIVE_ULLONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5);
+	status      = H5Dwrite(dataset_id, H5T_NATIVE_ULLONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, N_h5); check_h5_write_call(status);
 	
 	/* Close dataset and group */
-	status      = H5Dclose(dataset_id);
-	status      = H5Sclose(group_id);
+	status      = H5Dclose(dataset_id); check_h5_close_call(status);
+	status      = H5Sclose(group_id); check_h5_close_call(status);
 }
-void read_ULL_integer_from_h5(unsigned long long int& integer, char* int_name, char* filename){
+void read_ULL_integer_from_h5(unsigned long long int& integer, const char* int_name, const char* filename){
 
 	hid_t  file_id;
 	hid_t  dataset_id;
@@ -927,13 +925,11 @@ void read_ULL_integer_from_h5(unsigned long long int& integer, char* int_name, c
 	integer = N_h5[0];
 
 	/* Close file */
-	status = H5Dclose(dataset_id);
-	check_h5_close_call(status);
-	status = H5Fclose(file_id);
-	check_h5_close_call(status);
+	status = H5Dclose(dataset_id); check_h5_close_call(status);
+	status = H5Fclose(file_id); check_h5_close_call(status);
 }
 
-void write_WP_boundaries_to_h5(double* WP_boundaries, int N_WP, char* mesh_name, hid_t file_id){
+void write_WP_boundaries_to_h5(double* WP_boundaries, int N_WP, const char* mesh_name, hid_t file_id){
 	/* Momentum mesh */
 	bounds_mesh_table dst_buf[N_WP+1];
 
@@ -981,7 +977,7 @@ void write_WP_boundaries_to_h5(double* WP_boundaries, int N_WP, char* mesh_name,
 	/* Close the group */
 	status = H5Gclose(group_id);
 }
-void read_WP_boundaries_from_h5(double* WP_boundaries, int N_WP, char* mesh_name, char* filename){
+void read_WP_boundaries_from_h5(double* WP_boundaries, int N_WP, const char* mesh_name, const char* filename){
 	
 	hid_t  file_id;
 	herr_t status;
@@ -1104,7 +1100,7 @@ void read_PW_statespace_to_h5(int  Nalpha,
 							  int* two_T_3N_array,
 							  int* two_J_3N_array,
 							  int* P_3N_array,
-							  char* filename){
+							  const char* filename){
 	hid_t  file_id;
 	herr_t status;
 	file_id = H5Fopen(filename,
@@ -1274,7 +1270,7 @@ void read_sparse_permutation_matrix_h5(double* P123_sparse_val_array,
 									   int*    P123_sparse_row_array,
 									   int*    P123_sparse_col_array,
 									   size_t  P123_sparse_dim,
-									   char*   filename){
+									   const char*   filename){
 	
 	hid_t  file_id;
 	hid_t  dataset_row;

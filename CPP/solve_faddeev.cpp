@@ -100,13 +100,11 @@ void calculate_CPVC_col(double*  col_array,
 	//	for (size_t idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
 	//		size_t idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
 	//		CT_subarray = CT_RM_array[idx_CT_2N_block];
-	//
 	//		/* Only do inner-product if CT is not zero due to conservation laws */
 	//		if (CT_subarray!=NULL){
 	//			for (size_t idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
 	//				PVC_subcol  = &PVC_col[idx_alpha_i*Nq_WP*Np_WP + idx_q_r*Np_WP];
 	//				CPVC_subcol = &col_array[idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP];
-	//
 	//				/* Do inner-product over momentum p */
 	//				dot_MV(CT_subarray, PVC_subcol, CPVC_subcol, Np_WP, Np_WP);
 	//			}
@@ -139,26 +137,26 @@ void calculate_CPVC_col(double*  col_array,
 	/*  Looping based on first nnz-lookup of CT-matrices */
 	/* Loop over rows of col_array */
 	//timestamp_start = std::chrono::system_clock::now();
-	for (size_t idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
+	for (auto idx_alpha_r=0; idx_alpha_r<Nalpha; idx_alpha_r++){
 		/* Beginning of inner-product loops (index "i") */
-		for (size_t idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
-			size_t idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
+		for (auto idx_alpha_i=0; idx_alpha_i<Nalpha; idx_alpha_i++){
+			auto idx_CT_2N_block = idx_alpha_r*Nalpha + idx_alpha_i;
 			CT_subarray = CT_RM_array[idx_CT_2N_block];
 			/* Only do inner-product if CT is not zero due to conservation laws */
 			if (CT_subarray!=NULL){
 				PVC_subcol = &PVC_col[idx_alpha_i*Nq_WP*Np_WP];
-				for (size_t idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
-					for (size_t idx_p_i=0; idx_p_i<Np_WP; idx_p_i++){
+				for (auto idx_q_r=0; idx_q_r<Nq_WP; idx_q_r++){
+					for (auto idx_p_i=0; idx_p_i<Np_WP; idx_p_i++){
 						//size_t idx_PVC     = idx_alpha_i*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_i;
-						double PVC_element = PVC_subcol[idx_q_r*Np_WP + idx_p_i];
+						auto PVC_element = PVC_subcol[idx_q_r*Np_WP + idx_p_i];
 						if (PVC_element!=0){
-							for (size_t idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
+							for (auto idx_p_r=0; idx_p_r<Np_WP; idx_p_r++){
 								/* I'm not sure if this is the fastest ordering of the loops */
 								//double CT_element  = CT_subarray[idx_p_r*Np_WP + idx_p_i];
-								double prod = PVC_element  * CT_subarray[idx_p_r*Np_WP + idx_p_i];
+								//auto prod = PVC_element  * CT_subarray[idx_p_r*Np_WP + idx_p_i];
 								//if (prod!=0){
-									size_t idx_CPVC = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
-									col_array[idx_CPVC] += prod;
+									auto idx_CPVC = idx_alpha_r*Nq_WP*Np_WP + idx_q_r*Np_WP + idx_p_r;
+									col_array[idx_CPVC] += PVC_element  * CT_subarray[idx_p_r*Np_WP + idx_p_i];
 									//int nnz_idx = row_to_nnz_array[idx_CPVC];
 									//if (nnz_idx==-1){
 									//	row_to_nnz_array[idx_CPVC] = num_nnz;
@@ -174,6 +172,7 @@ void calculate_CPVC_col(double*  col_array,
 			}
 		}
 	}
+	
 	//timestamp_end = std::chrono::system_clock::now();
 	//std::chrono::duration<double>  time2 = timestamp_end - timestamp_start;
 	//printf("TIME CPVC:  %.6f \n", time2.count()); fflush(stdout);

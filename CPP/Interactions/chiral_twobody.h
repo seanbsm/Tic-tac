@@ -15,6 +15,7 @@ extern "C" {
 	void chp_set_ispot_lo(double *parameter_array);
 	void chp_set_ispot_nlo(double *parameter_array);
 	void chp_set_ispot_n2lo(double *parameter_array);
+	void chp_set_ispot_n3lo(double *parameter_array);
 	
     void __idaho_chiral_potential_MOD_chp(double *qi,
 			  double *qo,

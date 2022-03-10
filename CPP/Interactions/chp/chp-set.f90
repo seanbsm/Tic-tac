@@ -29,6 +29,12 @@ subroutine chp_set_ispot_n2lo(parameter_array) bind(C,name="chp_set_ispot_n2lo")
   call chp_preset_ispot_n2lo(parameter_array)
 end subroutine chp_set_ispot_n2lo
 
+! Preset for IS N2LO
+subroutine chp_set_ispot_n3lo(parameter_array) bind(C,name="chp_set_ispot_n3lo")
+  real (8), dimension (1:31), intent (in) :: parameter_array
+  call chp_preset_ispot_n3lo(parameter_array)
+end subroutine chp_set_ispot_n3lo
+
 ! ############################################################################################################# !
 ! ############################################################################################################# !
 ! ############################################################################################################# !
@@ -449,31 +455,31 @@ subroutine chp_preset_Idaho_N3LO(parameter_array)
   
   ! NLO contacts
   call chp_set_chiral_C(1) ! Use
-  call chp_set_NLO_contact(1, C_1S0) ! C_1S0
-  call chp_set_NLO_contact(2, C_3P0)! C_3P0
-  call chp_set_NLO_contact(3, C_1P1)! C_1P1
-  call chp_set_NLO_contact(4, C_3P1) ! C_3P1
-  call chp_set_NLO_contact(5, C_3S1)! C_3S1
-  call chp_set_NLO_contact(6, C_3S1_3D1)! C_3S1-3D1
-  call chp_set_NLO_contact(7, C_3P2) ! C_3P2
+  call chp_set_NLO_contact(1, C_1S0)      ! C_1S0
+  call chp_set_NLO_contact(2, C_3P0)      ! C_3P0
+  call chp_set_NLO_contact(3, C_1P1)      ! C_1P1
+  call chp_set_NLO_contact(4, C_3P1)      ! C_3P1
+  call chp_set_NLO_contact(5, C_3S1)      ! C_3S1
+  call chp_set_NLO_contact(6, C_3S1_3D1)  ! C_3S1-3D1
+  call chp_set_NLO_contact(7, C_3P2)      ! C_3P2
   
   ! N3LO contacts
   call chp_set_chiral_D(1) ! Use
-  call chp_set_N3LO_contact( 1, Dh_1S0)  ! Dh_1S0
-  call chp_set_N3LO_contact( 2, D_1S0)  ! D_1S0
-  call chp_set_N3LO_contact( 3, D_3P0) ! D_3P0
-  call chp_set_N3LO_contact( 4, D_1P1) ! D_1P1
-  call chp_set_N3LO_contact( 5, D_3P1) ! D_3P1
-  call chp_set_N3LO_contact( 6, Dh_3S1) ! Dh_3S1
-  call chp_set_N3LO_contact( 7, D_3S1) ! D_3S1
-  call chp_set_N3LO_contact( 8, D_3D1)  ! D_3D1
+  call chp_set_N3LO_contact( 1, Dh_1S0)     ! Dh_1S0
+  call chp_set_N3LO_contact( 2, D_1S0)      ! D_1S0
+  call chp_set_N3LO_contact( 3, D_3P0)      ! D_3P0
+  call chp_set_N3LO_contact( 4, D_1P1)      ! D_1P1
+  call chp_set_N3LO_contact( 5, D_3P1)      ! D_3P1
+  call chp_set_N3LO_contact( 6, Dh_3S1)     ! Dh_3S1
+  call chp_set_N3LO_contact( 7, D_3S1)      ! D_3S1
+  call chp_set_N3LO_contact( 8, D_3D1)      ! D_3D1
   call chp_set_N3LO_contact( 9, Dh_3S1_3D1) ! Dh_3S1-3D1
-  call chp_set_N3LO_contact(10, D_3S1_3D1) ! D_3S1-3D1
-  call chp_set_N3LO_contact(11, D_1D2)  ! D_1D2
-  call chp_set_N3LO_contact(12, D_3D2)  ! D_3D2
-  call chp_set_N3LO_contact(13, D_3P2) ! D_3P2
+  call chp_set_N3LO_contact(10, D_3S1_3D1)  ! D_3S1-3D1
+  call chp_set_N3LO_contact(11, D_1D2)      ! D_1D2
+  call chp_set_N3LO_contact(12, D_3D2)      ! D_3D2
+  call chp_set_N3LO_contact(13, D_3P2)      ! D_3P2
   call chp_set_N3LO_contact(14, D_3P2_3F2)  ! D_3P2-3F2
-  call chp_set_N3LO_contact(15, D_3D3) ! D_3D3
+  call chp_set_N3LO_contact(15, D_3D3)      ! D_3D3
   
   ! Set needed ci and di, if any
   call chp_set_c1(c1)
@@ -576,14 +582,8 @@ subroutine chp_preset_ispot_lo(parameter_array)
   real (8) :: Ct_1S0
   real (8) :: Ct_3S1
 
-  !if (use_parameter_array) then
-  !  ! LO contact terms
   Ct_1S0 = parameter_array(0)
   Ct_3S1 = parameter_array(1)
-  !else
-  !    Ct_1S0 = -1.12073397972979993D-01
-  !    Ct_3S1 = -3.60868520937899992D-02
-  !end if
 
   call initialize_chiral_potential
 
@@ -719,13 +719,12 @@ subroutine chp_preset_ispot_nlo(parameter_array)
   real (8) :: C_3S1_3D1
   real (8) :: C_3P2
 
-  !if (use_parameter_array) then
   Ct_1S0nn  = parameter_array(0)
   Ct_1S0np  = parameter_array(1)
   Ct_1S0pp  = parameter_array(2)
-  Ct_3S1pp  = parameter_array(3)
-  Ct_3S1np  = parameter_array(3)
   Ct_3S1nn  = parameter_array(3)
+  Ct_3S1np  = parameter_array(3) ! same as Ct_3S1nn
+  Ct_3S1pp  = parameter_array(3) ! same as Ct_3S1nn
   C_1S0     = parameter_array(4)
   C_3P0     = parameter_array(5)
   C_1P1     = parameter_array(6)
@@ -733,21 +732,6 @@ subroutine chp_preset_ispot_nlo(parameter_array)
   C_3S1     = parameter_array(8)
   C_3S1_3D1 = parameter_array(9)
   C_3P2     = parameter_array(10)
-  !else
-  !  Ct_1S0pp  = -1.54250208697730012D-01
-  !  Ct_3S1pp  = -1.48057121689049997D-01
-  !  Ct_1S0np  = -1.55222568956019991D-01
-  !  Ct_3S1np  = -1.48057121689049997D-01
-  !  Ct_1S0nn  = -1.54958402671070000D-01
-  !  Ct_3S1nn  = -1.48057121689049997D-01
-  !  C_1S0     =  1.60603274119125006D+00
-  !  C_3P0     =  1.19584298162829006D+00
-  !  C_1P1     =  6.06776291764649978D-01
-  !  C_3P1     = -2.49343337260960030D-01
-  !  C_3S1     = -7.46664535867350043D-01
-  !  C_3S1_3D1 =  1.56125611619209986D-01
-  !  C_3P2     = -1.86669728671579993D-01
-  !end if
 
   call initialize_chiral_potential
 
@@ -898,16 +882,15 @@ subroutine chp_preset_ispot_n2lo(parameter_array)
   real (8) :: c3
   real (8) :: c4
 
-  !if (use_parameter_array) then
   c1        = parameter_array(0)
   c3        = parameter_array(1)
   c4        = parameter_array(2)
   Ct_1S0nn  = parameter_array(3)
   Ct_1S0np  = parameter_array(4)
   Ct_1S0pp  = parameter_array(5)
-  Ct_3S1pp  = parameter_array(6)
-  Ct_3S1np  = parameter_array(6)
   Ct_3S1nn  = parameter_array(6)
+  Ct_3S1np  = parameter_array(6) ! same as Ct_3S1nn
+  Ct_3S1pp  = parameter_array(6) ! same as Ct_3S1nn
   C_1S0     = parameter_array(7)
   C_3P0     = parameter_array(8)
   C_1P1     = parameter_array(9)
@@ -915,24 +898,6 @@ subroutine chp_preset_ispot_n2lo(parameter_array)
   C_3S1     = parameter_array(11)
   C_3S1_3D1 = parameter_array(12)
   C_3P2     = parameter_array(13)
-  !else
-  !  Ct_1S0pp  = -1.54250208697730012D-01
-  !  Ct_3S1pp  = -1.48057121689049997D-01
-  !  Ct_1S0np  = -1.55222568956019991D-01
-  !  Ct_3S1np  = -1.48057121689049997D-01
-  !  Ct_1S0nn  = -1.54958402671070000D-01
-  !  Ct_3S1nn  = -1.48057121689049997D-01
-  !  C_1S0     =  1.60603274119125006D+00
-  !  C_3P0     =  1.19584298162829006D+00
-  !  C_1P1     =  6.06776291764649978D-01
-  !  C_3P1     = -2.49343337260960030D-01
-  !  C_3S1     = -7.46664535867350043D-01
-  !  C_3S1_3D1 =  1.56125611619209986D-01
-  !  C_3P2     = -1.86669728671579993D-01
-  !  c1        = -7.39616066183449994D-01
-  !  c3        = -3.61062504021943020D+00
-  !  c4        =  2.43675828100628999D+00
-  !end if
 
   call initialize_chiral_potential
 
@@ -1054,3 +1019,232 @@ subroutine chp_preset_ispot_n2lo(parameter_array)
   call chp_set_units_and_derive_constants
 
 end subroutine chp_preset_ispot_n2lo
+
+subroutine chp_preset_ispot_n3lo(parameter_array)
+  use idaho_chiral_potential
+
+  implicit none
+
+  real (8), dimension (0:30), intent (in) :: parameter_array
+  
+  ! LO contacts
+  real (8) :: Ct_1S0pp
+  real (8) :: Ct_3S1pp
+  real (8) :: Ct_1S0np
+  real (8) :: Ct_3S1np
+  real (8) :: Ct_1S0nn
+  real (8) :: Ct_3S1nn
+  ! NLO contacts
+  real (8) :: C_1S0
+  real (8) :: C_3P0
+  real (8) :: C_1P1
+  real (8) :: C_3P1
+  real (8) :: C_3S1
+  real (8) :: C_3S1_3D1
+  real (8) :: C_3P2
+  ! N2LO ci
+  real (8) :: c1
+  real (8) :: c3
+  real (8) :: c4
+  ! N3LO contacts
+  real (8) :: Dh_1S0 ! same as D_1S0
+  real (8) :: D_1S0
+  real (8) :: D_3P0
+  real (8) :: D_1P1
+  real (8) :: D_3P1
+  real (8) :: Dh_3S1 ! same as D_3P1
+  real (8) :: D_3S1
+  real (8) :: D_3D1
+  real (8) :: Dh_3S1_3D1 ! same as D_3D1
+  real (8) :: D_3S1_3D1
+  real (8) :: D_1D2
+  real (8) :: D_3D2
+  real (8) :: D_3P2
+  real (8) :: D_3P2_3F2
+  real (8) :: D_3D3
+  ! N3LO ci
+  real (8) :: c2
+  ! N3LO di
+  real (8) :: d1_plus_d2
+  real (8) :: d3
+  real (8) :: d5
+  real (8) :: d14_minus_d15
+  
+  c1             = parameter_array(0)
+  c2             = parameter_array(1)
+  c3             = parameter_array(2)
+  c4             = parameter_array(3)
+  d1_plus_d2     = parameter_array(4)
+  d3             = parameter_array(5)
+  d5             = parameter_array(6)
+  d14_minus_d15  = parameter_array(7)
+  Ct_1S0nn       = parameter_array(8)
+  Ct_1S0np       = parameter_array(9)
+  Ct_1S0pp       = parameter_array(10)
+  C_1S0          = parameter_array(11)
+  D_1S0          = parameter_array(12)
+  Dh_1S0         = 0                   ! reduntant variable
+  Ct_3S1nn       = parameter_array(13)
+  Ct_3S1np       = parameter_array(13) ! same as Ct_3S1nn
+  Ct_3S1pp       = parameter_array(13) ! same as Ct_3S1nn
+  C_3S1          = parameter_array(14)
+  C_3S1_3D1      = parameter_array(15)
+  D_3S1          = parameter_array(16)
+  D_3S1_3D1      = parameter_array(17)
+  Dh_3S1_3D1     = 0                   ! reduntant variable
+  D_3D1          = parameter_array(18)
+  C_3P0          = parameter_array(19)
+  D_3P0          = parameter_array(20)
+  D_3P1          = parameter_array(21)
+  Dh_3S1         = 0                   ! reduntant variable
+  C_3P1          = parameter_array(22)
+  C_3P2          = parameter_array(23)
+  D_3P2          = parameter_array(24)
+  D_3P2_3F2      = parameter_array(25)
+  C_1P1          = parameter_array(26)
+  D_1P1          = parameter_array(27) 
+  D_1D2          = parameter_array(28)
+  D_3D2          = parameter_array(29)
+  D_3D3          = parameter_array(30) 
+
+  call initialize_chiral_potential
+
+  ! GENERAL PARAMETERS AND CONSTANTS
+  ! (proton, nucleon, neutron)
+  call chp_set_mass_nucleon((/9.38272046000000046D+02, 9.38918267117927371D+02, 9.39565379000000007D+02/))
+  ! (pi-, pi, pi+)
+  call chp_set_mass_pion((/1.39570179999999993D+02, 1.34976599999999991D+02, 1.39570179999999993D+02/))
+
+  call chp_set_chiral_order(N3LO)
+  call chp_set_chiral_mode(chiral_mode_EM2015)
+  call chp_set_reg("SF", 7.00000000000000000D+02)
+  call chp_set_gA(1.28899999999999992D+00)
+  call chp_set_fpi(9.22000000000000028D+01)
+  call chp_set_fine_structure(7.29735256899999990D-03)
+
+  call chp_set_Lambda(4.50000000000000000D+02)
+  call chp_set_contact_format("PW")
+
+  ! SET INCLUDED DIAGRAMS / TERMS
+
+  ! LO contacts
+  call chp_set_chiral_Ct_CIB(1) ! Use CIB contacts
+  call chp_set_CIB_LO_contact(1, -1, Ct_1S0pp) ! Ct_1S0pp
+  call chp_set_CIB_LO_contact(2, -1, Ct_3S1pp) ! Ct_3S1pp
+  call chp_set_CIB_LO_contact(1,  0, Ct_1S0np) ! Ct_1S0np
+  call chp_set_CIB_LO_contact(2,  0, Ct_3S1np) ! Ct_3S1np
+  call chp_set_CIB_LO_contact(1,  1, Ct_1S0nn) ! Ct_1S0nn
+  call chp_set_CIB_LO_contact(2,  1, Ct_3S1nn) ! Ct_3S1nn
+
+  ! NLO contacts
+  call chp_set_chiral_C(1) ! Use
+  call chp_set_NLO_contact(1, C_1S0)     ! C_1S0
+  call chp_set_NLO_contact(2, C_3P0)     ! C_3P0
+  call chp_set_NLO_contact(3, C_1P1)     ! C_1P1
+  call chp_set_NLO_contact(4, C_3P1)     ! C_3P1
+  call chp_set_NLO_contact(5, C_3S1)     ! C_3S1
+  call chp_set_NLO_contact(6, C_3S1_3D1) ! C_3S1-3D1
+  call chp_set_NLO_contact(7, C_3P2)     ! C_3P2
+
+  ! N3LO contacts
+  call chp_set_chiral_D(1) ! Use
+  call chp_set_N3LO_contact( 1, Dh_1S0)     ! Dh_1S0
+  call chp_set_N3LO_contact( 2, D_1S0)      ! D_1S0
+  call chp_set_N3LO_contact( 3, D_3P0)      ! D_3P0
+  call chp_set_N3LO_contact( 4, D_1P1)      ! D_1P1
+  call chp_set_N3LO_contact( 5, D_3P1)      ! D_3P1
+  call chp_set_N3LO_contact( 6, Dh_3S1)     ! Dh_3S1
+  call chp_set_N3LO_contact( 7, D_3S1)      ! D_3S1
+  call chp_set_N3LO_contact( 8, D_3D1)      ! D_3D1
+  call chp_set_N3LO_contact( 9, Dh_3S1_3D1) ! Dh_3S1-3D1
+  call chp_set_N3LO_contact(10, D_3S1_3D1)  ! D_3S1-3D1
+  call chp_set_N3LO_contact(11, D_1D2)      ! D_1D2
+  call chp_set_N3LO_contact(12, D_3D2)      ! D_3D2
+  call chp_set_N3LO_contact(13, D_3P2)      ! D_3P2
+  call chp_set_N3LO_contact(14, D_3P2_3F2)  ! D_3P2-3F2
+  call chp_set_N3LO_contact(15, D_3D3)      ! D_3D3
+
+  ! Set needed ci and di, if any
+  call chp_set_c1(c1)
+  call chp_set_c2(c2)
+  call chp_set_c3(c3)
+  call chp_set_c4(c4)
+  call chp_set_d1_plus_d2(d1_plus_d2)
+  call chp_set_d3(d3)
+  call chp_set_d5(d5)
+  call chp_set_d14_minus_d15(d14_minus_d15)
+
+  ! Set regulator parameter n
+  call chp_set_1PE_reg_par(3.0D0)
+  call chp_set_2PE_reg_par(3.0D0)
+  call chp_set_LO_contact_reg_par(1, 3.0D0) ! Ct_1S0
+  call chp_set_LO_contact_reg_par(2, 3.0D0) ! Ct_3S1
+  call chp_set_NLO_contact_reg_par(1, 3.0D0) ! C_1S0
+  call chp_set_NLO_contact_reg_par(2, 3.0D0) ! C_3P0
+  call chp_set_NLO_contact_reg_par(3, 3.0D0) ! C_1P1
+  call chp_set_NLO_contact_reg_par(4, 3.0D0) ! C_3P1
+  call chp_set_NLO_contact_reg_par(5, 3.0D0) ! C_3S1
+  call chp_set_NLO_contact_reg_par(6, 3.0D0) ! C_3S1-3D1
+  call chp_set_NLO_contact_reg_par(7, 3.0D0) ! C_3P2
+  call chp_set_N3LO_contact_reg_par(1, 3.0D0) ! Dh_1S0
+  call chp_set_N3LO_contact_reg_par(2, 3.0D0) ! D_1S0
+  call chp_set_N3LO_contact_reg_par(3, 3.0D0) ! D_3P0
+  call chp_set_N3LO_contact_reg_par(4, 3.0D0) ! D_1P1
+  call chp_set_N3LO_contact_reg_par(5, 3.0D0) ! D_3P1
+  call chp_set_N3LO_contact_reg_par(6, 3.0D0) ! Dh_3S1
+  call chp_set_N3LO_contact_reg_par(7, 3.0D0) ! D_3S1
+  call chp_set_N3LO_contact_reg_par(8, 3.0D0) ! D_3D1
+  call chp_set_N3LO_contact_reg_par(9, 3.0D0) ! Dh_3S1-3D1
+  call chp_set_N3LO_contact_reg_par(10, 3.0D0) ! D_3S1-3D1
+  call chp_set_N3LO_contact_reg_par(11, 3.0D0) ! D_1D2
+  call chp_set_N3LO_contact_reg_par(12, 3.0D0) ! D_3D2
+  call chp_set_N3LO_contact_reg_par(13, 3.0D0) ! D_3P2
+  call chp_set_N3LO_contact_reg_par(14, 3.0D0) ! D_3P2-3F2
+  call chp_set_N3LO_contact_reg_par(15, 3.0D0) ! D_3D3
+
+  ! Set pion exchange contributions
+  ! Basic 1PE
+  call chp_set_chiral_1PE(1) ! Use
+  ! CIB effects in 1PE
+  call chp_set_chiral_1PE_CIB(1) ! Use
+  ! pion-gamma exchange
+  call chp_set_chiral_1PE_gamma(0) ! Do not use
+  ! Relativistic corrections to 1PE
+  call chp_set_chiral_1PE_relcorr(0) ! Do not use
+
+  ! Leading 2PE
+  call chp_set_chiral_2PE_1loop_0(1) ! Use
+
+  ! 1-loop 2PE proportional to ci
+  call chp_set_chiral_2PE_1loop_d(1) ! Use
+
+  ! 1-loop 2PE proportional to 1/M_N (relativistic corrections)
+  call chp_set_chiral_2PE_1loop_r(1) ! Use
+  call chp_set_chiral_2PE_1loop_r_mode(202) ! mode 'EM 2015'
+
+  ! 1-loop 2PE proportional to ci*cj)
+  call chp_set_chiral_2PE_1loop_dd(1) ! Use
+
+  ! 1-loop 2PE proportional to ci/M_N)
+  call chp_set_chiral_2PE_1loop_dr(0) ! Do not use
+
+  ! 1-loop 2PE proportional to 1/M_N^2)
+  call chp_set_chiral_2PE_1loop_rr(0) ! Do not use
+
+  ! 2-loop 2PE
+  call chp_set_chiral_2PE_2loop(1) ! Use
+  ! Contributions to 2-loop 2PE that do not have analytical expressions
+  call chp_set_chiral_2PE_2loop_int(1) ! Use
+
+  ! Use correct nucleon mass in 2PE relativistic corrections
+  call chp_set_chiral_2PE_CSB_correct_mass(0) ! Do not use
+
+  ! Use minimal relativity
+  call chp_set_chiral_minimal_relativity(1) ! Use
+
+  ! Use Kamada-Glockle transform
+  call chp_set_chiral_kamada_glockle_transform(0) ! Do not use
+
+  call chp_set_units_and_derive_constants
+
+end subroutine chp_preset_ispot_n3lo

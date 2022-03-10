@@ -30,7 +30,8 @@ potential_model *potential_model::fetch_potential_ptr(run_params run_parameters)
 	}
 	else if (model=="IS_LO" 	 ||
 			 model=="IS_NLO" 	 ||
-			 model=="IS_N2LO"){
+			 model=="IS_N2LO" 	 ||
+			 model=="IS_N3LO"){
 		chiral_twobody *pot_ptr = new chiral_twobody();
 		pot_ptr->call_preset(model);
 		return pot_ptr;

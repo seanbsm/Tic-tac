@@ -17,6 +17,9 @@ void chiral_twobody::call_preset(std::string input_model){
 	else if (input_model=="IS_N2LO"){
 		parameters = new double [16];
 	}
+	else if (input_model=="IS_N3LO"){
+		parameters = new double [31];
+	}
 	else{
 		raise_error("Requested chiral potential " + input_model + " doesn't exist in program.");
 	}
@@ -35,6 +38,9 @@ void chiral_twobody::update_parameters(double* parameters){
 	}
 	else if (model=="IS_N2LO"){
 		chp_set_ispot_n2lo(parameters);
+	}
+	else if (model=="IS_N3LO"){
+		chp_set_ispot_n3lo(parameters);
 	}
 	else{
 		raise_error("Requested chiral potential doesn't exist in program.");

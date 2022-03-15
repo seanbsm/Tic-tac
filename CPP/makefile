@@ -27,11 +27,11 @@ CPPFLAGS := -Wall -Wno-sign-compare -Wno-unused-variable -std=c++17 -O3 -ggdb -f
 #CPPFLAGS += -Werror
 # Use MKL-types
 CPPFLAGS += -DMKL_ILP64 -m64 -DMKL_Complex16="std::complex<double>" -DMKL_Complex8="std::complex<float>" -I$(MKLROOT)/include
-FORTFLAGS_90 := -O2 -fdefault-real-8 -fdefault-double-8 -cpp -ffree-form -ffree-line-length-1000 -fPIC
-FORTFLAGS_77 := -O2
+FORTFLAGS_90 := -O3 -fdefault-real-8 -fdefault-double-8 -cpp -ffree-form -ffree-line-length-1000 -fPIC
+FORTFLAGS_77 := -O3
 
 #LDLIBS :=  -Wl,--no-as-needed -lgomp -lgsl -lgslcblas -lpthread -lm -ldl -lgfortran -lhdf5_hl_cpp -lhdf5_cpp -lhdf5_serial_hl  -lhdf5_serial 
-LDLIBS :=  -Wl,--no-as-needed -lgomp -lgsl -lpthread -lm -ldl -lgfortran -lhdf5_hl_cpp -lhdf5_cpp -lhdf5_serial_hl  -lhdf5_serial 
+LDLIBS :=  -Wl,--no-as-needed -lgomp -lgsl -lpthread -lm -ldl -lgfortran -lhdf5_hl_cpp -lhdf5_cpp  -lhdf5_serial_hl  -lhdf5_serial 
 # Use MKL-libraries
 LDLIBS += -L$(MKLROOT)/lib/intel64 -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core
 

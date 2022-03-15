@@ -486,9 +486,9 @@ void pade_method_solve(cdouble*  U_array,
 					   std::string file_identification){
 						   
 	/* Print Pade-approximant convergences */
-	bool print_PA_convergences = true;
+	bool print_PA_convergences = false;
 	/* Print Neumann terms */
-	bool print_neumann_terms   = true;
+	bool print_neumann_terms   = false;
 	/* Store Neumann terms */
 	bool store_neumann_terms   = true;
 	/* Store An-matrices */
@@ -1102,7 +1102,6 @@ void pade_method_solve(cdouble*  U_array,
 			/* Write compact format back to full format */
 			for (size_t r=0; r<num_non_conv_rows; r++){
 				size_t idx_row_NDOS = A_An_indexing_array[r];
-
 				for (size_t i=0; i<dense_dim; i++){
 					re_A_An_row_array[idx_row_NDOS*dense_dim + i] = re_A_An_row_array_prod[r*dense_dim + i];
 					im_A_An_row_array[idx_row_NDOS*dense_dim + i] = im_A_An_row_array_prod[r*dense_dim + i];
@@ -1306,6 +1305,10 @@ void pade_method_solve(cdouble*  U_array,
 	delete [] omp_CPVC_col_array;
 	delete [] omp_CPVC_row_to_nnz_array;
 	delete [] omp_CPVC_nnz_to_row_array;
+	delete [] re_A_An_row_array_comp;
+	delete [] im_A_An_row_array_comp;
+	delete [] re_A_An_row_array_prod;
+	delete [] im_A_An_row_array_prod;
 }
 
 void solve_faddeev_equations(cdouble*  U_array,

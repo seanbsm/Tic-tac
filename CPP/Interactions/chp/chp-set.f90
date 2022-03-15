@@ -29,7 +29,7 @@ subroutine chp_set_ispot_n2lo(parameter_array) bind(C,name="chp_set_ispot_n2lo")
   call chp_preset_ispot_n2lo(parameter_array)
 end subroutine chp_set_ispot_n2lo
 
-! Preset for IS N2LO
+! Preset for IS N3LO
 subroutine chp_set_ispot_n3lo(parameter_array) bind(C,name="chp_set_ispot_n3lo")
   real (8), dimension (1:31), intent (in) :: parameter_array
   call chp_preset_ispot_n3lo(parameter_array)

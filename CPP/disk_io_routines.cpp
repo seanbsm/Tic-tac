@@ -58,12 +58,12 @@ void read_parameter_sample_list(std::string filename, std::vector<double>& param
 		 * and modified on 02/03/2022 */
 		size_t pos = 0;
     	while ((pos = line.find(delimiter)) != string::npos){
-			double value = std::stod(line.substr(0, pos));
+			value = std::stod(line.substr(0, pos));
     	    parameter_vector.push_back(value);
     	    line.erase(0, pos + delimiter.length());
     	}
 		/* Last value will not have a right-space */
-		double value = std::stod(line);
+		value = std::stod(line);
     	parameter_vector.push_back(value);
 		if (first_line){
 			num_params = parameter_vector.size();

@@ -127,6 +127,7 @@ int main(int argc, char* argv[]){
 	int	num_params;
 	int num_param_sets;
 	read_parameter_sample_list(run_parameters.parameter_file, parameter_vector, num_params, num_param_sets);
+	//std::cout << num_param_sets << " " << num_params << std::endl;
 	//for (const auto &val : parameter_vector){
 	//	std::cout << val << std::endl;
 	//}
@@ -350,6 +351,7 @@ int main(int argc, char* argv[]){
 												+ "_Jmax_" + std::to_string(J_2N_max);
 				std::string U_mat_filename_t = run_parameters.output_folder + "/" + "U_PW_elements"
 																			+ file_identification
+																			+ "_PSI_" + std::to_string(idx_param_set)
 																			+ ".txt";
 
 				/* Setup struct containing all indexing relvant for desired on-shell U-matrix solutions */

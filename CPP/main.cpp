@@ -240,6 +240,12 @@ int main(int argc, char* argv[]){
 			for (int idx_param_set=0; idx_param_set<num_param_sets; idx_param_set++){
 
 				printf("   - Setting model parameters ... \n");
+				if (idx_param_set==0){
+					pot_ptr->first_parameter_sampling(true);
+				}
+				else{
+					pot_ptr->first_parameter_sampling(false);
+				}
 				pot_ptr->update_parameters(&parameter_vector[idx_param_set*num_params]);
 				printf("     - Done \n");
 

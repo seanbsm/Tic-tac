@@ -6,11 +6,17 @@ chiral_N2LOopt::chiral_N2LOopt(){
 	chp_set_N2LOopt(&parameters_n2lo_opt[0]);
 }
 
+void chiral_N2LOopt::first_parameter_sampling(bool statement){
+}
+
 void chiral_N2LOopt::update_parameters(double* parameters){
 	chp_set_N2LOopt(parameters);
 }
 
-void chiral_N2LOopt::V(double &qi, double &qo, bool coupled, int &S, int &J, int &T, int &Tz, double *Varray){
+void chiral_N2LOopt::setup_store_matrices(double* p_mesh, int Np, bool coupled, int &S, int &J, int &T, int &Tz){
+}
+
+void chiral_N2LOopt::V(int i, int j, double &qi, double &qo, bool coupled, int &S, int &J, int &T, int &Tz, double *Varray){
 	
 	double tempVarray [6];
 	

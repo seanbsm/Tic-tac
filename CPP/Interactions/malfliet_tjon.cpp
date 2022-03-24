@@ -15,10 +15,16 @@
 malfliet_tjon::malfliet_tjon(){
 }
 
+void malfliet_tjon::first_parameter_sampling(bool statement){
+}
+
 void malfliet_tjon::update_parameters(double* parameters){
 }
 
-void malfliet_tjon::V(double &qi, double &qo, bool coupled, int &S, int &J, int &T, int &Tz, double *Varray){
+void malfliet_tjon::setup_store_matrices(double* p_mesh, int Np, bool coupled, int &S, int &J, int &T, int &Tz){
+}
+
+void malfliet_tjon::V(int i, int j, double &qi, double &qo, bool coupled, int &S, int &J, int &T, int &Tz, double *Varray){
 	
 	Varray[0] = 0;
 	Varray[1] = 0;

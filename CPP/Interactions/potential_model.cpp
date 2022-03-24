@@ -32,8 +32,11 @@ potential_model *potential_model::fetch_potential_ptr(run_params run_parameters)
 			 model=="IS_NLO" 	 ||
 			 model=="IS_N2LO" 	 ||
 			 model=="IS_N3LO"){
+		/* This potential class is more complicated to call since it allows for efficient potential
+		 * construction for varying parameters by storing past calculations */
 		chiral_twobody *pot_ptr = new chiral_twobody();
 		pot_ptr->call_preset(model);
+		pot_ptr->set_run_parameters(run_parameters);
 		return pot_ptr;
 	}
 	else if (model=="N2LOopt"){

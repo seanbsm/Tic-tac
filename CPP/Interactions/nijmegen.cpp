@@ -5,9 +5,16 @@
 nijmegen::nijmegen(){
 }
 
-void nijmegen::update_parameters(double* parameters){}
+void nijmegen::first_parameter_sampling(bool statement){
+}
 
-void nijmegen::V(double &qi, double &qo, bool coupled, int &S, int &J, int &T, int &Tz, double *Varray){
+void nijmegen::update_parameters(double* parameters){
+}
+
+void nijmegen::setup_store_matrices(double* p_mesh, int Np, bool coupled, int &S, int &J, int &T, int &Tz){
+}
+
+void nijmegen::V(int i, int j, double &qi, double &qo, bool coupled, int &S, int &J, int &T, int &Tz, double *Varray){
 	
 	double tempVarray [6];
 

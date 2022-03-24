@@ -63,11 +63,13 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 	int* T_2N_array		= pw_states.T_2N_array;
 	int* two_T_3N_array	= pw_states.two_T_3N_array;
 	/* Make local pointers & variables for FWP-statespace */
-	int 	Np_WP		= fwp_states.Np_WP;
-	double* p_WP_array	= fwp_states.p_WP_array;
-	int 	Np_per_WP	= fwp_states.Np_per_WP;
-	double* p_array		= fwp_states.p_array;
-	double* wp_array	= fwp_states.wp_array;
+	int 	Np_WP		 = fwp_states.Np_WP;
+	double* p_WP_array	 = fwp_states.p_WP_array;
+	int 	Np_per_WP	 = fwp_states.Np_per_WP;
+	double* p_array		 = fwp_states.p_array;
+	double* wp_array	 = fwp_states.wp_array;
+	double* norm_p_array = fwp_states.norm_p_array;
+	double* fp_array 	 = fwp_states.fp_array;
 
 	/* This test will be reused several times */
 	bool tensor_force_true = (run_parameters.tensor_force==true);
@@ -209,11 +211,18 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 				}
 				printf("\n");
 
-				/* Skip redundant calculations by only doing the coupled calculation when L_r<L_c */
-				//if (coupled_matrix){
-				//	if ( (L_r<L_c)==false ){
-				//		continue;
-				//	}
+				/* Pre-calculate matrices for efficient parameter sampling (ONLY USED IF FIRST TIME CALLED)
+				 * for current NN-channel */
+				//int Np = 0;
+				//if (run_parameters.midpoint_approx==true){
+				//	Np = Np_WP;
+				//}
+				//else{
+				//	Np = Np_WP*Np_per_WP;
+				//}
+				//pot_ptr->setup_store_matrices(p_array, Np, coupled_model, S_r, J_r, T_r, Tz_np);
+				//if (isoscalar_type>=1){
+				//	pot_ptr->setup_store_matrices(p_array, Np, coupled_model, S_r, J_r, T_r, Tz_nn);
 				//}
 
 				/* Row p-momentum index loop */
@@ -232,21 +241,13 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 				int idx_V_WP_lower_right = 0;
 				//#pragma for
 				for (int idx_bin_r=0; idx_bin_r<Np_WP; idx_bin_r++){
-					double bin_r_lower = p_WP_array[idx_bin_r];
-					double bin_r_upper = p_WP_array[idx_bin_r + 1];
-					double N_r = p_normalization(bin_r_lower, bin_r_upper);
-
-					double*  p_array_ptr_r =  &p_array[idx_bin_r*Np_per_WP];
-					double* wp_array_ptr_r = &wp_array[idx_bin_r*Np_per_WP];
+					/* WP normalization */
+					double N_r = norm_p_array[idx_bin_r];
 
 					/* Column p-momentum index loop */
 					for (int idx_bin_c=0; idx_bin_c<Np_WP; idx_bin_c++){
-						double bin_c_lower = p_WP_array[idx_bin_c];
-						double bin_c_upper = p_WP_array[idx_bin_c + 1];
-						double N_c = p_normalization(bin_c_lower, bin_c_upper);
-
-						double*  p_array_ptr_c =  &p_array[idx_bin_c*Np_per_WP];
-						double* wp_array_ptr_c = &wp_array[idx_bin_c*Np_per_WP];
+						/* WP normalization */
+						double N_c = norm_p_array[idx_bin_c];
 
 						/* Potential matrix indexing
 						 * Indexing format: (channel index)*(num rows)*(num columns) + (row index)*(row length) + (column index) */
@@ -268,32 +269,37 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 
 						/* Calculate matrix element, using either mid-point approximation or quadrature */
 						if (run_parameters.midpoint_approx==true){
-							/* Average momentum */
-							double p_in  = 0.5*(bin_c_lower + bin_c_upper);
-							double p_out = 0.5*(bin_r_lower + bin_r_upper);
+							
+							/* Average momenta */
+							double p_in  = p_array[idx_bin_c];
+							double p_out = p_array[idx_bin_r];
 
 							/* Weigth-function terms */
-							double f_in  = p_weight_function(p_in);
-							double f_out = p_weight_function(p_out);
+							double f_in  = fp_array[idx_bin_c];
+							double f_out = fp_array[idx_bin_r];
 
 							/* Momentum bin-width */
-							double d_c   = bin_c_upper - bin_c_lower;
-							double d_r   = bin_r_upper - bin_r_lower;
+							double d_c   = p_WP_array[idx_bin_c + 1] - p_WP_array[idx_bin_c];
+							double d_r   = p_WP_array[idx_bin_r + 1] - p_WP_array[idx_bin_r];
+
+							/* Row and column indices of p_out and p_in, respectively */
+							int i = idx_bin_r;
+							int j = idx_bin_c;
 
 							/* We create an isoscalar potential */
 							if (isoscalar_type==0){ // Interaction must be np
-								pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_IS_elements);
+								pot_ptr->V(i, j, p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_IS_elements);
 							}
 							else if (isoscalar_type==1){ // Interaction can be either nn or np with IS symmetry-conservation
-								pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
-								pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
+								pot_ptr->V(i, j, p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
+								pot_ptr->V(i, j, p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
 								for (int idx_element=0; idx_element<6; idx_element++){
 									V_IS_elements[idx_element] = (2./3)*V_nn_elements[idx_element] + (1./3)*V_np_elements[idx_element];
 								}
 							}
 							else if (isoscalar_type==2 || isoscalar_type==3){ // Interaction can be either np or nn with IS symmetry-breaking
-								pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
-								pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
+								pot_ptr->V(i, j, p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
+								pot_ptr->V(i, j, p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
 								
 								/* Extract 1S0-element, using coupling as according to tensor-force only (i.e. no coupling for 1S0) */
 								double V_nn_1S0_element = extract_potential_element_from_array(L_r, L_c, J_r, S_r, false, V_nn_elements);
@@ -317,42 +323,53 @@ void calculate_potential_matrices_array_in_WP_basis(double*  V_WP_unco_array, in
 							/* We integrate into wave-packet potential and normalize */
 							for (int idx_element=0; idx_element<6; idx_element++){
 								V_WP_elements[idx_element] += p_in*p_out *f_in*f_out *d_r*d_c * V_IS_elements[idx_element] / (N_r*N_c);
-
-								//double p_r_2 = bin_r_upper*bin_r_upper - bin_r_lower*bin_r_lower;
-								//double p_c_2 = bin_c_upper*bin_c_upper - bin_c_lower*bin_c_lower;
-								//V_WP_elements[idx_element] += p_r_2 * p_c_2 * V_IS_elements[idx_element] / (4*N_r*N_c);
 							}
 						}
 						else{
 							/* Loop over quadrature inside row and column cells */
 							for (int idx_p_r=0; idx_p_r<Np_per_WP; idx_p_r++){
-								double  p_r  =  p_array_ptr_r[idx_p_r];
-								double wp_r  = wp_array_ptr_r[idx_p_r];
-								double p_out = p_r;     // variable change for easier readablity: <p_out|v|p_in>
+
+								/* Integration setup */
+								double  p_r     =  p_array[idx_bin_r*Np_per_WP + idx_p_r];
+								double wp_r     = wp_array[idx_bin_r*Np_per_WP + idx_p_r];
+								double wp_p_f_r = fp_array[idx_bin_r*Np_per_WP + idx_p_r] * wp_r*p_r;
+								
+								/* Variable change for easier readablity: <p_out|v|p_in> */
+								double p_out = p_r;
+
+								/* Row index of p_out */
+								int i = idx_bin_r*Np_per_WP + idx_p_r;
 
 								for (int idx_p_c=0; idx_p_c<Np_per_WP; idx_p_c++){
-									double  p_c =  p_array_ptr_c[idx_p_c];
-									double wp_c = wp_array_ptr_c[idx_p_c];
-									double p_in = p_c;  // variable change for easier readablity: <p_out|v|p_in>
 
-									double wp_p_f_r = wp_r*p_r*p_weight_function(p_r);
-									double wp_p_f_c = wp_c*p_c*p_weight_function(p_c);
+									/* Integration setup */
+									double  p_c 	=  p_array[idx_bin_c*Np_per_WP + idx_p_c];
+									double wp_c 	= wp_array[idx_bin_c*Np_per_WP + idx_p_c];
+									double wp_p_f_c = fp_array[idx_bin_c*Np_per_WP + idx_p_c] * wp_c*p_c;
+
+									/* Variable change for easier readablity: <p_out|v|p_in> */
+									double p_in = p_c;
+
+									/* Column index of p_in */
+									int j = idx_bin_c*Np_per_WP + idx_p_c;
+
+									/* Prefactors for quadrature and WP-weighting */
 									double integral_factors = wp_p_f_r * wp_p_f_c;
 
 									/* We create an isoscalar potential */
 									if (coupled_via_T_3N==false && isoscalar_type==0){ // Interaction must be np
-										pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_IS_elements);
+										pot_ptr->V(i, j, p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_IS_elements);
 									}
 									else if (coupled_via_T_3N==false && isoscalar_type==1){ // Interaction can be either nn or np with IS symmetry-conservation
-										pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
-										pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
+										pot_ptr->V(i, j, p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
+										pot_ptr->V(i, j, p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
 										for (int idx_element=0; idx_element<6; idx_element++){
 											V_IS_elements[idx_element] = (2./3)*V_nn_elements[idx_element] + (1./3)*V_np_elements[idx_element];
 										}
 									}
 									else if (coupled_via_T_3N==true){ // Interaction can be either np or nn with IS symmetry-breaking
-										pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
-										pot_ptr->V(p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
+										pot_ptr->V(i, j, p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_nn, V_nn_elements);
+										pot_ptr->V(i, j, p_in, p_out, coupled_model, S_r, J_r, T_r, Tz_np, V_np_elements);
 
 										/* Extract 1S0-element, using coupling as according to tensor-force only (i.e. no coupling for 1S0) */
 										double V_nn_1S0_element = extract_potential_element_from_array(L_r, L_c, J_r, S_r, false, V_nn_elements);

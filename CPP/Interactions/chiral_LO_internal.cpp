@@ -14,10 +14,16 @@ void chiral_LO_internal::setPionExchangeClass(int Jmin, int Jmax){
 	pionExchange = new OPEP(Jmin, Jmax);
 }
 
+void chiral_LO_internal::first_parameter_sampling(bool statement){
+}
+
 void chiral_LO_internal::update_parameters(double* parameters){
 }
 
-void chiral_LO_internal::V(double &qi, double &qo, bool coupled, int &S, int &J, int &T, int &Tz, double *Varray){
+void chiral_LO_internal::setup_store_matrices(double* p_mesh, int Np, bool coupled, int &S, int &J, int &T, int &Tz){
+}
+
+void chiral_LO_internal::V(int i, int j, double &qi, double &qo, bool coupled, int &S, int &J, int &T, int &Tz, double *Varray){
 	
 	Varray[0] = 0;
 	Varray[1] = 0;

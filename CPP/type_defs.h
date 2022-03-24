@@ -36,10 +36,14 @@ typedef struct fwp_statespace{
 	int 	Nq_per_WP;			// Number of q-momentum quadrature points in each q-momentum WP
 	double* p_WP_array;			// Boundaries of p-momentum WPs
 	double* q_WP_array;			// Boundaries of q-momentum WPs
-	double* p_array;			// p-momentum quadrature points, for all bins
-	double* wp_array;			// p-momentum quadrature weidghts, for all bins
-	double* q_array;			// q-momentum quadrature points, for all bins
-	double* wq_array;			// q-momentum quadrature weidghts, for all bins
+	double* p_array;			// p-momentum quadrature points/average momenta, for all bins
+	double* wp_array;			// p-momentum quadrature weights, for all bins
+	double* fp_array;			// p-momentum weight-function at p_array-points, for all bins
+	double* q_array;			// q-momentum quadrature points/average momenta, for all bins
+	double* wq_array;			// q-momentum quadrature weights, for all bins
+	double* fq_array;			// q-momentum weight-function at q_array-points, for all bins
+	double* norm_p_array;		// p-momentum normaliszation, for all bins
+	double* norm_q_array;		// q-momentum normaliszation, for all bins
 } fwp_statespace;
 
 /* Scattering wave-packet (SWP) statespace struct */

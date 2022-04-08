@@ -36,9 +36,9 @@
 #include "error_management.h"
 #include "General_functions/matrix_routines.h"
 
-void read_parameter_sample_list(std::string filename,
+void read_parameter_sample_list(run_params run_parameters,
 								std::vector<double>& parameter_vector,
-								int& num_param,
+								int& num_model_params,
 								int& num_param_sets);
 
 void read_input_energies(double*& energy_array,

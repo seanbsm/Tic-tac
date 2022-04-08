@@ -35,36 +35,38 @@ std::string type_to_string(std::string input){
 std::string create_input_printout_string(run_params run_parameters){
 	std::ostringstream output_string;
 	output_string << "Running program for:" << std::endl;
-	output_string << "two_J_3N_max:                  " << type_to_string(run_parameters.two_J_3N_max) 		  	  << "\n";
-	output_string << "Np_WP:                         " << type_to_string(run_parameters.Np_WP) 				  	  << "\n";
-	output_string << "Nq_WP:                         " << type_to_string(run_parameters.Nq_WP) 				  	  << "\n";
-	output_string << "J_2N_max:                      " << type_to_string(run_parameters.J_2N_max) 			  	  << "\n";
-	output_string << "Nphi:                          " << type_to_string(run_parameters.Nphi) 				  	  << "\n";
-	output_string << "Nx:                            " << type_to_string(run_parameters.Nx) 				  	  << "\n";
-	output_string << "chebyshev sparseness:          " << type_to_string(run_parameters.chebyshev_t) 		  	  << "\n";
-	output_string << "chebyshev scale:               " << type_to_string(run_parameters.chebyshev_s) 		  	  << "\n";
-	output_string << "Np_per_WP:                     " << type_to_string(run_parameters.Np_per_WP) 			  	  << "\n";
-	output_string << "Nq_per_WP:                     " << type_to_string(run_parameters.Nq_per_WP) 			  	  << "\n";
-	output_string << "P123-recovery mode on:         " << type_to_string(run_parameters.P123_recovery) 		  	  << "\n";
-	output_string << "P123 omp number of threads:    " << type_to_string(run_parameters.P123_omp_num_threads) 	  << "\n";
-	output_string << "Tensor-force on:               " << type_to_string(run_parameters.tensor_force) 		  	  << "\n";
-	output_string << "Isospin-breaking in 1S0:       " << type_to_string(run_parameters.isospin_breaking_1S0) 	  << "\n";
-	output_string << "Mid-point approximation:       " << type_to_string(run_parameters.midpoint_approx) 	  	  << "\n";
-	output_string << "Calculate P123 and store:      " << type_to_string(run_parameters.calculate_and_store_P123) << "\n";
-	output_string << "Solve Faddeev equation:        " << type_to_string(run_parameters.solve_faddeev)   	  	  << "\n";
-	output_string << "Production run:                " << type_to_string(run_parameters.production_run)  	  	  << "\n";
-	output_string << "Potential model:               " << type_to_string(run_parameters.potential_model) 	  	  << "\n";
-	output_string << "p-momentum grid type:          " << type_to_string(run_parameters.p_grid_type) 		  	  << "\n";
-	output_string << "p-momentum grid input file:    " << type_to_string(run_parameters.p_grid_filename) 	  	  << "\n";
-	output_string << "q-momentum grid type:          " << type_to_string(run_parameters.q_grid_type) 		  	  << "\n";
-	output_string << "q-momentum grid input file:    " << type_to_string(run_parameters.q_grid_filename) 	  	  << "\n";
-	output_string << "Parameter walk:                " << type_to_string(run_parameters.parameter_walk)		  	  << "\n";
-	output_string << "Parameter input file:          " << type_to_string(run_parameters.parameter_file)		  	  << "\n";
-	output_string << "Output folder:                 " << type_to_string(run_parameters.output_folder) 		  	  << "\n";
-	output_string << "P123-matrix read/write folder: " << type_to_string(run_parameters.P123_folder) 		  	  << "\n";
-	output_string << "Parallel run:                  " << type_to_string(run_parameters.parallel_run)  		  	  << "\n";
+	output_string << "two_J_3N_max:                    " << type_to_string(run_parameters.two_J_3N_max) 		  	  	<< "\n";
+	output_string << "Np_WP:                           " << type_to_string(run_parameters.Np_WP) 				  	  	<< "\n";
+	output_string << "Nq_WP:                           " << type_to_string(run_parameters.Nq_WP) 				  	  	<< "\n";
+	output_string << "J_2N_max:                        " << type_to_string(run_parameters.J_2N_max) 			  	  	<< "\n";
+	output_string << "Nphi:                            " << type_to_string(run_parameters.Nphi) 				  	  	<< "\n";
+	output_string << "Nx:                              " << type_to_string(run_parameters.Nx) 				  	  		<< "\n";
+	output_string << "chebyshev sparseness:            " << type_to_string(run_parameters.chebyshev_t) 		  	  		<< "\n";
+	output_string << "chebyshev scale:                 " << type_to_string(run_parameters.chebyshev_s) 		  	  		<< "\n";
+	output_string << "Np_per_WP:                       " << type_to_string(run_parameters.Np_per_WP) 			  	  	<< "\n";
+	output_string << "Nq_per_WP:                       " << type_to_string(run_parameters.Nq_per_WP) 			  	  	<< "\n";
+	output_string << "P123-recovery mode on:           " << type_to_string(run_parameters.P123_recovery) 		  	  	<< "\n";
+	output_string << "P123 omp number of threads:      " << type_to_string(run_parameters.P123_omp_num_threads) 	  	<< "\n";
+	output_string << "Tensor-force on:                 " << type_to_string(run_parameters.tensor_force) 		  	  	<< "\n";
+	output_string << "Isospin-breaking in 1S0:         " << type_to_string(run_parameters.isospin_breaking_1S0) 	  	<< "\n";
+	output_string << "Mid-point approximation:         " << type_to_string(run_parameters.midpoint_approx) 	  	  		<< "\n";
+	output_string << "Calculate P123 and store:        " << type_to_string(run_parameters.calculate_and_store_P123) 	<< "\n";
+	output_string << "Solve Faddeev equation:          " << type_to_string(run_parameters.solve_faddeev)   	  	  		<< "\n";
+	output_string << "Production run:                  " << type_to_string(run_parameters.production_run)  	  	  		<< "\n";
+	output_string << "Potential model:                 " << type_to_string(run_parameters.potential_model) 	  	  		<< "\n";
+	output_string << "p-momentum grid type:            " << type_to_string(run_parameters.p_grid_type) 		  	  		<< "\n";
+	output_string << "p-momentum grid input file:      " << type_to_string(run_parameters.p_grid_filename) 	  	  		<< "\n";
+	output_string << "q-momentum grid type:            " << type_to_string(run_parameters.q_grid_type) 		  	  		<< "\n";
+	output_string << "q-momentum grid input file:      " << type_to_string(run_parameters.q_grid_filename) 	  	  		<< "\n";
+	output_string << "Parameter walk:                  " << type_to_string(run_parameters.parameter_walk)		  		<< "\n";
+	output_string << "Parameter input file:            " << type_to_string(run_parameters.parameter_file)		  		<< "\n";
+	output_string << "Parameter set index (PSI) start: " << type_to_string(run_parameters.PSI_start)		  			<< "\n";
+	output_string << "Parameter set index (PSI) end:   " << type_to_string(run_parameters.PSI_end)		  				<< "\n";
+	output_string << "Output folder:                   " << type_to_string(run_parameters.output_folder) 		  		<< "\n";
+	output_string << "P123-matrix read/write folder:   " << type_to_string(run_parameters.P123_folder) 		  	  		<< "\n";
+	output_string << "Parallel run:                    " << type_to_string(run_parameters.parallel_run)  		  	  	<< "\n";
 	if(run_parameters.parallel_run==true){
-	output_string << "Channel index:                 " << type_to_string(run_parameters.channel_idx) 		  	  << "\n";
+	output_string << "Channel index:                   " << type_to_string(run_parameters.channel_idx) 		  	  		<< "\n";
 	}
 	return output_string.str();
 }
@@ -108,6 +110,12 @@ bool read_and_set_parameter(run_params& run_parameters, std::string option, std:
 	}
 	else if (option == "max_TFC"){
 		run_parameters.max_TFC = std::stoi(input);
+	}
+	else if (option == "PSI_start"){
+		run_parameters.PSI_start = std::stoi(input);
+	}
+	else if (option == "PSI_end"){
+		run_parameters.PSI_end = std::stoi(input);
 	}
 	else if (option == "parallel_run"){
 		if (input=="true" || input=="false"){
@@ -359,6 +367,18 @@ void show_usage(){
 			  << "Example:            parameter_walk=Input/samples.txt -> Program reads samples.txt line-by-line and loops through values \n"
 			  << seperationLine
 			  << std::endl;
+			  
+	std::cout << "PSI_start:     	  Index of parameter set to start iteration through parameter_file. (!!! ZERO-BASED INDEXING !!!) \n"
+			  << "Example:            PSI_start=10 -> Program reads parameter_file, and starts iteration of parameters sets at line 10 \n"
+			  << seperationLine
+			  << std::endl;
+			  
+	std::cout << "PSI_end:     	      Index of parameter set to end iteration through parameter_file. (!!! ZERO-BASED INDEXING !!!) \n"
+			  << "Example:            PSI_end=20 -> Program reads parameter_file, and ends iteration of parameters sets at line 19 (not using line 20) \n"
+			  << "                                  Combined example with PSI_start: if PSI_start=0 and PSI_end=10, the code requires a file with \n"
+			  << "                                  at least 10 lines of parameter sets, where the first line is given index 0, such that PSI=[0,1,...,9]."
+			  << seperationLine
+			  << std::endl;
 	
 	std::cout << "energy_input_file:  Sets in which file in Input to read for Tlab energies used in T-matrix calculation.\n"
 			  << "Example:            energy_input_file=Tlabs -> Program reads file <Tlabs.txt> \n"
@@ -445,6 +465,8 @@ void set_default_values(run_params& run_parameters){
 	run_parameters.max_TFC				    = -1;
 	run_parameters.parameter_walk 	        = false;
 	run_parameters.parameter_file 	        = "none";
+	run_parameters.PSI_start				= -1;
+	run_parameters.PSI_end				    = -1;
 	run_parameters.P123_recovery		    = false;
 	run_parameters.tensor_force			    = true;
 	run_parameters.isospin_breaking_1S0     = true;

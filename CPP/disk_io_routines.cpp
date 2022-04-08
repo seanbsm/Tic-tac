@@ -40,7 +40,10 @@ void open_readfile(std::ifstream &file,
     }
 }
 
-void read_parameter_sample_list(std::string filename, std::vector<double>& parameter_vector, int& num_params, int& num_param_sets){
+void read_parameter_sample_list(run_params run_parameters, std::vector<double>& parameter_vector, int& num_model_params, int& num_param_sets){
+
+	std::string filename = run_parameters.parameter_file;
+
 	/* Define file with input */
 	std::ifstream infile(filename);
 	
@@ -66,12 +69,12 @@ void read_parameter_sample_list(std::string filename, std::vector<double>& param
 		value = std::stod(line);
     	parameter_vector.push_back(value);
 		if (first_line){
-			num_params = parameter_vector.size();
+			num_model_params = parameter_vector.size();
 			first_line = false;
 		}
 	}
 
-	num_param_sets = parameter_vector.size() / num_params;
+	num_param_sets = parameter_vector.size() / num_model_params;
 }
 
 void read_input_energies(double*& energy_array,

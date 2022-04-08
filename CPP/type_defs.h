@@ -104,6 +104,8 @@ typedef struct run_params{
 	bool		solve_faddeev;
 	bool		production_run;
 	bool	    parameter_walk;
+	int			PSI_start;
+	int			PSI_end;
 	std::string potential_model;
 	std::string subfolder;
 	std::string p_grid_type;

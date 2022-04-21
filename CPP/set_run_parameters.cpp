@@ -218,7 +218,10 @@ bool read_and_set_parameter(run_params& run_parameters, std::string option, std:
 	}
 	else if (option == "P123_folder"){
 			run_parameters.P123_folder = input;
-		}
+	}
+	else if (option == "ignore_state"){
+			run_parameters.ignore_state = input;
+	}
 	else{
 		valid_option_found = false;
 	}
@@ -477,6 +480,7 @@ void set_default_values(run_params& run_parameters){
 	run_parameters.energy_input_file        = "lab_energies.txt";
 	run_parameters.output_folder  	        = "Output";
 	run_parameters.P123_folder  	        = "Output";
+	run_parameters.ignore_state  	        = "none";
 }
 
 void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){

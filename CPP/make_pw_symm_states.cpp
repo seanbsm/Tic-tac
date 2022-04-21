@@ -179,9 +179,9 @@ void construct_symmetric_pw_states(pw_3N_statespace& pw_states,
 												//}
 
 												/* Disregard 3P0 */
-												if (L_2N==1 && S_2N==1 && J_2N==0 && T_2N==1){
-													continue;
-												}
+												//if (L_2N==1 && S_2N==1 && J_2N==0 && T_2N==1){
+												//	continue;
+												//}
 
 												/* Disregard 3P1 */
 												//if (L_2N==1 && S_2N==1 && J_2N==1 && T_2N==1){

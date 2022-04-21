@@ -197,9 +197,29 @@ void calculate_resolvent_array_in_SWP_basis(cdouble* G_array,
 					//std::cout << Q << std::endl;
 				}
 
+				bool state_3P0 = (L==1 && S==1 && J==0 && T==1);
+				bool state_3P1 = (L==1 && S==1 && J==1 && T==1);
+				bool state_3P2 = (L==1 && S==1 && J==2 && T==1);
+				bool state_3F2 = (L==3 && S==1 && J==2 && T==1);
+				bool invalid_chn = false;
+				if (run_parameters.ignore_state=="3P0"){
+					invalid_chn = state_3P0;									// 3P0
+				}
+				else if  (run_parameters.ignore_state=="3P1"){
+					invalid_chn = state_3P1;									// 3P1
+				}
+				else if  (run_parameters.ignore_state=="3P2-3F2"){
+					invalid_chn = (state_3P2 || state_3F2);		// 3P2-3F2
+				}
+
 				/* Use identical indexing as used in permutation matrix */
 				int G_idx = idx_alpha*Nq_WP*Np_WP + idx_q_bin*Np_WP + idx_p_bin;
-				G_array[G_idx] = R + Q;
+				if (invalid_chn){
+					G_array[G_idx] = 0;
+				}
+				else{
+					G_array[G_idx] = R + Q;
+				}
 
 				//if (e_bin_lower<0){
 				//	std::cout << R << " " << Q << std::endl;

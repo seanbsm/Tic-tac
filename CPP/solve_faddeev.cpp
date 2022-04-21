@@ -1562,6 +1562,25 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 			bool check_l = (L_1N_r==L_1N_c);
 			bool check_j = (two_J_1N_r==two_J_1N_c);
 
+			bool state_3P0_r = (L_2N_r==1 && S_2N_r==1 && J_2N_r==0 && T_2N_r==1);
+			bool state_3P1_r = (L_2N_r==1 && S_2N_r==1 && J_2N_r==1 && T_2N_r==1);
+			bool state_3P2_r = (L_2N_r==1 && S_2N_r==1 && J_2N_r==2 && T_2N_r==1);
+			bool state_3F2_r = (L_2N_r==3 && S_2N_r==1 && J_2N_r==2 && T_2N_r==1);
+			bool state_3P0_c = (L_2N_c==1 && S_2N_c==1 && J_2N_c==0 && T_2N_c==1);
+			bool state_3P1_c = (L_2N_c==1 && S_2N_c==1 && J_2N_c==1 && T_2N_c==1);
+			bool state_3P2_c = (L_2N_c==1 && S_2N_c==1 && J_2N_c==2 && T_2N_c==1);
+			bool state_3F2_c = (L_2N_c==3 && S_2N_c==1 && J_2N_c==2 && T_2N_c==1);
+			bool invalid_chn = false;
+			if (run_parameters.ignore_state=="3P0"){
+				invalid_chn = (state_3P0_r || state_3P0_c);									// 3P0
+			}
+			else if  (run_parameters.ignore_state=="3P1"){
+				invalid_chn = (state_3P1_r || state_3P1_c);									// 3P1
+			}
+			else if  (run_parameters.ignore_state=="3P2-3F2"){
+				invalid_chn = (state_3P2_r || state_3F2_r || state_3P2_c || state_3F2_c);		// 3P2-3F2
+			}
+
 			/* Check if possible channel through interaction */
 			if (check_T && check_J && check_S && check_L && check_l && check_j){
 
@@ -1579,7 +1598,10 @@ void create_CT_row_maj_3N_pointer_array(double** CT_RM_array,
 				}
 
 				/* find which VC-product corresponds to the current coupling */
-				if (coupled_matrix){
+				if (invalid_chn){
+					CT_subarray = NULL;
+				}
+				else if (coupled_matrix){
 					size_t idx_chn_coup       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, coupled_matrix, run_parameters);
 					size_t idx_2N_mat_WP_coup = idx_chn_coup*4*Np_WP*Np_WP;
 					if ( (coupled_via_L_2N && L_2N_r<L_2N_c) || (coupled_via_T_3N && two_T_3N_r<two_T_3N_c) ){       // L_r=J_r-1, L_c=J_r+1 OR (for 1S0) two_T_3N_r==1/2, two_T_3N_c==3/2
@@ -1740,6 +1762,25 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 			bool check_l = (L_1N_r==L_1N_c);
 			bool check_j = (two_J_1N_r==two_J_1N_c);
 
+			bool state_3P0_r = (L_2N_r==1 && S_2N_r==1 && J_2N_r==0 && T_2N_r==1);
+			bool state_3P1_r = (L_2N_r==1 && S_2N_r==1 && J_2N_r==1 && T_2N_r==1);
+			bool state_3P2_r = (L_2N_r==1 && S_2N_r==1 && J_2N_r==2 && T_2N_r==1);
+			bool state_3F2_r = (L_2N_r==3 && S_2N_r==1 && J_2N_r==2 && T_2N_r==1);
+			bool state_3P0_c = (L_2N_c==1 && S_2N_c==1 && J_2N_c==0 && T_2N_c==1);
+			bool state_3P1_c = (L_2N_c==1 && S_2N_c==1 && J_2N_c==1 && T_2N_c==1);
+			bool state_3P2_c = (L_2N_c==1 && S_2N_c==1 && J_2N_c==2 && T_2N_c==1);
+			bool state_3F2_c = (L_2N_c==3 && S_2N_c==1 && J_2N_c==2 && T_2N_c==1);
+			bool invalid_chn = false;
+			if (run_parameters.ignore_state=="3P0"){
+				invalid_chn = (state_3P0_r || state_3P0_c);									// 3P0
+			}
+			else if  (run_parameters.ignore_state=="3P1"){
+				invalid_chn = (state_3P1_r || state_3P1_c);									// 3P1
+			}
+			else if  (run_parameters.ignore_state=="3P2-3F2"){
+				invalid_chn = (state_3P2_r || state_3F2_r || state_3P2_c || state_3F2_c);		// 3P2-3F2
+			}
+
 			/* Check if possible channel through interaction */
 			if (check_T && check_J && check_S && check_L && check_l && check_j){
 
@@ -1757,7 +1798,10 @@ void create_VC_col_maj_3N_pointer_array(double** VC_CM_array,
 				}
 
 				/* find which VC-product corresponds to the current coupling */
-				if (coupled_matrix){
+				if (invalid_chn){
+					VC_product = NULL;
+				}
+				else if (coupled_matrix){
 					size_t idx_chn_coup       = (size_t) unique_2N_idx(L_2N_r, S_2N_r, J_2N_r, T_2N_r, coupled_matrix, run_parameters);
 					size_t idx_2N_mat_WP_coup = idx_chn_coup*4*Np_WP*Np_WP;
 					if ( (coupled_via_L_2N && L_2N_r<L_2N_c) || (coupled_via_T_3N && two_T_3N_r<two_T_3N_c) ){       // L_r=J_r-1, L_c=J_r+1 OR (for 1S0) two_T_3N_r==1/2, two_T_3N_c==3/2

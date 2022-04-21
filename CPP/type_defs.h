@@ -116,6 +116,7 @@ typedef struct run_params{
 	std::string energy_input_file;
     std::string output_folder;
 	std::string P123_folder;
+	std::string ignore_state;
 } run_params;
 
 /* Structs for compact storage */

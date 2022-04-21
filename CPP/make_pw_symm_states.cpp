@@ -174,10 +174,23 @@ void construct_symmetric_pw_states(pw_3N_statespace& pw_states,
 												}
 
 												/* Quartet channel for Malfliet-Tjon debugging */
-												//if (L_2N!=0 ||
-												//	S_2N!=0 ||
-												//	J_2N!=0 ||
-												//	T_2N!=1){
+												//if (L_2N!=0 || S_2N!=0 || J_2N!=0 || T_2N!=1){
+												//	continue;
+												//}
+
+												/* Disregard 3P0 */
+												if (L_2N==1 && S_2N==1 && J_2N==0 && T_2N==1){
+													continue;
+												}
+
+												/* Disregard 3P1 */
+												//if (L_2N==1 && S_2N==1 && J_2N==1 && T_2N==1){
+												//	continue;
+												//}
+
+												/* Disregard 3P2 and 3F2 */
+												//if ((L_2N==1 && S_2N==1 && J_2N==2 && T_2N==1) || 
+												//	(L_2N==3 && S_2N==1 && J_2N==2 && T_2N==1)){
 												//	continue;
 												//}
 

@@ -1,2 +1,2 @@
-# 3N-scattering-simulator
-Code in development for the simulation of 3-nucleon scattering
+# Tic-tac: Two is company, three's a crowd
+Research code for the simulation of three-nucleon scattering in preparation for open-source use

@@ -13,7 +13,7 @@ Currently, Tic-tac can produce on-shell neutron-deuteron scattering amplitudes (
  - How to cite
 
 ## Dependencies
-Tic-tac relies depends on the following libraries:
+Tic-tac depends on the following libraries:
  - [BLAS](https://netlib.org/blas/)
  - [LAPACK](https://netlib.org/lapack/)
  - [OpenMP](https://www.openmp.org/)

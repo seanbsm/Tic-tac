@@ -37,11 +37,11 @@ A makefile example exists in the repository, but there exists currently no way t
 ## Running the code
 There exists a help-functionality built into Tic-tac. Assuming the Tic-tac executable is named `run`, one can run
 ```
-./run --h
+./run -h
 ```
 or 
 ```
-./run -help
+./run --help
 ```
 which displays all available input-arguments to Tic-tac and their function. One can change arguments directly as input on the command-line or write arguments in a `.txt` input file which Tic-tac reads and interprets. If the input-arguments is not of the expected type, for example a float instead of an integer, Tic-tac will stop running.
 

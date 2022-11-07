@@ -19,6 +19,5 @@ void check_h5_read_call(herr_t ret);
 void check_h5_write_call(herr_t ret);
 void check_h5_read_table_call(herr_t ret);
 void check_h5_close_call(herr_t ret);
-bool verify_sparse_mkl_success(sparse_status_t mkl_sparse_status, bool print_true);
 
 #endif // ERROR_MANAGEMENT_H

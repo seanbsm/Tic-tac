@@ -13,7 +13,6 @@
 
 /* MKL libraries */
 #include "mkl.h"
-#include "mkl_spblas.h"
 
 void raise_error (std::string error_cause);
 void check_h5_read_call(herr_t ret);

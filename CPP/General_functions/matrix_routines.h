@@ -9,7 +9,6 @@
 #include <algorithm>
 #include "mkl.h"
 #include "mkl_dss.h"
-#include "mkl_spblas.h"
 
 #include "templates.h"
 #include "../error_management.h"

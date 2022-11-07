@@ -1,7 +1,7 @@
 
 # the compiler to use
 CC  := g++
-CXX := g++-9
+CXX := g++
 XLF := gfortran
 #XLF_77 := gfortran -std=legacy -O2 -fdefault-real-8 -fdefault-double-8 -cpp -ffree-form -ffree-line-length-1000 -fPIC
 

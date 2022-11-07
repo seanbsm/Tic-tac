@@ -1,7 +1,7 @@
 # Run "-h" or "--help" to see meaning of arguments
 two_J_3N_max=1
-Np_WP=50
-Nq_WP=50
+Np_WP=30
+Nq_WP=30
 J_2N_max=1
 Nphi=48
 Nx=48
@@ -18,9 +18,9 @@ max_TFC=2
 parallel_run=true
 P123_recovery=false
 tensor_force=true
-isospin_breaking_1S0=false
+isospin_breaking_1S0=true
 midpoint_approx=false
-calculate_and_store_P123=false
+calculate_and_store_P123=true
 solve_faddeev=true
 production_run=true
 potential_model=N2LOopt

@@ -124,17 +124,16 @@ int main(int argc, char* argv[]){
 	/* Start of code segment for reading input model parameters (if enabled) */
 
 	std::vector<double> parameter_vector;
-	int num_params_to_loop = run_parameters.PSI_end - run_parameters.PSI_start;
-	int	num_params_in_file;
-	int num_model_params;
-	read_parameter_sample_list(run_parameters, parameter_vector, num_model_params, num_params_in_file);
-	if (num_params_to_loop>num_params_in_file){
-		raise_error("PSI-range given is larger than parameter-set input file.");
+	int num_params_to_loop = 0;
+	int	num_params_in_file = 0;
+	int num_model_params   = 0;
+	if (run_parameters.parameter_walk==true){
+		num_params_to_loop = run_parameters.PSI_end - run_parameters.PSI_start;
+		read_parameter_sample_list(run_parameters, parameter_vector, num_model_params, num_params_in_file);
+		if (num_params_to_loop>num_params_in_file){
+			raise_error("PSI-range given is larger than parameter-set input file.");
+		}
 	}
-	//std::cout << num_param_sets << " " << num_params << std::endl;
-	//for (const auto &val : parameter_vector){
-	//	std::cout << val << std::endl;
-	//}
 
 	/* End of code segment for reading input model parameters (if enabled) */
 	/* ################################################################################################################### */
@@ -241,17 +240,26 @@ int main(int argc, char* argv[]){
 			printf("     - Done \n");
 
 			printf(" - Looping through input parameter sets ... \n");
-			for (int idx_param_set=run_parameters.PSI_start; idx_param_set<run_parameters.PSI_end; idx_param_set++){
+			int idx_param_min = 0;
+			int idx_param_max = 1;
+			if (run_parameters.parameter_walk==true){
+				idx_param_min = run_parameters.PSI_start;
+				idx_param_max = run_parameters.PSI_end;
+			}
 
-				printf("   - Setting model parameters for PSI %d ... \n", idx_param_set);
-				if (idx_param_set==run_parameters.PSI_start){
-					pot_ptr->first_parameter_sampling(true);
+			for (int idx_param_set=idx_param_min; idx_param_set<idx_param_max; idx_param_set++){
+				
+				if (run_parameters.parameter_walk==true){
+					printf("   - Setting model parameters for PSI %d ... \n", idx_param_set);
+					if (idx_param_set==run_parameters.PSI_start){
+						pot_ptr->first_parameter_sampling(true);
+					}
+					else{
+						pot_ptr->first_parameter_sampling(false);
+					}
+					pot_ptr->update_parameters(&parameter_vector[idx_param_set*num_model_params]);
+					printf("     - Done \n");
 				}
-				else{
-					pot_ptr->first_parameter_sampling(false);
-				}
-				pot_ptr->update_parameters(&parameter_vector[idx_param_set*num_model_params]);
-				printf("     - Done \n");
 
 				/* ################################################################################################################### */
 				/* ################################################################################################################### */

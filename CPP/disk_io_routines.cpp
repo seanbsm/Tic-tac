@@ -73,7 +73,7 @@ void read_parameter_sample_list(run_params run_parameters, std::vector<double>& 
 			first_line = false;
 		}
 	}
-
+	
 	num_param_sets = parameter_vector.size() / num_model_params;
 }
 

@@ -978,7 +978,7 @@ void read_and_merge_thread_files_to_single_array(double** P123_val_sparse_array,
 																	  P123_folder);
 			
 			/* Verify that file exists */
-			if (std::filesystem::exists(thread_filename)==false){
+			if (std::experimental::filesystem::exists(thread_filename)==false){
 				printf("     - WARNING file not found: %s \n", thread_filename.c_str()); 
 				printf("       Are you certain input P123 thread files are complete? \n");
 				printf("       Program will ignore file and continue ... \n");

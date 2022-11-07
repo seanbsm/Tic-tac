@@ -31,7 +31,7 @@ FORTFLAGS_90 := -O3 -fdefault-real-8 -fdefault-double-8 -cpp -ffree-form -ffree-
 FORTFLAGS_77 := -O3
 
 #LDLIBS :=  -Wl,--no-as-needed -lgomp -lgsl -lgslcblas -lpthread -lm -ldl -lgfortran -lhdf5_hl_cpp -lhdf5_cpp -lhdf5_serial_hl  -lhdf5_serial 
-LDLIBS :=  -Wl,--no-as-needed -lgomp -lgsl -lpthread -lm -ldl -lgfortran -lhdf5_hl_cpp -lhdf5_cpp  -lhdf5_serial_hl  -lhdf5_serial 
+LDLIBS :=  -Wl,--no-as-needed -lgomp -lgsl -lpthread -lm -ldl -lgfortran -lhdf5_hl_cpp -lhdf5_cpp  -lhdf5_serial_hl  -lhdf5_serial -lstdc++fs
 # Use MKL-libraries
 LDLIBS += -L$(MKLROOT)/lib/intel64 -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core
 

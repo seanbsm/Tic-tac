@@ -346,31 +346,20 @@ int main(int argc, char* argv[]){
 				/* ################################################################################################################### */
 				/* ################################################################################################################### */
 				/* ################################################################################################################### */
-				/* Start of code segment for locating on-shell nucleon-deuteron states */
+				/* Start of code segment for locating on-shell indices */
 
 				/* Locate and index on-shell bins from input energies */
+				printf(" - Identifying on-shell channels for given input ... \n");
 				find_on_shell_bins(solve_config,
-								swp_states,
-								run_parameters);
+								   pw_substates,
+								   fwp_states,
+								   swp_states,
+								   run_parameters);
 
 				/* Locate and index deuteron channels */
 				find_deuteron_channels(solve_config,
 									pw_states);
-			
-				/* End of code segment for locating on-shell nucleon-deuteron states */
-				/* ################################################################################################################### */
-				/* ################################################################################################################### */
-				/* ################################################################################################################### */
-
-				std::string file_identification =   "_Np_"   + std::to_string(swp_states.Np_WP)
-												+ "_Nq_"   + std::to_string(swp_states.Nq_WP)
-												+ "_JP_"   + std::to_string(two_J_3N)
-												+ "_"      + std::to_string(P_3N)
-												+ "_Jmax_" + std::to_string(J_2N_max);
-				std::string U_mat_filename_t = run_parameters.output_folder + "/" + "U_PW_elements"
-																			+ file_identification
-																			+ "_PSI_" + std::to_string(idx_param_set)
-																			+ ".txt";
+				printf("   - Done \n");
 
 				/* Setup struct containing all indexing relvant for desired on-shell U-matrix solutions */
 				channel_os_indexing chn_os_indexing;
@@ -379,6 +368,10 @@ int main(int argc, char* argv[]){
 				chn_os_indexing.num_deuteron_states = solve_config.deuteron_num_array[chn_3N];
 				chn_os_indexing.deuteron_idx_array  = solve_config.deuteron_idx_arrays[chn_3N];
 
+				/* End of code segment for locating on-shell indices */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
+				/* ################################################################################################################### */
 				/* Start of code segment for resolvent matrix (diagonal array) construction */
 
 				/* Resolvent array */
@@ -395,13 +388,18 @@ int main(int argc, char* argv[]){
 															run_parameters);
 				}
 				printf("   - Done \n");
-				
 
 				/* End of code segment for resolvent matrix (diagonal array) construction */
 				/* ################################################################################################################### */
 				/* ################################################################################################################### */
 				/* ################################################################################################################### */
 				/* Start of code segment for iterations of elastic Faddeev equations */
+
+				std::string file_identification =   "_Np_"   + std::to_string(swp_states.Np_WP)
+												+ "_Nq_"   + std::to_string(swp_states.Nq_WP)
+												+ "_JP_"   + std::to_string(two_J_3N)
+												+ "_"      + std::to_string(P_3N)
+												+ "_Jmax_" + std::to_string(J_2N_max);
 				
 				cdouble* U_array = new cdouble [chn_os_indexing.num_T_lab
 											  * chn_os_indexing.num_deuteron_states
@@ -428,6 +426,11 @@ int main(int argc, char* argv[]){
 				/* ################################################################################################################### */
 				/* ################################################################################################################### */
 				/* Start of code segment for storing on-shell U-matrix solutions */
+
+				std::string U_mat_filename_t = run_parameters.output_folder + "/" + "U_PW_elements"
+																			+ file_identification
+																			+ "_PSI_" + std::to_string(idx_param_set)
+																			+ ".txt";
 
 				store_U_matrix_elements_txt(U_array,
 											solve_config,

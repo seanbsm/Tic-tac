@@ -448,7 +448,7 @@ void set_default_values(run_params& run_parameters){
 	run_parameters.Nq_WP		 	        = 50;
 	run_parameters.J_2N_max	  	  	        = 3;
 	run_parameters.Nphi		 		        = 48;
-	run_parameters.Nx 			 	        = 15;
+	run_parameters.Nx 			 	        = 48;
 	run_parameters.chebyshev_t		        = 1;
 	run_parameters.chebyshev_s		        = 100;
 	run_parameters.Np_per_WP	 	        = 8;

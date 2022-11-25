@@ -304,7 +304,7 @@ int main(int argc, char* argv[]){
 				calculate_potential_matrices_array_in_WP_basis(V_WP_unco_array, num_2N_unco_states,
 															V_WP_coup_array, num_2N_coup_states,
 															fwp_states,
-															pw_states,
+															pw_states,				// This should be replaced with pw_substates
 															pot_ptr,
 															run_parameters);
 				printf("   - Done \n");
@@ -337,7 +337,7 @@ int main(int argc, char* argv[]){
 								E_bound,
 								fwp_states,
 								swp_states,
-								pw_states,
+								pw_states,				// This should be replaced with pw_substates
 								run_parameters);
 				printf("   - Using E_bound = %.5f MeV \n", E_bound);
 				printf("   - Done \n");
@@ -348,9 +348,13 @@ int main(int argc, char* argv[]){
 				/* ################################################################################################################### */
 				/* Start of code segment for locating on-shell indices */
 
+				/* Setup struct containing all indexing relvant for desired on-shell U-matrix solutions */
+				channel_os_indexing chn_os_indexing;
+
 				/* Locate and index on-shell bins from input energies */
 				printf(" - Identifying on-shell channels for given input ... \n");
 				find_on_shell_bins(solve_config,
+								   chn_os_indexing,
 								   pw_substates,
 								   fwp_states,
 								   swp_states,
@@ -358,11 +362,11 @@ int main(int argc, char* argv[]){
 
 				/* Locate and index deuteron channels */
 				find_deuteron_channels(solve_config,
-									pw_states);
+									   pw_states);
 				printf("   - Done \n");
 
-				/* Setup struct containing all indexing relvant for desired on-shell U-matrix solutions */
-				channel_os_indexing chn_os_indexing;
+				/* The use of both solve_config and chn_os_indexing is redundant, hence this copying.
+				*  Should be merged in future. */
 				chn_os_indexing.num_T_lab			= solve_config.num_T_lab;
 				chn_os_indexing.q_com_idx_array		= solve_config.q_com_idx_array;
 				chn_os_indexing.num_deuteron_states = solve_config.deuteron_num_array[chn_3N];
@@ -404,9 +408,13 @@ int main(int argc, char* argv[]){
 				cdouble* U_array = new cdouble [chn_os_indexing.num_T_lab
 											  * chn_os_indexing.num_deuteron_states
 											  * chn_os_indexing.num_deuteron_states];
-
+				
+				cdouble* U_BU_array = new cdouble [chn_os_indexing.num_T_lab
+											     * chn_os_indexing.num_BU_chns];
+												 
 				printf(" - Solving Faddeev equation ... \n");
 				solve_faddeev_equations(U_array,
+										U_BU_array,
 										G_array,
 										P123_sparse_val_array,
 										P123_sparse_row_array,

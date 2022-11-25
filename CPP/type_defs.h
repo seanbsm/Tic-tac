@@ -68,20 +68,20 @@ typedef struct solution_configuration{
 	double* q_com_array;			// On-shell c.m. q-momenta (q_com)
 	double* E_com_array;			// On-shell c.m. energies  (E_com)
 	int*    q_com_idx_array;		// Index-array for on-shell q-bin (used for elastic scattering)
-	int*    alphapq_idx_array;		// Index-array for on-shell alpha-,p-,q-bins (used for breakup)
 	int**   deuteron_idx_arrays;	// Index-arrays deuteron-channels in all 3N-channels
 	int*    deuteron_num_array;		// Contains number of deuteron-channels in all 3N-channels
 } solution_configuration;
 
 /* Struct containing all information regarding on-shell indices for on-shell
  * bins, as well as deuteron channels, for GIVEN 3N channel */ 
-typedef struct channel_os_indexing{
+typedef struct channel_os_indexing{	// This should be renamed solution_configuration_subchannel
 	size_t  num_T_lab;				// Number of elastic on-shell bins/energies to calculate
 	int*    q_com_idx_array;		// Index-array for elastic on-shell q-bins
 	int*    deuteron_idx_array;		// Index-array for deuteron-channels in given 3N-channel
 	int     num_deuteron_states;	// Number of deuteron-channels in given 3N-channel
-	size_t* OS_BU_idx_array;		// on-shell breakup index array
-	int*    pq_com_idx_array;		// Index-array for all on-shell p- and q-bins (elastic AND breakup)
+	int*    alphapq_idx_array;		// Index-array for on-shell alpha-,p-,q-bins (used for breakup)
+	int*    q_com_BU_idx_array;		// Index-array for on-shell alpha-,p-,q-bins (used for breakup)
+	size_t  num_BU_chns;			// Number of breakup channels (combinations of p,q, and alpha)
 } channel_os_indexing;
 
 typedef struct run_params{

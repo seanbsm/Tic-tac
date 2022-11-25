@@ -470,6 +470,7 @@ void faddeev_dense_solver(cdouble*  U_array,
 }
 
 void pade_method_solve(cdouble*  U_array,
+					   cdouble*  U_BU_array,
 					   cdouble*  G_array,
 					   int*		 q_com_idx_array,	 size_t num_q_com,
 					   int*      deuteron_idx_array, size_t num_deuteron_states,
@@ -482,6 +483,7 @@ void pade_method_solve(cdouble*  U_array,
 					   int*      P123_sparse_row_array,
 					   size_t*   P123_sparse_col_array,
 					   size_t    P123_sparse_dim,
+					   channel_os_indexing chn_os_indexing,
 					   run_params run_parameters,
 					   std::string file_identification){
 						   
@@ -510,14 +512,16 @@ void pade_method_solve(cdouble*  U_array,
 
 	/* Number of on-shell nucleon-deuteron channels (deuteron states can mix, hence ^2) */
 	size_t num_on_shell_A_rows = num_deuteron_states * num_q_com;
-	size_t num_on_shell_A_vals = num_deuteron_states * num_deuteron_states * num_q_com;
+	size_t num_EL_A_vals 	   = num_deuteron_states * num_deuteron_states * num_q_com;	// Elastic elements
+	size_t num_BU_A_vals 	   = num_deuteron_states * chn_os_indexing.num_BU_chns;	// Breakup elements
 	
 	/* Upper limit on polynomial approximation of Faddeev eq. */
 	size_t NM_max = 14;
 	size_t num_neumann_terms = 2*NM_max+1;
 
 	/* Coefficients for calculating Pade approximant */
-	cdouble* a_coeff_array = new cdouble [ num_neumann_terms * num_on_shell_A_vals];
+	cdouble* a_coeff_array 	  = new cdouble [ num_neumann_terms * num_EL_A_vals];
+	cdouble* a_BU_coeff_array = new cdouble [ num_neumann_terms * num_BU_A_vals];
 
 	/* Dense dimension of 3N-channel */
 	size_t dense_dim = Nalpha * Nq_WP * Np_WP;
@@ -555,11 +559,17 @@ void pade_method_solve(cdouble*  U_array,
 	std::string A_An_row_filename      = run_parameters.output_folder + "/An_rows" + file_identification + ".txt";
 	std::string neumann_terms_filename = run_parameters.output_folder + "/neumann_terms" + file_identification + ".txt";
 
-	/* Arrays to store Pade-approximants (PA) for each on-shelle elements */
-	cdouble* pade_approximants_array      = new cdouble [num_on_shell_A_vals * (NM_max+1)];
-	size_t*  pade_approximants_idx_array  = new size_t  [num_on_shell_A_vals];
-	bool*    pade_approximants_conv_array = new bool    [num_on_shell_A_vals];
+	/* Arrays to store Pade-approximants (PA) for each on-shell elastic elements */
+	cdouble* pade_approximants_array      = new cdouble [num_EL_A_vals * (NM_max+1)];
+	size_t*  pade_approximants_idx_array  = new size_t  [num_EL_A_vals];
+	bool*    pade_approximants_conv_array = new bool    [num_EL_A_vals];
 	size_t	 num_converged_elements		  = 0;
+
+	/* Arrays to store Pade-approximants (PA) for each on-shell breakup elements */
+	cdouble* pade_approximants_BU_array      = new cdouble [num_BU_A_vals * (NM_max+1)];
+	size_t*  pade_approximants_BU_idx_array  = new size_t  [num_BU_A_vals];
+	bool*    pade_approximants_BU_conv_array = new bool    [num_BU_A_vals];
+	size_t	 num_converged_BU_elements		 = 0;
 
 	/* Define CPVC-chunks size */
 	size_t num_Gbytes_per_chunk  = 4;
@@ -582,8 +592,11 @@ void pade_method_solve(cdouble*  U_array,
 	int*     omp_CPVC_row_to_nnz_array  = new int    [dense_dim * num_threads];
 	int*     omp_CPVC_nnz_to_row_array  = new int    [dense_dim * num_threads];
 
-	for (size_t idx_NDOS=0; idx_NDOS<num_on_shell_A_vals; idx_NDOS++){
+	for (size_t idx_NDOS=0; idx_NDOS<num_EL_A_vals; idx_NDOS++){
 		pade_approximants_conv_array[idx_NDOS] = false;
+	}
+	for (size_t idx_NDOS=0; idx_NDOS<num_BU_A_vals; idx_NDOS++){
+		pade_approximants_BU_conv_array[idx_NDOS] = false;
 	}
 
 	/* CPVC sparse arrays, used if keep_CPVC_in_mem=true */
@@ -595,7 +608,12 @@ void pade_method_solve(cdouble*  U_array,
 	//long long int* CPVC_r_array_LL   = NULL;
 	long long int* CPVC_csc_array_LL = NULL;
 
-	/* Precalculate kernel CPVC, if the option is selected */
+	
+	/* Precalculate kernel CPVC and keep in computer memory, if the option is selected
+	 * !!! WARNING: EXTREMELY MEMORY INTENSIVE !!! */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
 	if (keep_CPVC_in_mem){
 		printf("     - Precalculating CPVC-kernel in CSR-sparse format \n"); fflush(stdout);
 
@@ -639,9 +657,9 @@ void pade_method_solve(cdouble*  U_array,
 					nnz_to_row_array[i] = -1;
 				}
 
-				size_t idx_alpha_c = idx_col / (Np_WP*Nq_WP);
+				size_t idx_alpha_c =  idx_col / (Np_WP*Nq_WP);
 				size_t idx_q_c     = (idx_col % (Np_WP*Nq_WP)) /  Np_WP;
-				size_t idx_p_c     = idx_col %  Np_WP;
+				size_t idx_p_c     =  idx_col %  Np_WP;
 
 				/* Calculate CPVC-column */
 				size_t num_nnz = 0;
@@ -841,6 +859,9 @@ void pade_method_solve(cdouble*  U_array,
 
 		printf("       - Done. \n"); fflush(stdout);
 	}
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
+	/* ################################################################################################################### */
 
 	/* Set initial values for A_Kn_row_array, where K^n=1 for n=0 */
 	printf("     - Working on Pade approximant P[N,M] for N=%d, M=%d \n",0,0); fflush(stdout);
@@ -864,6 +885,7 @@ void pade_method_solve(cdouble*  U_array,
 	
 	/* First Neumann-term */
 	printf("       - Extracting on-shell Neumann-series terms a_n=A*K^n for n=%d. \n",0); fflush(stdout);
+	/* Extract elastic terms */
 	for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 		for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
 			for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
@@ -871,8 +893,8 @@ void pade_method_solve(cdouble*  U_array,
 				 * (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
 				size_t idx_alpha_NDOS_row = deuteron_idx_array[idx_d_row];
 				size_t idx_alpha_NDOS_col = deuteron_idx_array[idx_d_col];
-				size_t idx_p_NDOS 	  = 0;
 				size_t idx_q_NDOS 	  = q_com_idx_array[idx_q_com];
+				size_t idx_p_NDOS 	  = 0;
 
 				size_t idx_row_NDOS   = idx_d_row*num_q_com + idx_q_com;
 				size_t idx_col_NDOS   = idx_alpha_NDOS_col*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
@@ -888,6 +910,29 @@ void pade_method_solve(cdouble*  U_array,
 					printf("         - Neumann term %d for alpha'=%d, alpha=%d, q=%d: %.16e + %.16ei \n", 0, idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, a_coeff.real(), a_coeff.imag());
 					fflush(stdout);
 				}
+			}
+		}
+	}
+	/* Extract breakup terms */
+	for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
+		int BU_chn_start = chn_os_indexing.q_com_BU_idx_array[idx_q_com];
+		int BU_chn_end   = chn_os_indexing.q_com_BU_idx_array[idx_q_com+1];
+		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+			for (size_t idx_BU_chn=BU_chn_start; idx_BU_chn<BU_chn_end; idx_BU_chn++){
+				
+				size_t idx_alpha_NDOS = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 0];
+				size_t idx_q_NDOS 	  = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 1];
+				size_t idx_p_NDOS 	  = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 2];
+
+				size_t idx_row_NDOS   = idx_d_row*num_q_com + idx_q_com;
+				size_t idx_col_NDOS   = idx_alpha_NDOS*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
+
+				/* Calculate coefficient */
+				cdouble a_BU_coeff = re_A_An_row_array_prev[idx_row_NDOS*dense_dim + idx_col_NDOS];
+				
+				/* Store coefficient */
+				size_t idx_NDOS = idx_d_row*chn_os_indexing.num_BU_chns + idx_BU_chn;
+				a_BU_coeff_array[idx_NDOS*num_neumann_terms] = a_BU_coeff;
 			}
 		}
 	}
@@ -921,7 +966,7 @@ void pade_method_solve(cdouble*  U_array,
 
 	/* Loop over number of Pade-terms we use */
 	for (size_t NM=0; NM<NM_max+1; NM++){
-		if (num_converged_elements==num_on_shell_A_vals){
+		if (num_converged_elements==num_EL_A_vals){
 			printf("     - Convergence reached for all on-shell elements! \n"); fflush(stdout);
 			break;
 		}
@@ -987,9 +1032,19 @@ void pade_method_solve(cdouble*  U_array,
 
 					/* See if row contains unconverged, on-shell elements */
 					bool row_conv = true;
+					/* Check elastic channels */
 					for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
 						size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
 						if (pade_approximants_conv_array[idx_NDOS]==false){
+							row_conv = false;
+						}
+					}
+					/* Check breakup channels */
+					int BU_chn_start = chn_os_indexing.q_com_BU_idx_array[idx_q_com];
+					int BU_chn_end   = chn_os_indexing.q_com_BU_idx_array[idx_q_com+1];
+					for (size_t idx_BU_chn=BU_chn_start; idx_BU_chn<BU_chn_end; idx_BU_chn++){
+						size_t idx_NDOS = idx_d_row*chn_os_indexing.num_BU_chns + idx_BU_chn;
+						if (pade_approximants_BU_conv_array[idx_NDOS]==false){
 							row_conv = false;
 						}
 					}
@@ -1129,8 +1184,9 @@ void pade_method_solve(cdouble*  U_array,
 				im_A_An_row_array_prev[i] = im_A_An_row_array[i];
 			}
 
-			printf("       - Extracting on-shell Neumann-series terms a_n=A*K^n for n=%d. \n", n); fflush(stdout);
 			/* Extract coefficients "a" for Pade approximant */
+			printf("       - Extracting on-shell Neumann-series terms a_n=A*K^n for n=%d. \n", n); fflush(stdout);
+			/* Extract elastic terms */
 			for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 				for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
 					for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
@@ -1161,6 +1217,35 @@ void pade_method_solve(cdouble*  U_array,
 							printf("         - Neumann term %d for alpha'=%d, alpha=%d, q=%d: %.16e + %.16ei \n", n, idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, a_coeff.real(), a_coeff.imag());
 							//printf("%d\n", idx_row_NDOS*dense_dim + idx_col_NDOS);
 						}
+					}
+				}
+			}
+			/* Extract breakup terms */
+			for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
+				int BU_chn_start = chn_os_indexing.q_com_BU_idx_array[idx_q_com];
+				int BU_chn_end   = chn_os_indexing.q_com_BU_idx_array[idx_q_com+1];
+				for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+					for (size_t idx_BU_chn=BU_chn_start; idx_BU_chn<BU_chn_end; idx_BU_chn++){
+						
+						size_t idx_alpha_NDOS = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 0];
+						size_t idx_q_NDOS 	  = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 1];
+						size_t idx_p_NDOS 	  = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 2];
+
+						size_t idx_row_NDOS   = idx_d_row*num_q_com + idx_q_com;
+						size_t idx_col_NDOS   = idx_alpha_NDOS*Nq_WP*Np_WP + idx_q_NDOS*Np_WP + idx_p_NDOS;
+
+						size_t idx_NDOS = idx_d_row*chn_os_indexing.num_BU_chns + idx_BU_chn;
+
+						/* Check if we've already reached convergence for this on-shell element */
+						if (pade_approximants_BU_conv_array[idx_NDOS]==true){
+							continue;
+						}
+
+						/* Calculate coefficient */
+						cdouble a_BU_coeff = {re_A_An_row_array[idx_row_NDOS*dense_dim + idx_col_NDOS], im_A_An_row_array[idx_row_NDOS*dense_dim + idx_col_NDOS]};
+						
+						/* Store coefficient */
+						a_BU_coeff_array[idx_NDOS*num_neumann_terms + n] = a_BU_coeff;
 					}
 				}
 			}
@@ -1195,7 +1280,7 @@ void pade_method_solve(cdouble*  U_array,
 		delete [] times_array;
 
 		printf("       - Calculating Pade approximants PA[%d,%d]. \n", NM, NM); fflush(stdout);
-		/* Calculate Pade approximants (PA) */
+		/* Calculate Pade approximants (PA) for elastic amplitudes */
 		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 			for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
 				for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
@@ -1261,11 +1346,79 @@ void pade_method_solve(cdouble*  U_array,
 				}
 			}
 		}
+		/* Calculate Pade approximants (PA) for breakup amplitudes */
+		for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
+			int BU_chn_start = chn_os_indexing.q_com_BU_idx_array[idx_q_com];
+			int BU_chn_end   = chn_os_indexing.q_com_BU_idx_array[idx_q_com+1];
+			for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+				for (size_t idx_BU_chn=BU_chn_start; idx_BU_chn<BU_chn_end; idx_BU_chn++){
+
+					size_t idx_NDOS = idx_d_row*chn_os_indexing.num_BU_chns + idx_BU_chn;
+
+					/* Check and skip if we've already reached convergence for this on-shell element */
+					if (pade_approximants_BU_conv_array[idx_NDOS]==true){
+						continue;
+					}
+
+					/* Calculate and append PA */
+					cdouble PA = pade_approximant(&a_BU_coeff_array[idx_NDOS*num_neumann_terms], NM, NM, 1);
+
+					pade_approximants_BU_array[idx_NDOS*(NM_max+1) + NM] = PA;
+					
+					/* See if we've reached convergence with this iteration */
+					size_t idx_best_PA = 0;
+					bool convergence_reached = false;
+
+					/* Find minimum PA from previous calculations */
+					double min_PA_diff = 1;
+					for (int NM_prev=0; NM_prev<NM; NM_prev++){
+						cdouble PA_prev = pade_approximants_BU_array[idx_NDOS*(NM_max+1) + NM_prev];
+
+						/* Calculate difference between PAs from previous PA-calculations */
+						double PA_diff_prev = std::abs(PA_prev - pade_approximants_BU_array[idx_NDOS*(NM_max+1) + NM_prev-1]);
+
+						/* Ignore PA_diff_prev if numerically equal to the previous PA_diff, overwrite if smaller than min_PA_diff */
+						if (PA_diff_prev<min_PA_diff && PA_diff_prev>1e-15){
+							idx_best_PA = NM_prev;
+							min_PA_diff = PA_diff_prev;
+						}
+					}
+					/* See if current PA is better/worse than previous minimum */
+					double PA_diff_curr = std::abs(PA - pade_approximants_BU_array[idx_NDOS*(NM_max+1) + NM - 1]);
+					
+					/* Ignore PA_diff_curr if numerically equal to the previous PA_diff_curr, overwrite if smaller than min_PA_diff */
+					if (PA_diff_curr<min_PA_diff && PA_diff_curr>1e-15){
+						idx_best_PA = NM;
+						min_PA_diff = PA_diff_curr;
+					}
+
+					/* Criterias for convergence¨
+					 * If any are fulfilled, we set convergence to true for current on-shell element */
+					bool convergence_criteria_0 = (NM==NM_max);																					// Cannot go past max NM
+					bool convergence_criteria_1 = (NM-idx_best_PA>4);																			// If nothing better is found in the last 3 PAs, we assume we found the best
+					bool convergence_criteria_2 = (min_PA_diff<1e-6*std::abs(pade_approximants_BU_array[idx_NDOS*(NM_max+1) + idx_best_PA]));	// If the difference is less than the 4th significant digit, we assume "good enough"
+					bool convergence_criteria_3 = (min_PA_diff<1e-7);																			// If we are below single precision resolution, assume convergence
+					
+					if (convergence_criteria_0 ||
+						convergence_criteria_1 ||
+						convergence_criteria_2 ||
+						convergence_criteria_3){
+						pade_approximants_BU_conv_array[idx_NDOS] = true;
+						pade_approximants_BU_idx_array[idx_NDOS]  = idx_best_PA;
+						num_converged_elements += 1;
+					}
+
+					//if (print_PA_convergences){
+					//	printf("PA[%d,%d] = %.16e + %.16ei, PA_diff = %.16e \n", NM,NM,PA.real(), PA.imag(), PA_diff);
+					//}
+				}
+			}
+		}
 		printf("         - Done \n"); fflush(stdout);
 	}
 
 	printf("     - Extracting on-shell U-matrix elements \n"); fflush(stdout);
-	/* Set on-shell U-matrix elements equal "best" PA */
+	/* Set on-shell elastic U-matrix elements equal "best" PA */
 	for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
 		for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
 			for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
@@ -1284,6 +1437,26 @@ void pade_method_solve(cdouble*  U_array,
 			}
 		}
 	}
+	/* Set on-shell breakup U-matrix elements equal "best" PA */
+	for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
+		int BU_chn_start = chn_os_indexing.q_com_BU_idx_array[idx_q_com];
+		int BU_chn_end   = chn_os_indexing.q_com_BU_idx_array[idx_q_com+1];
+		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+			for (size_t idx_BU_chn=BU_chn_start; idx_BU_chn<BU_chn_end; idx_BU_chn++){
+				/* Nucleon-deuteron breakup on-shell (NDOS) indices */
+				size_t idx_alpha_NDOS = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 0];
+				size_t idx_q_NDOS 	  = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 1];
+				size_t idx_p_NDOS 	  = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 2];
+
+				size_t idx_NDOS = idx_d_row*chn_os_indexing.num_BU_chns + idx_BU_chn;
+
+				size_t idx_best_PA = pade_approximants_BU_idx_array[idx_NDOS];
+
+				U_BU_array[idx_NDOS] = pade_approximants_BU_array[idx_NDOS*(NM_max+1) + idx_best_PA];
+				//printf("       - U-matrix element for alpha'=%d, alpha=%d, q=%d: %.10e + %.10ei \n", idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, U_array[idx_NDOS].real(), U_array[idx_NDOS].imag());
+			}
+		}
+	}
 	printf("       - Done \n"); fflush(stdout);
 
 	printf("       - Storing on-shell Neumann-series terms a_n=A*K^n for all n to output-folder. \n"); fflush(stdout);
@@ -1296,22 +1469,31 @@ void pade_method_solve(cdouble*  U_array,
 						 "Neumann terms");
 	printf("         - Done \n");
 
-	delete [] re_A_An_row_array;
-	delete [] re_A_An_row_array_prev;
-	delete [] im_A_An_row_array;
-	delete [] im_A_An_row_array_prev;
+	/* Free allocated working space */
 	delete [] a_coeff_array;
+	delete [] a_BU_coeff_array;
 	delete [] CPVC_cols_array;
 	delete [] omp_CPVC_col_array;
 	delete [] omp_CPVC_row_to_nnz_array;
 	delete [] omp_CPVC_nnz_to_row_array;
+	delete [] re_A_An_row_array;
+	delete [] im_A_An_row_array;
+	delete [] re_A_An_row_array_prev;
+	delete [] im_A_An_row_array_prev;
 	delete [] re_A_An_row_array_comp;
 	delete [] im_A_An_row_array_comp;
 	delete [] re_A_An_row_array_prod;
 	delete [] im_A_An_row_array_prod;
+	delete [] pade_approximants_array;
+	delete [] pade_approximants_idx_array;
+	delete [] pade_approximants_conv_array;
+	delete [] pade_approximants_BU_array;
+	delete [] pade_approximants_BU_idx_array;
+	delete [] pade_approximants_BU_conv_array;
 }
 
 void solve_faddeev_equations(cdouble*  U_array,
+							 cdouble*  U_BU_array,
 							 cdouble*  G_array,
 							 double*   P123_sparse_val_array,
 							 int*      P123_sparse_row_array,
@@ -1414,6 +1596,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 	auto timestamp_solve_start = std::chrono::system_clock::now();
 	if (solve_dense==false){
 		pade_method_solve(U_array,
+						  U_BU_array,
 						  G_array,
 						  q_com_idx_array,	  num_q_com,
 						  deuteron_idx_array, num_deuteron_states,
@@ -1426,6 +1609,7 @@ void solve_faddeev_equations(cdouble*  U_array,
 						  P123_sparse_row_array,
 						  P123_sparse_col_array_csc,
 						  P123_sparse_dim,
+						  chn_os_indexing,
 					      run_parameters,
 						  file_identification);
 	}

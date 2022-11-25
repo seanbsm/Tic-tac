@@ -11,6 +11,7 @@
 #include "General_functions/kinetic_conversion.h"
 
 void find_on_shell_bins(solution_configuration& solve_config,
+						channel_os_indexing&	solve_config_subchn,
 						pw_3N_statespace pw_states,
                         fwp_statespace fwp_states,
                         swp_statespace swp_states,

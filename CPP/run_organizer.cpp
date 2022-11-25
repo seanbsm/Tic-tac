@@ -2,6 +2,7 @@
 #include "run_organizer.h"
 
 void find_on_shell_bins(solution_configuration& solve_config,
+						channel_os_indexing&	solve_config_subchn,
 						pw_3N_statespace pw_states,
                         fwp_statespace fwp_states,
                         swp_statespace swp_states,
@@ -133,12 +134,17 @@ void find_on_shell_bins(solution_configuration& solve_config,
 	/* Find all BREAKUP bins with an on-shell Tlab 
 	 * Need to locate bins in all channels (must determine p and q for all alpha)*/
 	printf("   - Locating breakup on-shell p- & q-momentum WP-indices for %zu on-shell energies ... \n", num_T_lab);
-	solve_config.alphapq_idx_array = new int [num_T_lab * 3];
+	//solve_config_subchn.alphapq_idx_array     = new int [num_T_lab * 3];
+	std::vector<int> alphapd_idx_vector;
+	solve_config_subchn.q_com_BU_idx_array    = new int [num_T_lab + 1];
+	solve_config_subchn.q_com_BU_idx_array[0] = 0;
+	solve_config_subchn.num_BU_chns 		  = 0;
+	
 	for (size_t idx_Tlab=0; idx_Tlab<num_T_lab; idx_Tlab++){
 		double E_com = solve_config.E_com_array[idx_Tlab];
-		int idx_alpha_store = -1;
-		int idx_q_bin_store = -1;
-		int idx_p_bin_store = -1;
+		int idx_alpha_store    = -1;
+		int idx_q_bin_store    = -1;
+		int idx_p_bin_store    = -1;
 		for (int idx_alpha=0; idx_alpha<Nalpha; idx_alpha++){
 			int L = pw_states.L_2N_array[idx_alpha];
 			int S = pw_states.S_2N_array[idx_alpha];
@@ -211,7 +217,6 @@ void find_on_shell_bins(solution_configuration& solve_config,
 						idx_q_bin_store = q_idx_WP;
 						idx_p_bin_store = p_idx_WP;
 
-						
 						//printf("Ep_l = %.3f \n", Ep_bin_lower);
 						//printf("Ep_u = %.3f \n", Ep_bin_upper);
 						//printf("Eq_l = %.3f \n", Eq_bin_lower);
@@ -232,12 +237,18 @@ void find_on_shell_bins(solution_configuration& solve_config,
 				raise_error("Invalid Tlab entered. Exiting ...");
 			}
 			else{
-				solve_config.alphapq_idx_array[idx_Tlab * 0] = idx_alpha_store;
-				solve_config.alphapq_idx_array[idx_Tlab * 1] = idx_q_bin_store;
-				solve_config.alphapq_idx_array[idx_Tlab * 2] = idx_p_bin_store;
+				alphapd_idx_vector.push_back(idx_alpha_store);
+				alphapd_idx_vector.push_back(idx_q_bin_store);
+				alphapd_idx_vector.push_back(idx_p_bin_store);				
+				solve_config_subchn.num_BU_chns	+= 1;
 			}
 		}
+		solve_config_subchn.q_com_BU_idx_array[idx_Tlab+1] = solve_config_subchn.num_BU_chns;
 	}
+	/* Copy vector contents into struct array */
+	solve_config_subchn.alphapq_idx_array = new int [alphapd_idx_vector.size()];
+	std::copy(alphapd_idx_vector.begin(), alphapd_idx_vector.end(), solve_config_subchn.alphapq_idx_array);
+	
 	printf("     - On-shell p- & q-momentum WP bins found \n");
 }
 

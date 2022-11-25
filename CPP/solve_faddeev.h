@@ -22,6 +22,7 @@
 #include "General_functions/matrix_routines.h"
 
 void solve_faddeev_equations(cdouble*  U_array,
+					   		 cdouble*  U_BU_array,
 							 cdouble*  G_array,
 							 double*   P123_sparse_val_array,
 							 int*      P123_sparse_row_array,

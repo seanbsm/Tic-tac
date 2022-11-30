@@ -8,6 +8,7 @@
 #include <fstream>
 #include <string>
 #include <cstring> //std::strcpy
+#include <map>
 
 #include <math.h>
 #include <complex>
@@ -34,7 +35,9 @@
 #include "type_defs.h"
 #include "set_run_parameters.h"
 #include "error_management.h"
+#include "make_pw_symm_states.h"
 #include "General_functions/matrix_routines.h"
+#include "General_functions/kinetic_conversion.h"
 
 void read_parameter_sample_list(run_params run_parameters,
 								std::vector<double>& parameter_vector,
@@ -74,6 +77,15 @@ void store_q_WP_kinematics_txt(size_t Nq_WP,
 						       std::string filename);
 void store_q_WP_boundaries_csv(fwp_statespace fwp_states,
 						   	   std::string filename);
+
+void store_U_BU_matrix_elements_txt(std::complex<double>*    U_array,
+								    solution_configuration solve_config,
+								    channel_os_indexing chn_os_indexing,
+								    run_params run_parameters,
+									fwp_statespace fwp_states,
+								    swp_statespace swp_states,
+							        pw_3N_statespace pw_states,
+							        std::string filename);
 void store_U_matrix_elements_txt(std::complex<double>*    U_array,
 								 solution_configuration solve_config,
 								 channel_os_indexing chn_os_indexing,

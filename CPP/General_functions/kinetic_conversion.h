@@ -16,4 +16,7 @@ double com_energy_to_lab_energy(double T_com, double Eb);
 double com_energy_to_com_q_momentum(double E_com);
 double com_q_momentum_to_com_energy(double q_com);
 
+double com_energy_to_com_p_momentum(double Ep);
+double com_p_momentum_to_com_energy(double p);
+
 #endif // KINETIC_CONVERSION_H

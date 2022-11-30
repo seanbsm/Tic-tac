@@ -305,6 +305,389 @@ void store_q_WP_boundaries_csv(fwp_statespace fwp_states,
 	result_file.close();
 }
 
+void restructure_breakup_data(std::complex<double>*    			 U_array,
+							  solution_configuration 			 solve_config,
+							  channel_os_indexing 				 chn_os_indexing,
+							  run_params 						 run_parameters,
+							  fwp_statespace 					 fwp_states,
+							  swp_statespace 					 swp_states,
+							  pw_3N_statespace 					 pw_states,
+							  std::vector<std::string>&			 headers,
+							  std::vector<std::complex<double>>& data_mat,
+							  int&								 tot_num_rows,
+							  int&								 tot_num_cols){
+	
+	/* Make local pointers for solution-configuration */
+	double*	T_lab_array = solve_config.T_lab_array;
+	double*	E_com_array = solve_config.E_com_array;
+	double*	q_com_array = solve_config.q_com_array;
+	/* Make local pointers & variables for pw-statespace */
+	int	 two_J			= pw_states.two_J_3N_array[0];
+	int  P_3N 			= pw_states.P_3N_array[0];
+	int* L_2N_array		= pw_states.L_2N_array;
+	int* S_2N_array		= pw_states.S_2N_array;
+	int* J_2N_array		= pw_states.J_2N_array;
+	int* T_2N_array		= pw_states.T_2N_array;
+	int* L_1N_array		= pw_states.L_1N_array;
+	int* two_J_1N_array = pw_states.two_J_1N_array;
+	int* two_T_3N_array = pw_states.two_T_3N_array;
+	/* Make local pointers & variables for SWP-statespace */
+	int	   Np_WP   = swp_states.Np_WP;
+	int	   Nq_WP   = swp_states.Nq_WP;
+	double E_bound = swp_states.E_bound;
+	/* Make local pointers & variables for on-shell channel-indexing */
+	int*   q_com_idx_array		= chn_os_indexing.q_com_idx_array;
+	int*   deuteron_idx_array	= chn_os_indexing.deuteron_idx_array;
+	size_t num_q_com			= (size_t) chn_os_indexing.num_T_lab;
+	size_t num_deuteron_states	= (size_t) chn_os_indexing.num_deuteron_states;
+
+	/* Create table headers 
+	 * Only one column per unique alpha'-alpha breakup partial-wave channel.
+	 * Each row is a (p'q')-(q) combination for given partial-wave channel */
+	headers = {"real", "Tlab [MeV]" 		,
+			   "real", "Ecm [MeV]"  		,
+			   "real", "qcm [MeV] (init.)"	,
+			   "real", "qlo [MeV] (init.)"	,
+			   "real", "qup [MeV] (init.)"	};
+
+	/* Locate:
+	 * - number of unique alpha'-alpha breakup channels <alpha',p',q'|U|alpha,p,q>
+	 * - number of rows needed for given input energy/momentum */
+	std::map<int, int> alpha_map;		// Keeps track of columns
+	std::map<int, int> row_idx_map;	// Maps correct element to given row & column
+	std::vector<int> num_rows_vec = {0};
+	int alpha_counter = 0;
+	for (size_t q_idx=0; q_idx<num_q_com; q_idx++){
+		int BU_chn_start = chn_os_indexing.q_com_BU_idx_array[q_idx];
+		int BU_chn_end   = chn_os_indexing.q_com_BU_idx_array[q_idx+1];
+
+		std::map<int, int> row_num_map;	// Keeps track of rows in given column
+
+		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+			size_t idx_alpha_row = deuteron_idx_array[idx_d_row];
+			std::string l = std::to_string(L_1N_array[idx_alpha_row]);
+			std::string j = std::to_string(two_J_1N_array[idx_alpha_row]);
+
+			/* Locate unique channels */
+			for (size_t idx_BU_chn=BU_chn_start; idx_BU_chn<BU_chn_end; idx_BU_chn++){
+				size_t idx_alpha_col = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 0];
+				//size_t idx_q_col	 = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 1];
+				//size_t idx_p_col	 = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 2];
+
+				std::string Lp = std::to_string(L_2N_array[idx_alpha_col]);
+				std::string Sp = std::to_string(S_2N_array[idx_alpha_col]);
+				std::string Jp = std::to_string(J_2N_array[idx_alpha_col]);
+				std::string lp = std::to_string(L_1N_array[idx_alpha_col]);
+				std::string jp = std::to_string(two_J_1N_array[idx_alpha_col]);
+
+				std::string label = "<"+Lp+","+Sp+","+Jp+","+lp+","+jp+"|U|"+l+","+j+">";
+				
+				/* Add new column if it doesn't exist */
+				int key_alpha   = idx_alpha_col*pw_states.Nalpha + idx_alpha_row;
+				int key_row_idx = idx_BU_chn*pw_states.Nalpha    + idx_alpha_row;
+				if (alpha_map.find(key_alpha)==alpha_map.end()){ // New channel/column found
+					headers.push_back("comp"); headers.push_back(label);
+					headers.push_back("real"); headers.push_back("qlo [MeV]");
+					headers.push_back("real"); headers.push_back("qup [MeV]");
+					headers.push_back("real"); headers.push_back("plo [MeV]");
+					headers.push_back("real"); headers.push_back("pup [MeV]");
+
+					alpha_map[key_alpha]   = alpha_counter;
+					alpha_counter 		  += 1;
+				}
+
+				if (row_num_map.find(key_alpha)==row_num_map.end()){ // New channel/column found
+					row_idx_map[key_row_idx] = num_rows_vec[q_idx];
+					row_num_map[key_alpha]   = num_rows_vec[q_idx] + 1;
+				}
+				else{// Channel/column alread exists, save element mapping and increment row-count
+					row_idx_map[key_row_idx]  = row_num_map[key_alpha];	// Sets current number of rows in column/channel as (p,q)-pair index
+					row_num_map[key_alpha]   += 1;
+				}
+			}
+		}
+		/* Read through map of rows per column and extract longest row*/
+		int num_rows_for_q = 0;
+		for (auto itr=row_num_map.begin(); itr!=row_num_map.end(); itr++){
+			if (num_rows_for_q<itr->second){
+				num_rows_for_q = itr->second;
+			}
+		}
+		num_rows_vec.push_back(num_rows_for_q);
+	}
+
+	/* Read through map of rows per column and extract longest row*/
+	tot_num_rows = num_rows_vec.back();
+	tot_num_cols = headers.size()/2;
+
+	/* Allocate data_mat and set to 0 */
+	data_mat.reserve(tot_num_cols* tot_num_rows);
+	for (int i=0; i<data_mat.size(); i++){
+		data_mat[i] = {0,0};
+	}
+
+	/* Loop over on-shell q-bins */
+	for (size_t q_idx=0; q_idx<num_q_com; q_idx++){
+		size_t q_WP_idx = q_com_idx_array[q_idx];
+		int BU_chn_start = chn_os_indexing.q_com_BU_idx_array[q_idx];
+		int BU_chn_end   = chn_os_indexing.q_com_BU_idx_array[q_idx+1];
+
+		double Tlab = T_lab_array[q_idx];
+		double Ecm  = E_com_array[q_idx];
+		double qcm  = q_com_array[q_idx];
+		double qlo  = fwp_states.q_WP_array[q_WP_idx];
+		double qhi  = fwp_states.q_WP_array[q_WP_idx+1];
+
+		for (int row=num_rows_vec[q_idx]; row<num_rows_vec[q_idx+1]; row++){
+			data_mat[row*tot_num_cols + 0] = {Tlab, 0};
+			data_mat[row*tot_num_cols + 1] = {Ecm,  0};
+			data_mat[row*tot_num_cols + 2] = {qcm,  0};
+			data_mat[row*tot_num_cols + 3] = {qlo,  0};
+			data_mat[row*tot_num_cols + 4] = {qhi,  0};
+		}
+
+		/* Pointer to either p_SWP_unco_array or p_SWP_coup_array,
+		 * which is determined by whether the channel is coupled or not */
+		double* e_SWP_array_ptr = NULL;
+
+		for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+			size_t idx_alpha_row = deuteron_idx_array[idx_d_row];
+			for (size_t idx_BU_chn=BU_chn_start; idx_BU_chn<BU_chn_end; idx_BU_chn++){
+				size_t idx_alpha_col = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 0];
+				size_t idx_q_col	 = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 1];
+				size_t idx_p_col	 = chn_os_indexing.alphapq_idx_array[idx_BU_chn*3 + 2];
+
+				size_t U_idx = idx_d_row*chn_os_indexing.num_BU_chns + idx_BU_chn;
+				
+				
+				int L = L_2N_array[idx_alpha_col];
+				int S = S_2N_array[idx_alpha_col];
+				int J = J_2N_array[idx_alpha_col];
+				int T = T_2N_array[idx_alpha_col];
+
+				int two_T_3N = two_T_3N_array[idx_alpha_col];
+
+				/* Detemine if this is a coupled channel.
+				* !!! With isospin symmetry-breaking we count 1S0 as a coupled matrix via T_3N-coupling !!! */
+				bool coupled_channel = false;
+				bool state_1S0 = (S==0 && J==0 && L==0);
+				bool coupled_via_L_2N = (run_parameters.tensor_force && L!=J && J!=0);
+				bool coupled_via_T_3N = (state_1S0==true && run_parameters.isospin_breaking_1S0==true);
+				if (coupled_via_L_2N && coupled_via_T_3N){
+					raise_error("Warning! Code has not been written to handle isospin-breaking in coupled channels!");
+				}
+				if (coupled_via_L_2N || coupled_via_T_3N){ // This counts 3P0 as uncoupled; used in matrix structure
+					coupled_channel  = true;
+				}
+
+				if (coupled_channel){
+					int chn_2N_idx = unique_2N_idx(L, S, J, T, coupled_channel, run_parameters);
+					if (coupled_via_L_2N){
+						if (L<J){
+							e_SWP_array_ptr = &swp_states.e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1)];
+						}
+						else{
+							e_SWP_array_ptr = &swp_states.e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1) + Np_WP+1];
+						}
+					}
+					else if (coupled_via_T_3N){
+						if (two_T_3N==1){
+							e_SWP_array_ptr = &swp_states.e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1)];
+						}
+						else{
+							e_SWP_array_ptr = &swp_states.e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1) + Np_WP+1];
+						}
+					}
+					else{
+						raise_error("Unknown coupling encountered in resolvent-calculation!");
+					}
+				}
+				else{
+					int chn_2N_idx = unique_2N_idx(L, S, J, T, coupled_channel, run_parameters);
+					e_SWP_array_ptr = &swp_states.e_SWP_unco_array[chn_2N_idx * (Np_WP+1)];
+				}
+
+				//double qcm  = q_com_array[q_idx];
+				double qlo  = fwp_states.q_WP_array[idx_q_col];
+				double qup  = fwp_states.q_WP_array[idx_q_col+1];
+				//double pcm  = s_com_array[q_idx];
+				double plo  = com_energy_to_com_p_momentum(e_SWP_array_ptr[idx_p_col]);
+				double pup  = com_energy_to_com_p_momentum(e_SWP_array_ptr[idx_p_col+1]);
+
+				int key_alpha   = idx_alpha_col*pw_states.Nalpha + idx_alpha_row;
+				int key_row_idx = idx_BU_chn*pw_states.Nalpha    + idx_alpha_row;
+
+				int c = 5*alpha_map[key_alpha] + 5;
+				int r = row_idx_map[key_row_idx];
+
+				if (alpha_map[key_alpha]==0){
+					std::cout << r << " " << qcm << " " << U_array[U_idx] << " " << qlo << " " <<  qup << " " <<  plo << " " <<  pup << std::endl;
+				}
+
+				data_mat[r*tot_num_cols + c + 0] = U_array[U_idx];
+				data_mat[r*tot_num_cols + c + 1] = {qlo, 0};
+				data_mat[r*tot_num_cols + c + 2] = {qup, 0};
+				data_mat[r*tot_num_cols + c + 3] = {plo, 0};
+				data_mat[r*tot_num_cols + c + 4] = {pup, 0};
+			}
+		}
+	}
+
+	for (int c=5; c<5+5; c++){
+		std::cout << data_mat[2*tot_num_cols + c] << std::endl;
+	}
+
+	//for (int r=0; r<tot_num_rows; r++){
+	//	for (int c=5; c<5+5; c++){
+	//		std::cout << data_mat[r*tot_num_cols + c] << " ";
+	//	}
+	//	std::cout << std::endl;
+	//}
+}
+
+void store_U_BU_matrix_elements_txt(std::complex<double>*    U_array,
+								    solution_configuration solve_config,
+								    channel_os_indexing chn_os_indexing,
+								    run_params run_parameters,
+									fwp_statespace fwp_states,
+								    swp_statespace swp_states,
+							        pw_3N_statespace pw_states,
+							        std::string filename){
+	
+	/* Make local variable for run-parameters */
+	std::string potential_model = run_parameters.potential_model;
+	/* Make local pointers for solution-configuration */
+	double*	T_lab_array = solve_config.T_lab_array;
+	double*	E_com_array = solve_config.E_com_array;
+	double*	q_com_array = solve_config.q_com_array;
+	/* Make local pointers & variables for pw-statespace */
+	int	 two_J			= pw_states.two_J_3N_array[0];
+	int  P_3N 			= pw_states.P_3N_array[0];
+	int* L_2N_array		= pw_states.L_2N_array;
+	int* S_2N_array		= pw_states.S_2N_array;
+	int* J_2N_array		= pw_states.J_2N_array;
+	int* T_2N_array		= pw_states.T_2N_array;
+	int* L_1N_array		= pw_states.L_1N_array;
+	int* two_J_1N_array = pw_states.two_J_1N_array;
+	int* two_T_3N_array = pw_states.two_T_3N_array;
+	/* Make local pointers & variables for SWP-statespace */
+	int	   Np_WP   = swp_states.Np_WP;
+	int	   Nq_WP   = swp_states.Nq_WP;
+	double E_bound = swp_states.E_bound;
+	/* Make local pointers & variables for on-shell channel-indexing */
+	int*   q_com_idx_array		= chn_os_indexing.q_com_idx_array;
+	int*   deuteron_idx_array	= chn_os_indexing.deuteron_idx_array;
+	size_t num_q_com			= (size_t) chn_os_indexing.num_T_lab;
+	size_t num_deuteron_states	= (size_t) chn_os_indexing.num_deuteron_states;
+
+	/* Open file*/
+	std::ofstream result_file;
+	result_file.open(filename);
+
+	std::string parity_sgn = "";
+	if      (P_3N==+1){parity_sgn = "+";}
+	else if	(P_3N==-1){parity_sgn = "-";}
+	else			  {raise_error("Recieved illegal parity in store_U_matrix_elements_txt().");}
+
+	result_file << std::setprecision(8);
+
+	result_file << "# Breakup Nd-scattering U-matrix elements in a wave-packet, Jj-scheme representation. \n";
+	result_file << "# \n";
+	result_file << "# The calculations below were done for: \n";
+	result_file << "# JP:          " << two_J << "/2" << parity_sgn << "\n";
+	result_file << "# Potential:   " << potential_model << "\n";
+	result_file << "# Np:          " << Np_WP << " \n";
+	result_file << "# Nq:          " << Nq_WP << " \n";
+	result_file << "# Particles:   " << "nd-scattering" << "\n";
+	result_file << "# Deuteron BE: " << E_bound << " MeV \n";
+	result_file << "# \n";
+	result_file << "# Symbol definitions: \n";
+	result_file << "# <L,S,J,2*l,2*j|U|2*l,2*j>:   U-matrix element in MeV with for channel <L S J l j|U|L=0 S=1 J=1 l j> (NOTE in wave-packet representation!)  \n";
+	result_file << "# L:                           Pair orbital angular momentum  \n";
+	result_file << "# S:                           Pair spin  \n";
+	result_file << "# J:                           Pair total angular momentum  \n";
+	result_file << "# l:                           Spectator orbital angular momentum  \n";
+	result_file << "# j:                           Spectator total angular momentum  \n";
+	result_file << "# Tlab:                        Laboratory scattering/kinetic energy  \n";
+	result_file << "# Ecm:                         Centre-of-mass scattering/kinetic energy  \n";
+	result_file << "# qcm:                         Spectator centre-of-mass momentum bin midpoint \n";
+	result_file << "# qlo:                         Spectator centre-of-mass momentum bin lower boundary \n";
+	result_file << "# qup:                         Spectator centre-of-mass momentum bin upper boundary \n";
+	result_file << "# pcm:                         Pair centre-of-mass momentum bin midpoint \n";
+	result_file << "# plo:                         Pair centre-of-mass momentum bin lower boundary \n";
+	result_file << "# pup:                         Pair centre-of-mass momentum bin upper boundary \n";
+	result_file << "# init.:                       Pre-scattering \n";
+	result_file << "# \n";
+	result_file << "# ################################################################################################### \n";
+	//result_file << "#     Name    row-idx    col-idx     l'   2*j'      l    2*j  \n";
+
+	result_file << std::right
+				<< std::scientific
+				<< std::setprecision(16);
+
+	/* Widths of real- and complex-entry columns */
+	int real_width = 24;
+	int comp_width = 50;
+
+	std::vector<std::string> headers;
+	std::vector<std::complex<double>> 	 data_mat;
+	int num_rows = 0;
+	int num_cols = 0;
+	
+	restructure_breakup_data(U_array,
+							 solve_config,
+							 chn_os_indexing,
+							 run_parameters,
+							 fwp_states,
+							 swp_states,
+							 pw_states,
+							 headers,
+							 data_mat,
+							 num_rows,
+							 num_cols);
+							 
+	/* Write table headers */
+	result_file << "#";
+	for (size_t i=0; i<headers.size()/2; i++){
+		if (headers[2*i]=="real"){
+			result_file << std::right << std::setw(real_width) << headers[2*i+1];
+		}
+		else if (headers[2*i]=="comp"){
+			result_file << std::right << std::setw(comp_width) << headers[2*i+1];
+		}
+		else{
+			raise_error("Unknown argument in breakup amplitude disk i/o runtime!");
+		}
+	}
+	result_file << "\n";
+	
+	/* Loop over data, row-wise */
+	for (int r=0; r<num_rows; r++){
+		result_file << " ";
+		for (int c=0; c<num_cols; c++){
+			if (headers[2*c]=="real"){
+				result_file << std::right << std::setw(real_width) << data_mat[r*num_cols+c].real();
+			}
+			else if (headers[2*c]=="comp"){
+				/* Append U-array element in Python numpy-style complex format */
+				std::string U_string_real = to_string_with_precision_and_sign(data_mat[r*num_cols+c].real(), 16);
+				std::string U_string_imag = to_string_with_precision_and_sign(data_mat[r*num_cols+c].imag(), 16);
+				std::string U_string = U_string_real + U_string_imag + "j";
+
+				result_file << std::right << std::setw(comp_width) << U_string;
+			}
+		}
+		result_file << "\n";
+	}
+	result_file << "# ################################################################################################### \n";
+
+	/* Close writing session */
+	result_file << std::endl;
+	
+	/* Close files */
+	result_file.close();
+}
+
 void store_U_matrix_elements_txt(std::complex<double>*    U_array,
 								 solution_configuration solve_config,
 								 channel_os_indexing chn_os_indexing,

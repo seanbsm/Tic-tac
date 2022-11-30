@@ -195,6 +195,7 @@ void find_on_shell_bins(solution_configuration& solve_config,
 
 			/* p-momentum index loop */
 			bool break_loop = false;
+			int counter = 0;
 			for (int q_idx_WP=0; q_idx_WP<Nq_WP; q_idx_WP++){
 
 				if (break_loop){
@@ -212,7 +213,7 @@ void find_on_shell_bins(solution_configuration& solve_config,
 					double E_cell_upper = Ep_bin_upper + Eq_bin_upper;
 
 					/* See if input energy lies between two bin mid-points */
-					if (E_cell_lower<=E_com && E_com<=E_cell_upper){
+					if (E_cell_lower<=E_com && E_com<=E_cell_upper && Ep_bin_lower>=0 && Ep_bin_upper>=0){
 						idx_alpha_store = idx_alpha;
 						idx_q_bin_store = q_idx_WP;
 						idx_p_bin_store = p_idx_WP;
@@ -226,29 +227,35 @@ void find_on_shell_bins(solution_configuration& solve_config,
 						//printf("Ecom = %.3f \n\n", E_com);
 						//printf("Tlab = %.3f \n\n", solve_config.T_lab_array[idx_Tlab]);
 
-						break_loop = true;
-						break;
+						alphapd_idx_vector.push_back(idx_alpha_store);
+						alphapd_idx_vector.push_back(idx_q_bin_store);
+						alphapd_idx_vector.push_back(idx_p_bin_store);				
+						solve_config_subchn.num_BU_chns	+= 1;
+						counter += 1;
+
+						//break_loop = true;
+						//break;
 					}
 				}
 			}
+			//std::cout << "ALPHA: " << idx_alpha << " | COUNTER: "<< counter << std::endl;
 
 			if (idx_alpha_store==-1 || idx_q_bin_store==-1 || idx_p_bin_store==-1){
 				printf("On-shell kinetic energy Tlab=%.3f MeV doesn't exist in WP state space \n", solve_config.T_lab_array[idx_Tlab]);
 				raise_error("Invalid Tlab entered. Exiting ...");
 			}
-			else{
-				alphapd_idx_vector.push_back(idx_alpha_store);
-				alphapd_idx_vector.push_back(idx_q_bin_store);
-				alphapd_idx_vector.push_back(idx_p_bin_store);				
-				solve_config_subchn.num_BU_chns	+= 1;
-			}
+			//else{
+			//	alphapd_idx_vector.push_back(idx_alpha_store);
+			//	alphapd_idx_vector.push_back(idx_q_bin_store);
+			//	alphapd_idx_vector.push_back(idx_p_bin_store);				
+			//	solve_config_subchn.num_BU_chns	+= 1;
+			//}
 		}
 		solve_config_subchn.q_com_BU_idx_array[idx_Tlab+1] = solve_config_subchn.num_BU_chns;
 	}
 	/* Copy vector contents into struct array */
 	solve_config_subchn.alphapq_idx_array = new int [alphapd_idx_vector.size()];
 	std::copy(alphapd_idx_vector.begin(), alphapd_idx_vector.end(), solve_config_subchn.alphapq_idx_array);
-	
 	printf("     - On-shell p- & q-momentum WP bins found \n");
 }
 

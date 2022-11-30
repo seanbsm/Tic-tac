@@ -447,6 +447,20 @@ int main(int argc, char* argv[]){
 											swp_states,
 											pw_substates,
 											U_mat_filename_t);
+				
+				std::string U_mat_BU_filename_t = run_parameters.output_folder + "/" + "U_PW_breakup_elements"
+																			+ file_identification
+																			+ "_PSI_" + std::to_string(idx_param_set)
+																			+ ".txt";
+
+				store_U_BU_matrix_elements_txt(U_BU_array,
+											solve_config,
+											chn_os_indexing,
+											run_parameters,
+											fwp_states,
+											swp_states,
+											pw_substates,
+											U_mat_BU_filename_t);
 
 				/* End of code segment for storing on-shell U-matrix solutions */
 				/* ################################################################################################################### */

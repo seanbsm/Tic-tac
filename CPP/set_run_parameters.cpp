@@ -117,6 +117,9 @@ bool read_and_set_parameter(run_params& run_parameters, std::string option, std:
 	else if (option == "PSI_end"){
 		run_parameters.PSI_end = std::stoi(input);
 	}
+	else if (option=="channel_idx"){
+		run_parameters.channel_idx = std::stoi(input);
+	}
 	else if (option == "parallel_run"){
 		if (input=="true" || input=="false"){
 			run_parameters.parallel_run = (input=="true");
@@ -263,144 +266,240 @@ void read_input_list_and_set_parameters(run_params& run_parameters, std::string 
 
 void show_usage(){
 	
-	std::string seperationLine = "\n --------------------------------------------------------------------------- \n";
+	std::string seperationLine = "\n---------------------------------------------------------------------------------------\n";
 	
+	std::cout << seperationLine
+			  << std::endl;
+
+	std::cout << "NOTE: The code rewrites variables IN ORDER, meaning if a variable is submitted\n"
+	          << "      twice (either on command line or in input-files), the last read variable\n"
+			  << "      value will be used! \n"
+			  << seperationLine
+			  << std::endl;
+
 	std::cout << "The following command-line run options are available:\n"
 			  << seperationLine
 			  << std::endl;
 			  
-	std::cout << "-h or --help: Displays the possible run options.\n"
+	std::cout << "-h or --help:             Displays the possible run options.\n"
 			  << seperationLine
 			  << std::endl;
 
-	std::cout << "<inputfile>.txt:    Tell program to read <inputfile>.txt for run parameters. \n"
-			  << "Example:            input.txt -> Program interprets input.txt.\n"
-			  << "Example:                         All other command-line options are ignored.\n"
+	std::cout << "<inputfile>.txt:          Tell program to read <inputfile>.txt for run parameters.\n"
+			  << "Example:                  input.txt -> Program interprets input.txt.\n"
 			  << seperationLine
 			  << std::endl;
 
-	std::cout << "two_J_3N_max:       Maximum total angular momentum of three-nucleon system state space \n"
-			  << "Example:            two_J_3N_max=3 -> J_3N=[1/2, 3/2].\n"
+	std::cout << "two_J_3N_max:             Maximum total angular momentum of three-nucleon system state\n"
+			  << "                          space \n"
+			  << "Example:                  two_J_3N_max=3 -> J_3N=[1/2, 3/2].\n"
 			  << seperationLine
 			  << std::endl;
 			  
-	std::cout << "Np_WP:              Sets number of p-momentum wave-packets.\n"
-			  << "Example:            N=100 -> 100 wave-packets in p-momentum.\n"
+	std::cout << "Np_WP:                    Sets number of p-momentum wave-packets.\n"
+			  << "Example:                  N=100 -> 100 wave-packets in p-momentum.\n"
 			  << seperationLine
 			  << std::endl;
 		
-	std::cout << "Nq_WP:              Sets number of q-momentum wave-packets.\n"
-			  << "Example:            N=100 -> 100 wave-packets in q-momentum.\n"
+	std::cout << "Nq_WP:                    Sets number of q-momentum wave-packets.\n"
+			  << "Example:                  N=100 -> 100 wave-packets in q-momentum.\n"
 			  << seperationLine
 			  << std::endl;
 
-	std::cout << "J_2N_max:           Sets upper bound on total angular momentum of\n"
-			  << "                    pair-system. \n"
-			  << "Example:            J_2N_max=10 -> Calculates up to and including J_2N=10.\n"
+	std::cout << "J_2N_max:                 Sets upper bound on total angular momentum of\n"
+			  << "                          pair-system. \n"
+			  << "Example:                  J_2N_max=10 -> Calculates up to and including J_2N=10.\n"
 			  << seperationLine
 			  << std::endl;
 	
-	std::cout << "Nphi:               Number of quadrature points in p- and q- parametrisation in P123-calculation.\n"
-			  << "Example:            Nphi=48 -> 48 quadrature points.\n"
+	std::cout << "Nphi:                     Number of quadrature points in p- and q- parametrisation in\n"
+			  << "                          P123-calculation.\n"
+			  << "Example:                  Nphi=48 -> 48 quadrature points.\n"
 			  << seperationLine
 			  << std::endl;
 	
-	std::cout << "Nx:                 Number of quadrature points in angular integral of geometric function in P123-calculation.\n"
-			  << "Example:            Nx=20 -> 20 quadrature points.\n"
+	std::cout << "Nx:                       Number of quadrature points in angular integral of geometric\n"
+			  << "                          function in P123-calculation.\n"
+			  << "Example:                  Nx=20 -> 20 quadrature points.\n"
 			  << seperationLine
 			  << std::endl;
 	
-	std::cout << "chebyshev_t:        Sparseness degree in Chebyshev distribution.\n"
-			  << "Example:            t=2 -> Use exponent 2 in Chebyshev boundary construction.\n"
+	std::cout << "chebyshev_t:              Sparseness degree in Chebyshev distribution.\n"
+			  << "Example:                  t=2 -> Use exponent 2 in Chebyshev boundary construction.\n"
 			  << seperationLine
 			  << std::endl;
 	
-	std::cout << "chebyshev_s:        Scale in Chebyshev distribution.\n"
-			  << "Example:            s=100 -> Scale Chebyshev boundaries by 100 MeV.\n"
+	std::cout << "chebyshev_s:              Scale in Chebyshev distribution.\n"
+			  << "Example:                  s=100 -> Scale Chebyshev boundaries by 100 MeV.\n"
 			  << seperationLine
 			  << std::endl;
 	
-	std::cout << "Np_per_WP:          Sets number of quadrature points in each p-momentum wave-packet. Used in NN potential matrix construction\n"
-			  << "Example:            Np_per_WP=8 -> 8 Gauss-Legendre points in each wave-packet in p-momentum.\n"
+	std::cout << "Np_per_WP:                Sets number of quadrature points in each p-momentum wave\n"
+			  << "                          packet. Used in NN potential matrix construction\n"
+			  << "Example:                  Np_per_WP=8 -> 8 Gauss-Legendre points in each wave-packet\n"
+			  << "                                         in p-momentum.\n"
 			  << seperationLine
 			  << std::endl;
 		
-	std::cout << "Nq_per_WP:          Sets number of quadrature points in each q-momentum wave-packet.\n"
-			  << "Example:            Nq_per_WP=8 -> 8 Gauss-Legendre points in each wave-packet in q-momentum.\n"
+	std::cout << "Nq_per_WP:                Sets number of quadrature points in each q-momentum wave\n"
+	          << "                          packet.\n"
+			  << "Example:                  Nq_per_WP=8 -> 8 Gauss-Legendre points in each wave-packet\n"
+			  << "                                         in q-momentum.\n"
 			  << seperationLine
 			  << std::endl;
 
-	std::cout << "channel_idx:        Tells the program to calculate for a given channel index (0-based indexing!).\n"
-			  << "Example:            channel_idx=2 -> Program calculates U/P123 for channel 2.\n"
+	std::cout << "channel_idx:              Tells the program to calculate for a given channel index\n"
+			  << "                          (0-based indexing!).\n"
+			  << "Example:                  channel_idx=2 -> Program calculates U/P123 for channel 2.\n"
 			  << seperationLine
 			  << std::endl;
 
-	std::cout << "parallel_run:       Tells the program to run in parallel across 3N channels (one processor per channel).\n"
-			  << "                    Possible options are (true, false).\n"
-			  << "Example:            parallel_run=true -> Program assigns channels to processors given by channel_idx.\n"
+	std::cout << "parallel_run:             Tells the program to run in parallel across 3N channels (one\n"
+			  << "                          processor per channel). Possible options are (true, false).\n"
+			  << "Example:                  parallel_run=true -> Program assigns channels to processors\n"
+			  << "                                               given by channel_idx.\n"
 			  << seperationLine
 			  << std::endl;
 
-	std::cout << "potential_model:    Sets which two-bodu potential model is used.\n"
-			  << "                    Possible options are (LO_internal, N2LOopt, Idaho_N3LO, nijmegen, malfliet_tjon).\n"
-			  << "                    Note that LO_internal is an internally pre-written chiral leading-order potential.\n"
-			  << "Example:            model=Idaho_N3LO -> Uses two-body chiral Idaho N3LO potential.\n"
+	std::cout << "potential_model:          Sets which two-body potential model is used. Possible\n"
+			  << "                          options are (LO_internal, N2LOopt, Idaho_N3LO, nijmegen,\n"
+			  << "                          malfliet_tjon). Note that LO_internal is an internally pre-\n"
+			  << "                          written chiral leading-order potential.\n"
+			  << "Example:                  model=Idaho_N3LO -> Uses two-body chiral Idaho N3LO\n"
+	  		  << "                                              potential.\n"
 			  << seperationLine
 			  << std::endl;
 	
-	std::cout << "grid_type:          Sets which type of distribution of bins.\n"
-			  << "                    Currently only the Chebyshev distribution is implemented.\n"
-			  << "Example:            grid_type=chebyshev -> WP-Boundaries are distributed in a Chebyshev-distribution.\n"
+	std::cout << "p_grid_type:              Sets which type of distribution of p-momentum bins.\n"
+			  << "                          Currently only the Chebyshev distribution is implemented.\n"
+			  << "Example:                  p_grid_type=chebyshev -> WP-Boundaries are distributed in a\n"
+			  << "                                                   Chebyshev-distribution.\n"
+			  << seperationLine
+			  << std::endl;
+	
+	std::cout << "p_grid_filename:          Input-file with custom-set boundaries of p-momentum bins.\n"
+			  << "Example:                  p_grid_filename=filename.txt -> Program reads boundaries in\n"
+			  << "                                                          filename.txt. Must be stored\n"
+			  << "                                                          in rows.\n"
+			  << seperationLine
+			  << std::endl;
+	
+	std::cout << "q_grid_type:              Same as p_grid_type but for q-momentum bins.\n"
+			  << seperationLine
+			  << std::endl;
+	
+	std::cout << "q_grid_filename:          Same as p_grid_filename but for q-momentum bins.\n"
 			  << seperationLine
 			  << std::endl;
 			  
-	std::cout << "parameter_walk:     Sets whether or not program is run as a walk over \n"
-			  << "                    model parameter space. (REQUIRES INPUT FILE, SEE parameter_file)\n"
-			  << "                    Possible options are (true, false).\n"
-			  << "Example:            parameter_walk=true -> Program loops over one or several \n"
-			  << "				                             model parameter sets.\n"
+	std::cout << "P123_omp_num_threads:     Number of OpenMP threads to use in calculation of P123-\n"
+	          << "                          elements\n"
+			  << "Example:                  P123_omp_num_threads=8 -> Calculation uses 8 threads.\n"
 			  << seperationLine
 			  << std::endl;
 			  
-	std::cout << "parameter_file:     File from which the code reads parameter input. Note that the number of parameters must \n"
-			  << "                    equal the number of potential model parameters \n"
-			  << "Example:            parameter_walk=Input/samples.txt -> Program reads samples.txt line-by-line and loops through values \n"
+	std::cout << "max_TFC:                  \n"
 			  << seperationLine
 			  << std::endl;
 			  
-	std::cout << "PSI_start:     	  Index of parameter set to start iteration through parameter_file. (!!! ZERO-BASED INDEXING !!!) \n"
-			  << "Example:            PSI_start=10 -> Program reads parameter_file, and starts iteration of parameters sets at line 10 \n"
+	std::cout << "parameter_walk:           Sets whether or not program is run as a walk over model\n"
+			  << "                          parameter space. (REQUIRES INPUT FILE, SEE parameter_file)\n"
+			  << "                          Possible options are (true, false).\n"
+			  << "Example:                  parameter_walk=true -> Program loops over one or several \n"
+			  << "                                                 model parameter sets.\n"
 			  << seperationLine
 			  << std::endl;
 			  
-	std::cout << "PSI_end:     	      Index of parameter set to end iteration through parameter_file. (!!! ZERO-BASED INDEXING !!!) \n"
-			  << "Example:            PSI_end=20 -> Program reads parameter_file, and ends iteration of parameters sets at line 19 (not using line 20) \n"
-			  << "                                  Combined example with PSI_start: if PSI_start=0 and PSI_end=10, the code requires a file with \n"
-			  << "                                  at least 10 lines of parameter sets, where the first line is given index 0, such that PSI=[0,1,...,9]."
+	std::cout << "parameter_file:           File from which the code reads parameter input. Note that\n"
+			  << "                          the number of parameters must equal the number of potential\n"
+	  		  << "                          model parameters \n"
+			  << "Example:                  parameter_walk=Input/samples.txt -> Program reads samples.txt\n"
+	  		  << "                                                              line-by-line and loops\n"
+			  << "                                                              through values. \n"
+			  << seperationLine
+			  << std::endl;
+			  
+	std::cout << "PSI_start:                Index of parameter set to start iteration through\n"
+			  << "                          parameter_file. (!!! ZERO-BASED INDEXING !!!) \n"
+			  << "Example:                  PSI_start=10 -> Program reads parameter_file, and starts\n"
+	  		  << "                          iteration of parameters sets at line 10. \n"
+			  << seperationLine
+			  << std::endl;
+			  
+	std::cout << "PSI_end:                  Index of parameter set to end iteration through\n"
+			  << "                          parameter_file. (!!! ZERO-BASED INDEXING !!!) \n"
+			  << "Example:                  PSI_end=20 -> Program reads parameter_file, and ends\n"
+	  		  << "                                        iteration of parameters sets at line 19 (not\n"
+	  		  << "                                        using line 20). Combined example with\n"
+	  		  << "                                        PSI_start: if PSI_start=0 and PSI_end=10, the\n"
+	  		  << "                                        code requires a file with at least 10 lines of\n"
+			  << "                                        parameter sets, where the first line is given\n"
+			  << "                                        index 0, such that PSI=[0,1,...,9]."
+			  << seperationLine
+			  << std::endl;
+			  
+	std::cout << "P123_recovery:            \n"
+			  << seperationLine
+			  << std::endl;
+			  
+	std::cout << "tensor_force:             Tell program whether to include tensor forces in nuclear NN\n"
+			  << "                          potential. Possible options are (true, false). \n"
+			  << "Example:                  tensor_force=true -> Tensor forces are enabled.\n"
+			  << seperationLine
+			  << std::endl;
+			  
+	std::cout << "isospin_breaking_1S0:     Tell program whether to include charge depence in the 1S0 NN\n"
+			  << "                          channel. Possible options are (true, false). \n"
+			  << "Example:                  isospin_breaking_1S0=true -> charge dependence is included.\n"
 			  << seperationLine
 			  << std::endl;
 	
-	std::cout << "energy_input_file:  Sets in which file in Input to read for Tlab energies used in T-matrix calculation.\n"
-			  << "Example:            energy_input_file=Tlabs -> Program reads file <Tlabs.txt> \n"
+	std::cout << "midpoint_approx:          Sets whether or not program will use momentum bin averages\n"
+			  << "                          when calculating potential elements. Possible options are\n"
+	  		  << "                          (true, false).\n"
+			  << "Example:                  midpoint_approx=true -> Program will use average momentum of\n"
+	  		  << "                                                  bins.\n"
+			  << seperationLine
+			  << std::endl;
+			  
+	std::cout << "calculate_and_store_P123: Tell program whether to calculate P123-elements and store.\n"
+			  << "                          Possible options are (true, false).\n"
+			  << "Example:                  calculate_and_store_P123=true -> Program will calculate P123\n"
+	  		  << "                                                           elements and store them.\n"
+			  << seperationLine
+			  << std::endl;
+			  
+	std::cout << "solve_faddeev:            Tell program whether to solve the Faddeev equation.\n"
+			  << "                          Possible options are (true, false).\n"
+			  << "Example:                  solve_faddeev=true -> Program will solve the Faddeev\n"
+	  		  << "                                                equation.\n"
+			  << seperationLine
+			  << std::endl;
+			  
+	std::cout << "production_run:           Tell program to do correct calculations or not. Used to\n"
+			  << "                          debug P123-calculations quickly with nonsense elements\n"
+			  << "                          Possible options are (true, false).\n"
+			  << "Example:                  production_run=false -> Program will calculate P123\n"
+	  		  << "                                                  with low-cost placeholder elements\n"
+			  << "                                                  in sparse layout.\n"
 			  << seperationLine
 			  << std::endl;
 	
-	std::cout << "midpoint_approx:    Sets whether or not program will use momentum bin averages \n"
-			  << "                    when calculating potential elements.\n"
-			  << "                    Possible options are (true, false).\n"
-			  << "Example:            midpoint_approx=true -> Program will use average momentum of bins \n"
+	std::cout << "energy_input_file:        Sets in which file in Input to read for Tlab energies used\n"
+			  << "                          in U-matrix calculation.\n"
+			  << "Example:                  energy_input_file=Tlabs -> Program reads file <Tlabs.txt> \n"
 			  << seperationLine
 			  << std::endl;
 	
-	std::cout << "output_folder:      Sets in which folder store output into. \n"
-			  << "Example:            output_folder=some/folder -> Program stores results in \n"
-			  << "				                                         some/folder/ \n"
+	std::cout << "output_folder:            Sets in which folder store output into. \n"
+			  << "Example:                  output_folder=some/folder -> Program stores results in \n"
+			  << "                                                       some/folder/ \n"
 			  << seperationLine
 			  << std::endl;
 	
-	std::cout << "P123_folder:        Sets in which folder to read/write P123 from/to. \n"
-			  << "Example:            P123_folder=some/folder -> Program reads matrix from, or writes matrix to, \n"
-			  << "				                                 some/folder/ \n"
+	std::cout << "P123_folder:              Sets in which folder to read/write P123 from/to.\n"
+			  << "Example:                  P123_folder=some/folder -> Program reads matrix from, or\n"
+			  << "                                                     writes matrix to some/folder/ \n"
 			  << seperationLine
 			  << std::endl;
 	
@@ -504,40 +603,9 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 					exit(-1);
 				}
 			}
-			else if (arg.substr(arg_size-4) == ".txt" && run_parameters.parallel_run==false){
-				/* Reset to default values.
-				 * Essentially we ignore all other
-				 * command line input. */
-				set_default_values(run_parameters);
-				
+			else if (arg.substr(arg_size-4) == ".txt"){
+				/* Read input list and set input variables specified */
 				use_input_list(run_parameters, arg);
-				if (run_parameters.parallel_run==false){
-					break;
-				}
-				else{
-					for (int i = 1; i < argc; ++i) {
-						arg = argv[i];
-						size_t arg_size = arg.size();
-						if (arg.find(delimiter) != std::string::npos){
-				
-							option = arg.substr(0, arg.find(delimiter));
-							input  = arg.substr(arg.find(delimiter)+1,-1);
-
-							if (input==""){
-								continue;
-							}
-							else if (option=="channel_idx"){
-								run_parameters.channel_idx = std::stoi(input);
-							}
-						}
-					}
-					if (run_parameters.channel_idx==-1){
-						raise_error("Parallel run specified in input but no channel index given!");
-					}
-					else{
-						break;
-					}
-				}
 			}
 			else if (arg.find(delimiter) != std::string::npos){
 				
@@ -547,7 +615,6 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 				if (input==""){
 					continue;
 				}
-				
 				
 				bool valid_option_found = read_and_set_parameter(run_parameters, option, input);
 
@@ -559,6 +626,10 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 				unrecognised_option(arg);
 			}
 		}
+	}
+
+	if (run_parameters.parallel_run==true && run_parameters.channel_idx==-1){
+		raise_error("Parallel run specified in input but no channel index (i.e. channel_idx=<int>) given!");
 	}
 
 	/* Do program compatibility-checks with input */
@@ -577,4 +648,5 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 	std::cout << std::endl;
 	
 	store_run_parameters(run_parameters);
+	raise_error("Success!");
 }

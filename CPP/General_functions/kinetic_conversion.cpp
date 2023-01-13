@@ -12,6 +12,12 @@ double mu1(double Eb){
 	return Mn*Md/(Mn + Md);
 }
 
+/* Reduced mass for nucleon-nucleon-nucleon c.m. system */
+double mu1_free(){
+	double M12 = Mp+Mn;
+	return Mn*M12/(Mn + M12);
+}
+
 /* Converts CoM momentum to Lab kinetic energy */
 double com_momentum_to_lab_energy(double q_com, double Eb){
 	

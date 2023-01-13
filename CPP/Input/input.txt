@@ -1,8 +1,8 @@
 # Run "-h" or "--help" to see meaning of arguments
-two_J_3N_max=1
+two_J_3N_max=3
 Np_WP=50
 Nq_WP=50
-J_2N_max=3
+J_2N_max=1
 Nphi=48
 Nx=48
 Np_per_WP=8
@@ -17,13 +17,13 @@ P123_omp_num_threads=4
 max_TFC=2
 parallel_run=true
 P123_recovery=false
-tensor_force=true
-isospin_breaking_1S0=true
+tensor_force=false
+isospin_breaking_1S0=false
 midpoint_approx=false
 calculate_and_store_P123=false
 solve_faddeev=true
 production_run=true
-potential_model=N2LOopt
+potential_model=malfliet_tjon
 parameter_walk=false
 parameter_file=
 PSI_start=-1

@@ -1,6 +1,13 @@
 
 #include "run_organizer.h"
 
+/* l = lower
+ * u = upper
+ * m = mid */
+int locate_quadrant(double Epm, double Eqm, double Epl, double Epu, double Eql, double Equ, double Ecm){
+
+}
+
 void find_on_shell_bins(solution_configuration& solve_config,
 						channel_os_indexing&	solve_config_subchn,
 						pw_3N_statespace pw_states,
@@ -142,6 +149,12 @@ void find_on_shell_bins(solution_configuration& solve_config,
 	
 	for (size_t idx_Tlab=0; idx_Tlab<num_T_lab; idx_Tlab++){
 		double E_com = solve_config.E_com_array[idx_Tlab];
+
+		if (E_com+E_bound<0){
+			solve_config_subchn.q_com_BU_idx_array[idx_Tlab+1] = solve_config_subchn.q_com_BU_idx_array[idx_Tlab];
+			continue;
+		}
+
 		int idx_alpha_store    = -1;
 		int idx_q_bin_store    = -1;
 		int idx_p_bin_store    = -1;
@@ -202,8 +215,8 @@ void find_on_shell_bins(solution_configuration& solve_config,
 					break;
 				}
 
-				double Eq_bin_lower = q_WP_array[q_idx_WP    ];
-				double Eq_bin_upper = q_WP_array[q_idx_WP + 1];
+				double Eq_bin_lower = 0.5*(q_WP_array[q_idx_WP]   * q_WP_array[q_idx_WP]  )/mu1_free();
+				double Eq_bin_upper = 0.5*(q_WP_array[q_idx_WP+1] * q_WP_array[q_idx_WP+1])/mu1_free();
 				for (int p_idx_WP=0; p_idx_WP<Np_WP; p_idx_WP++){
 					/* Upper and lower boundaries of current p-bin (expressed in energy) */
 					double Ep_bin_lower = e_SWP_array_ptr[p_idx_WP    ];
@@ -214,6 +227,7 @@ void find_on_shell_bins(solution_configuration& solve_config,
 
 					/* See if input energy lies between two bin mid-points */
 					if (E_cell_lower<=E_com && E_com<=E_cell_upper && Ep_bin_lower>=0 && Ep_bin_upper>=0){
+						
 						idx_alpha_store = idx_alpha;
 						idx_q_bin_store = q_idx_WP;
 						idx_p_bin_store = p_idx_WP;
@@ -229,9 +243,78 @@ void find_on_shell_bins(solution_configuration& solve_config,
 
 						alphapd_idx_vector.push_back(idx_alpha_store);
 						alphapd_idx_vector.push_back(idx_q_bin_store);
-						alphapd_idx_vector.push_back(idx_p_bin_store);				
+						alphapd_idx_vector.push_back(idx_p_bin_store);			
 						solve_config_subchn.num_BU_chns	+= 1;
 						counter += 1;
+
+						/* Determine cell quadrant for overlap */
+						double Ep = 0.5*(Ep_bin_upper - Ep_bin_lower);
+						double Eq = 0.5*(Eq_bin_upper - Eq_bin_lower);
+						/* Quadrant 1 */
+						double Eq1l = Eq + Ep;
+						double Eq1u = E_cell_upper;
+						/* Quadrant 2 */
+						double Eq2l = Eq + Ep_bin_lower;
+						double Eq2u = Ep + Eq_bin_upper;
+						/* Quadrant 3 */
+						double Eq3l = E_cell_lower;
+						double Eq3u = Eq + Ep;
+						/* Quadrant 4 */
+						double Eq4l = Eq_bin_lower + Ep;
+						double Eq4u = Ep_bin_upper + Eq;
+						//int quadrant = locate_quadrant(Ep, E1, Ep_bin_lower, Ep_bin_upper, Eq_bin_lower, Eq_bin_upper, E_com);
+						if (Eq1l<=E_com && E_com<=Eq1u){
+							for (int pi=idx_p_bin_store; pi<=idx_p_bin_store+1; pi++){
+								for (int qj=idx_q_bin_store; qj<=idx_q_bin_store+1; qj++){
+									if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
+										alphapd_idx_vector.push_back(idx_alpha_store);
+										alphapd_idx_vector.push_back(qj);
+										alphapd_idx_vector.push_back(pi);			
+										solve_config_subchn.num_BU_chns	+= 1;
+										counter += 1;
+									}
+								}
+							}
+						}
+						else if (Eq2l<=E_com && E_com<=Eq2u){
+							for (int pi=idx_p_bin_store-1; pi<=idx_p_bin_store; pi++){
+								for (int qj=idx_q_bin_store; qj<=idx_q_bin_store+1; qj++){
+									if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
+										alphapd_idx_vector.push_back(idx_alpha_store);
+										alphapd_idx_vector.push_back(qj);
+										alphapd_idx_vector.push_back(pi);			
+										solve_config_subchn.num_BU_chns	+= 1;
+										counter += 1;
+									}
+								}
+							}
+						}
+						else if (Eq3l<=E_com && E_com<=Eq3u){
+							for (int pi=idx_p_bin_store-1; pi<=idx_p_bin_store; pi++){
+								for (int qj=idx_q_bin_store-1; qj<=idx_q_bin_store; qj++){
+									if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
+										alphapd_idx_vector.push_back(idx_alpha_store);
+										alphapd_idx_vector.push_back(qj);
+										alphapd_idx_vector.push_back(pi);			
+										solve_config_subchn.num_BU_chns	+= 1;
+										counter += 1;
+									}
+								}
+							}
+						}
+						else if (Eq4l<=E_com && E_com<=Eq4u){
+							for (int pi=idx_p_bin_store; pi<=idx_p_bin_store+1; pi++){
+								for (int qj=idx_q_bin_store-1; qj<=idx_q_bin_store; qj++){
+									if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
+										alphapd_idx_vector.push_back(idx_alpha_store);
+										alphapd_idx_vector.push_back(qj);
+										alphapd_idx_vector.push_back(pi);			
+										solve_config_subchn.num_BU_chns	+= 1;
+										counter += 1;
+									}
+								}
+							}
+						}
 
 						//break_loop = true;
 						//break;
@@ -239,18 +322,17 @@ void find_on_shell_bins(solution_configuration& solve_config,
 				}
 			}
 			//std::cout << "ALPHA: " << idx_alpha << " | COUNTER: "<< counter << std::endl;
-
-			if (idx_alpha_store==-1 || idx_q_bin_store==-1 || idx_p_bin_store==-1){
-				printf("On-shell kinetic energy Tlab=%.3f MeV doesn't exist in WP state space \n", solve_config.T_lab_array[idx_Tlab]);
-				raise_error("Invalid Tlab entered. Exiting ...");
-			}
-			//else{
-			//	alphapd_idx_vector.push_back(idx_alpha_store);
-			//	alphapd_idx_vector.push_back(idx_q_bin_store);
-			//	alphapd_idx_vector.push_back(idx_p_bin_store);				
-			//	solve_config_subchn.num_BU_chns	+= 1;
-			//}
 		}
+		if (idx_alpha_store==-1 || idx_q_bin_store==-1 || idx_p_bin_store==-1){
+			printf("On-shell kinetic energy Tlab=%.3f MeV doesn't exist in WP state space \n", solve_config.T_lab_array[idx_Tlab]);
+			raise_error("Invalid Tlab entered. Exiting ...");
+		}
+		//else{
+		//	alphapd_idx_vector.push_back(idx_alpha_store);
+		//	alphapd_idx_vector.push_back(idx_q_bin_store);
+		//	alphapd_idx_vector.push_back(idx_p_bin_store);				
+		//	solve_config_subchn.num_BU_chns	+= 1;
+		//}
 		solve_config_subchn.q_com_BU_idx_array[idx_Tlab+1] = solve_config_subchn.num_BU_chns;
 	}
 	/* Copy vector contents into struct array */

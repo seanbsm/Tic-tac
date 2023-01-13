@@ -421,7 +421,7 @@ void restructure_breakup_data(std::complex<double>*    			 U_array,
 	tot_num_cols = headers.size()/2;
 
 	/* Allocate data_mat and set to 0 */
-	data_mat.reserve(tot_num_cols* tot_num_rows);
+	data_mat.resize(tot_num_cols* tot_num_rows);
 	for (int i=0; i<data_mat.size(); i++){
 		data_mat[i] = {0,0};
 	}
@@ -520,10 +520,6 @@ void restructure_breakup_data(std::complex<double>*    			 U_array,
 				int c = 5*alpha_map[key_alpha] + 5;
 				int r = row_idx_map[key_row_idx];
 
-				if (alpha_map[key_alpha]==0){
-					std::cout << r << " " << qcm << " " << U_array[U_idx] << " " << qlo << " " <<  qup << " " <<  plo << " " <<  pup << std::endl;
-				}
-
 				data_mat[r*tot_num_cols + c + 0] = U_array[U_idx];
 				data_mat[r*tot_num_cols + c + 1] = {qlo, 0};
 				data_mat[r*tot_num_cols + c + 2] = {qup, 0};
@@ -532,17 +528,6 @@ void restructure_breakup_data(std::complex<double>*    			 U_array,
 			}
 		}
 	}
-
-	for (int c=5; c<5+5; c++){
-		std::cout << data_mat[2*tot_num_cols + c] << std::endl;
-	}
-
-	//for (int r=0; r<tot_num_rows; r++){
-	//	for (int c=5; c<5+5; c++){
-	//		std::cout << data_mat[r*tot_num_cols + c] << " ";
-	//	}
-	//	std::cout << std::endl;
-	//}
 }
 
 void store_U_BU_matrix_elements_txt(std::complex<double>*    U_array,

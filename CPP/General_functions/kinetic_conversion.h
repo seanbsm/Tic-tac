@@ -6,6 +6,7 @@
 
 double deuteron_mass(double Eb);
 double mu1(double Eb);
+double mu1_free();
 
 double com_momentum_to_lab_energy(double q_com, double Eb);
 double lab_energy_to_com_momentum(double T_lab, double Eb);

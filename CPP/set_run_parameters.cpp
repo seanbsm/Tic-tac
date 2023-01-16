@@ -648,5 +648,4 @@ void set_run_parameters(int& argc, char* argv[], run_params& run_parameters){
 	std::cout << std::endl;
 	
 	store_run_parameters(run_parameters);
-	raise_error("Success!");
 }

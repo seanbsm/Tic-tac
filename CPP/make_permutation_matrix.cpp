@@ -156,6 +156,171 @@ std::string generate_subarray_file_name(int two_J_3N, int P_3N,
 	return filename;
 }
 
+/* Calculates all overlapping bins <p'q'|pq> in wave-packet representation */
+void calculate_WP_overlap(bool* pq_WP_overlap_array,
+						  int   Np_WP, double *p_array_WP_bounds,
+						  int   Nq_WP, double *q_array_WP_bounds,
+						  int   Nx,    double* x_array,   double* wx_array,
+						  int   Nphi,  double* phi_array, double* wphi_array){
+	if (true){
+	#pragma omp parallel
+	{
+		#pragma omp for
+	for (size_t qp_idx_WP=0; qp_idx_WP<Nq_WP; qp_idx_WP++){
+		double qp_l = q_array_WP_bounds[qp_idx_WP];
+		double qp_u = q_array_WP_bounds[qp_idx_WP+1];
+		for (size_t pp_idx_WP=0; pp_idx_WP<Np_WP; pp_idx_WP++){
+			double pp_l = p_array_WP_bounds[pp_idx_WP];
+			double pp_u = p_array_WP_bounds[pp_idx_WP+1];
+	
+			double phi_lower = atan(pp_l/qp_u);
+			double phi_upper = atan(pp_u/qp_l);
+			
+			/* Create phi-mesh */
+			calc_gauss_points ( &phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+							   &wphi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+							   phi_lower, phi_upper,
+							   Nphi);
+							   
+			/* Verify that on-shell elements can exist for given phi-boundaries */
+			for (size_t q_idx_WP=0; q_idx_WP<Nq_WP; q_idx_WP++){
+				double q_l = q_array_WP_bounds[q_idx_WP];
+				double q_u = q_array_WP_bounds[q_idx_WP+1];
+				for (size_t p_idx_WP=0; p_idx_WP<Np_WP; p_idx_WP++){
+					double p_l = p_array_WP_bounds[p_idx_WP];
+					double p_u = p_array_WP_bounds[p_idx_WP+1];
+	
+					bool WP_overlap = false;
+					/* Ensure possible phi boundaries */
+					int hit_counter = 0;
+					if (phi_lower<phi_upper){
+						/* Search for on-shell elements */
+						for (size_t phi_idx=0; phi_idx<Nphi; phi_idx++){
+							double phi = phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi + phi_idx];
+							double sin_phi = std::sin(phi);
+							double cos_phi = std::cos(phi);
+	
+							double kmin = std::max(pp_l/sin_phi, qp_l/cos_phi);
+							double kmax = std::min(pp_u/sin_phi, qp_u/cos_phi);
+	
+							/* Ensure possible k-boundaries */
+							if (kmin<kmax){
+								for (int x_idx=0; x_idx<Nx; x_idx++){
+									double x = x_array[x_idx];
+	
+									double zeta_1 = pi1_tilde(sin_phi, cos_phi, x);
+									double zeta_2 = pi2_tilde(sin_phi, cos_phi, x);
+	
+									double Heaviside_lower = std::max(p_l/zeta_1, q_l/zeta_2);
+									double Heaviside_upper = std::min(p_u/zeta_1, q_u/zeta_2);
+	
+									/* Ensure overlapping Heaviside boundaries */
+									if (Heaviside_lower<Heaviside_upper){
+										double kpmin = std::max(kmin, Heaviside_lower);
+										double kpmax = std::min(kmax, Heaviside_upper);
+	
+										/* Skip momentum-violating integral boundaries */
+										if (kpmin<kpmax){
+											WP_overlap = true;
+											
+											//if (std::abs(kpmax-kpmin)>1e-15){
+											//	hit_counter += 1;
+											//}
+											break;
+										}
+									}
+								}
+							}
+							if (WP_overlap){
+								break;
+							}
+						}
+					}
+	
+					/* Unique index for current combination of WPs */
+					size_t step_length_1 = (size_t) Np_WP*Nq_WP*Np_WP;
+					size_t step_length_2 = (size_t) 	  Nq_WP*Np_WP;
+					size_t step_length_3 = (size_t)		        Np_WP;
+					size_t pq_WP_idx = (size_t) qp_idx_WP*step_length_1
+							  	  	 		  + pp_idx_WP*step_length_2
+							  	  	 		  +  q_idx_WP*step_length_3
+							  	  	 		  +  p_idx_WP;
+					//std::cout << pq_WP_idx << " " << qp_idx_WP << " " << pp_idx_WP << " " << q_idx_WP << " " << p_idx_WP << std::endl;
+					pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
+				}
+			}
+		}
+	}
+	}
+	}
+	else{
+		#pragma omp parallel
+		{
+		#pragma omp for
+		for (size_t qp_idx_WP=0; qp_idx_WP<Nq_WP; qp_idx_WP++){
+			double qp_l = q_array_WP_bounds[qp_idx_WP];
+			double qp_u = q_array_WP_bounds[qp_idx_WP+1];
+			for (size_t pp_idx_WP=0; pp_idx_WP<Np_WP; pp_idx_WP++){
+				double pp_l = p_array_WP_bounds[pp_idx_WP];
+				double pp_u = p_array_WP_bounds[pp_idx_WP+1];
+
+				double phi_lower = atan(pp_l/qp_u);
+				double phi_upper = atan(pp_u/qp_l);
+
+				/* Create phi-mesh */
+				calc_gauss_points ( &phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+								   &wphi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
+								   phi_lower, phi_upper,
+								   Nphi);
+
+				for (size_t q_idx_WP=0; q_idx_WP<Nq_WP; q_idx_WP++){
+					double q_l = q_array_WP_bounds[q_idx_WP];
+					double q_u = q_array_WP_bounds[q_idx_WP+1];
+					for (size_t p_idx_WP=0; p_idx_WP<Np_WP; p_idx_WP++){
+						double p_l = p_array_WP_bounds[p_idx_WP];
+						double p_u = p_array_WP_bounds[p_idx_WP+1];
+	
+						double pi1_min = pi1_tilde(pp_l, qp_l, -1.0);
+						double pi1_max = pi1_tilde(pp_u, qp_u, +1.0);
+						bool p_in_pi1 = ( (pi1_min<=p_l && p_l<=pi1_max) || (pi1_min<=p_u && p_u<=pi1_max) );
+
+						double pi2_min = pi2_tilde(pp_l, qp_l, +1.0);
+						double pi2_max = pi2_tilde(pp_u, qp_u, -1.0);
+						bool q_in_pi2 = ( (pi2_min<=q_l && q_l<=pi2_max) || (pi2_min<=q_u && q_u<=pi2_max) );
+
+						bool WP_overlap = false;
+						if ( p_in_pi1 && q_in_pi2 ){
+							WP_overlap = true;
+						}
+					
+						/* Unique index for current combination of WPs */
+						size_t step_length_1 = (size_t) Np_WP*Nq_WP*Np_WP;
+						size_t step_length_2 = (size_t) 	  Nq_WP*Np_WP;
+						size_t step_length_3 = (size_t)		        Np_WP;
+						size_t pq_WP_idx = (size_t) qp_idx_WP*step_length_1
+								  	  	 		  + pp_idx_WP*step_length_2
+								  	  	 		  +  q_idx_WP*step_length_3
+								  	  	 		  +  p_idx_WP;
+						//std::cout << pq_WP_idx << " " << qp_idx_WP << " " << pp_idx_WP << " " << q_idx_WP << " " << p_idx_WP << std::endl;
+						pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
+					}
+				}
+			}
+		}
+		}
+	}
+	//double sparsity = 0.99881;
+	//for (int i=0; i<Nq_WP*Nq_WP*Np_WP*Np_WP; i++){
+	//	double prob_nnz = (double) rand() / RAND_MAX;
+    //    if (prob_nnz>sparsity){
+	//		pq_WP_overlap_array[i] = true;
+	//	}
+	//	else{
+	//		pq_WP_overlap_array[i] = false;
+	//	}
+	//}
+}
+
 void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array,
 												   int*		max_TFC_array,
 												   bool     use_dense_format,
@@ -163,7 +328,8 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 												   int      Np_WP, double *p_array_WP_bounds,
 												   int      Nq_WP, double *q_array_WP_bounds,
 												   int      Nx, double* x_array, double* wx_array,
-												   int      Nphi,
+												   int      Nphi, double* phi_array, double* wphi_array,
+												   bool*    pq_WP_overlap_array,
 												   int      J_2N_max,
 												   pw_3N_statespace pw_states,
 												   run_params run_parameters,
@@ -336,172 +502,8 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 
 	/* END OF OLD CODE SEGMENT WITH OLD VARIABLE-NOTATION */
 
-	/* Precalculate overlapping bins and where p_bar and q_bar are non-zero */
-	size_t	 num_WP_cells		 = (size_t)Nq_WP*Nq_WP*Np_WP*Np_WP;
-	bool*    pq_WP_overlap_array = new bool   [num_WP_cells];
-	double*   phi_array      	 = new double [(size_t)Nq_WP*Np_WP*Nphi];
-	double*  wphi_array      	 = new double [(size_t)Nq_WP*Np_WP*Nphi];
-	
-	printf("   - Precalculating momentum conservations \n");
-	fflush(stdout);
-	if (true){
-	#pragma omp parallel
-	{
-		#pragma omp for
-	for (size_t qp_idx_WP=0; qp_idx_WP<Nq_WP; qp_idx_WP++){
-		double qp_l = q_array_WP_bounds[qp_idx_WP];
-		double qp_u = q_array_WP_bounds[qp_idx_WP+1];
-		for (size_t pp_idx_WP=0; pp_idx_WP<Np_WP; pp_idx_WP++){
-			double pp_l = p_array_WP_bounds[pp_idx_WP];
-			double pp_u = p_array_WP_bounds[pp_idx_WP+1];
-	
-			double phi_lower = atan(pp_l/qp_u);
-			double phi_upper = atan(pp_u/qp_l);
-			
-			/* Create phi-mesh */
-			calc_gauss_points ( &phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
-							   &wphi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
-							   phi_lower, phi_upper,
-							   Nphi);
-							   
-			/* Verify that on-shell elements can exist for given phi-boundaries */
-			for (size_t q_idx_WP=0; q_idx_WP<Nq_WP; q_idx_WP++){
-				double q_l = q_array_WP_bounds[q_idx_WP];
-				double q_u = q_array_WP_bounds[q_idx_WP+1];
-				for (size_t p_idx_WP=0; p_idx_WP<Np_WP; p_idx_WP++){
-					double p_l = p_array_WP_bounds[p_idx_WP];
-					double p_u = p_array_WP_bounds[p_idx_WP+1];
-	
-					bool WP_overlap = false;
-					/* Ensure possible phi boundaries */
-					int hit_counter = 0;
-					if (phi_lower<phi_upper){
-						/* Search for on-shell elements */
-						for (size_t phi_idx=0; phi_idx<Nphi; phi_idx++){
-							double phi = phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi + phi_idx];
-							double sin_phi = std::sin(phi);
-							double cos_phi = std::cos(phi);
-	
-							double kmin = std::max(pp_l/sin_phi, qp_l/cos_phi);
-							double kmax = std::min(pp_u/sin_phi, qp_u/cos_phi);
-	
-							/* Ensure possible k-boundaries */
-							if (kmin<kmax){
-								for (int x_idx=0; x_idx<Nx; x_idx++){
-									double x = x_array[x_idx];
-	
-									double zeta_1 = pi1_tilde(sin_phi, cos_phi, x);
-									double zeta_2 = pi2_tilde(sin_phi, cos_phi, x);
-	
-									double Heaviside_lower = std::max(p_l/zeta_1, q_l/zeta_2);
-									double Heaviside_upper = std::min(p_u/zeta_1, q_u/zeta_2);
-	
-									/* Ensure overlapping Heaviside boundaries */
-									if (Heaviside_lower<Heaviside_upper){
-										double kpmin = std::max(kmin, Heaviside_lower);
-										double kpmax = std::min(kmax, Heaviside_upper);
-	
-										/* Skip momentum-violating integral boundaries */
-										if (kpmin<kpmax){
-											WP_overlap = true;
-											
-											//if (std::abs(kpmax-kpmin)>1e-15){
-											//	hit_counter += 1;
-											//}
-											break;
-										}
-									}
-								}
-							}
-							if (WP_overlap){
-								break;
-							}
-						}
-					}
-	
-					/* Unique index for current combination of WPs */
-					size_t step_length_1 = (size_t) Np_WP*Nq_WP*Np_WP;
-					size_t step_length_2 = (size_t) 	  Nq_WP*Np_WP;
-					size_t step_length_3 = (size_t)		        Np_WP;
-					size_t pq_WP_idx = (size_t) qp_idx_WP*step_length_1
-							  	  	 		  + pp_idx_WP*step_length_2
-							  	  	 		  +  q_idx_WP*step_length_3
-							  	  	 		  +  p_idx_WP;
-					//std::cout << pq_WP_idx << " " << qp_idx_WP << " " << pp_idx_WP << " " << q_idx_WP << " " << p_idx_WP << std::endl;
-					pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
-				}
-			}
-		}
-	}
-	}
-	}
-	else{
-		#pragma omp parallel
-		{
-		#pragma omp for
-		for (size_t qp_idx_WP=0; qp_idx_WP<Nq_WP; qp_idx_WP++){
-			double qp_l = q_array_WP_bounds[qp_idx_WP];
-			double qp_u = q_array_WP_bounds[qp_idx_WP+1];
-			for (size_t pp_idx_WP=0; pp_idx_WP<Np_WP; pp_idx_WP++){
-				double pp_l = p_array_WP_bounds[pp_idx_WP];
-				double pp_u = p_array_WP_bounds[pp_idx_WP+1];
-
-				double phi_lower = atan(pp_l/qp_u);
-				double phi_upper = atan(pp_u/qp_l);
-
-				/* Create phi-mesh */
-				calc_gauss_points ( &phi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
-								   &wphi_array[(qp_idx_WP*Np_WP + pp_idx_WP)*Nphi],
-								   phi_lower, phi_upper,
-								   Nphi);
-
-				for (size_t q_idx_WP=0; q_idx_WP<Nq_WP; q_idx_WP++){
-					double q_l = q_array_WP_bounds[q_idx_WP];
-					double q_u = q_array_WP_bounds[q_idx_WP+1];
-					for (size_t p_idx_WP=0; p_idx_WP<Np_WP; p_idx_WP++){
-						double p_l = p_array_WP_bounds[p_idx_WP];
-						double p_u = p_array_WP_bounds[p_idx_WP+1];
-	
-						double pi1_min = pi1_tilde(pp_l, qp_l, -1.0);
-						double pi1_max = pi1_tilde(pp_u, qp_u, +1.0);
-						bool p_in_pi1 = ( (pi1_min<=p_l && p_l<=pi1_max) || (pi1_min<=p_u && p_u<=pi1_max) );
-
-						double pi2_min = pi2_tilde(pp_l, qp_l, +1.0);
-						double pi2_max = pi2_tilde(pp_u, qp_u, -1.0);
-						bool q_in_pi2 = ( (pi2_min<=q_l && q_l<=pi2_max) || (pi2_min<=q_u && q_u<=pi2_max) );
-
-						bool WP_overlap = false;
-						if ( p_in_pi1 && q_in_pi2 ){
-							WP_overlap = true;
-						}
-					
-						/* Unique index for current combination of WPs */
-						size_t step_length_1 = (size_t) Np_WP*Nq_WP*Np_WP;
-						size_t step_length_2 = (size_t) 	  Nq_WP*Np_WP;
-						size_t step_length_3 = (size_t)		        Np_WP;
-						size_t pq_WP_idx = (size_t) qp_idx_WP*step_length_1
-								  	  	 		  + pp_idx_WP*step_length_2
-								  	  	 		  +  q_idx_WP*step_length_3
-								  	  	 		  +  p_idx_WP;
-						//std::cout << pq_WP_idx << " " << qp_idx_WP << " " << pp_idx_WP << " " << q_idx_WP << " " << p_idx_WP << std::endl;
-						pq_WP_overlap_array[pq_WP_idx] = WP_overlap;
-					}
-				}
-			}
-		}
-		}
-	}
-	//double sparsity = 0.99881;
-	//for (int i=0; i<Nq_WP*Nq_WP*Np_WP*Np_WP; i++){
-	//	double prob_nnz = (double) rand() / RAND_MAX;
-    //    if (prob_nnz>sparsity){
-	//		pq_WP_overlap_array[i] = true;
-	//	}
-	//	else{
-	//		pq_WP_overlap_array[i] = false;
-	//	}
-	//}
-
+	/* Count bins where p_bar and q_bar are zero */
+	size_t num_WP_cells = (size_t)Nq_WP*Nq_WP*Np_WP*Np_WP;
 	size_t counter = 0;
 	for (size_t idx=0; idx<num_WP_cells;idx++){
 		if (pq_WP_overlap_array[idx]==false){
@@ -509,7 +511,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 		}
 	}
 	double P123_sparsity = (double) counter/num_WP_cells;
-	printf("     - %.3f%% of P123-matrix violates momentum-conservation \n", 100*P123_sparsity );
+	printf("   - %.3f%% of P123-matrix violates momentum-conservation \n", 100*P123_sparsity );
 
 	double*  sin_phi_array = new double [Nq_WP*Np_WP*Nphi];
 	double*  cos_phi_array = new double [Nq_WP*Np_WP*Nphi];
@@ -615,9 +617,10 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	size_t P123_dense_dim_sq = P123_dense_dim * P123_dense_dim;
 
 	/* Number of elements each thread can hold before writing to disk.
-	 * Default is 1 GB memory per thread, as this is a (somewhat) safe minimum one typically
-	 * finds on most computers today (the number of cores usually is equal to, or smaller than, the memory in GB) */
-	size_t tread_buffer_size = std::pow(2,30)/(sizeof(double) + 2* sizeof(int));
+	 * Default (max_size_per_TFC_file) is 1 GB memory per thread, as this is a (somewhat) safe minimum one typically
+	 * finds on most computers today (the number of cores usually is equal to, or smaller than, the memory in GB)
+	 * You can change max_size_per_TFC_file in the header file. */
+	size_t tread_buffer_size = max_size_per_TFC_file * std::pow(2,30)/(sizeof(double) + 2* sizeof(int));
 	
 	int P123_omp_num_threads = run_parameters.P123_omp_num_threads;
 
@@ -885,7 +888,6 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	omp_set_num_threads(omp_get_max_threads());
 
 	/* Delete all temporary arrays and free memory */
-	delete [] pq_WP_overlap_array;
 	delete [] Atilde_store;
 	delete [] SixJ_array;
 	delete [] ClebschGordan_data;
@@ -896,8 +898,6 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	delete [] gsl_Plm_3_array;
 	delete [] sin_phi_array;
 	delete [] cos_phi_array;
-  	delete [] phi_array;
-  	delete [] wphi_array;
 
 	if (use_dense_format==false){
 		/* Write remaining elements to file */
@@ -1149,7 +1149,8 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 														int      Np_WP, double *p_array_WP_bounds,
 														int      Nq_WP, double *q_array_WP_bounds,
 														int      Nx, double* x_array, double* wx_array,
-														int      Nphi,
+														int      Nphi, double* phi_array, double* wphi_array,
+														bool*    pq_WP_overlap_array,
 														int      J_2N_max,
 														pw_3N_statespace pw_states,
 														run_params run_parameters,
@@ -1194,7 +1195,8 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 								  					  Np_WP, p_array_WP_bounds,
 								  					  Nq_WP, q_array_WP_bounds,
 								  					  Nx, x_array, wx_array,
-													  Nphi,
+													  Nphi, phi_array, wphi_array,
+													  pq_WP_overlap_array,
 													  J_2N_max,
 								  					  pw_states,
 													  run_parameters,
@@ -1205,8 +1207,27 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 		}
 	}
 	else{
+		/* Determine number of momentum-violating bins */
+		size_t num_WP_cells 	 = (size_t) Nq_WP*Nq_WP*Np_WP*Np_WP;
+		size_t P123_dense_dim    = (size_t) Np_WP * Nq_WP * Nalpha;
+		size_t P123_dense_dim_sq = (size_t) P123_dense_dim * P123_dense_dim;
+		size_t counter = 0;
+		for (size_t idx=0; idx<num_WP_cells;idx++){
+			if (pq_WP_overlap_array[idx]==false){
+				counter += 1;
+			}
+		}
+		double P123_sparsity = (double) counter/num_WP_cells;
+		/* Using number of momentum-violating bins, determine upper limit on
+		 * the size of P123 and how many TFC-files are generated. Necessary for P123-recovery */
+		double P123_density   = 1. - P123_sparsity;
+		size_t mem_check_nnz  = P123_density * P123_dense_dim_sq + 1;	// Largest possible size of P123, rounded up
+		size_t mem_check_num_doubles = 2 * mem_check_nnz;
+		size_t mem_check_num_ints    = 4 * mem_check_nnz; 
+		double mem_check_size_in_GB  = (mem_check_num_doubles*sizeof(double) + mem_check_num_ints*sizeof(int))/std::pow(2.0,30);
+		int    max_TFC				 = mem_check_size_in_GB/(run_parameters.P123_omp_num_threads * max_size_per_TFC_file);
 		for (int idx_thread=0; idx_thread<run_parameters.P123_omp_num_threads; idx_thread++){
-			max_TFC_array[idx_thread] = run_parameters.max_TFC;
+			max_TFC_array[idx_thread] = max_TFC;
 		}
 	}
 	
@@ -1302,9 +1323,24 @@ void fill_P123_arrays(double** P123_sparse_val_array,
 									+ "_J2max_" + to_string(J_2N_max) + ".h5";
 									
 	if (run_parameters.calculate_and_store_P123){
+
+		/* Calculate momentum conservation enforced by P123 */
+		printf("Precalculating momentum conservation enforced by P123 ... \n");
+		fflush(stdout);
 		double* x_array  = new double [Nx];
 		double* wx_array = new double [Nx];
 		gauss(x_array, wx_array, Nx);
+
+		double*  phi_array  = new double [(size_t)Nq_WP*Np_WP*Nphi];
+		double*  wphi_array = new double [(size_t)Nq_WP*Np_WP*Nphi];
+
+		bool* pq_WP_overlap_array = new bool [Nq_WP*Nq_WP*Np_WP*Np_WP];
+
+		calculate_WP_overlap(pq_WP_overlap_array,
+							 Np_WP, p_array_WP_bounds,
+							 Nq_WP, q_array_WP_bounds,
+							 Nx,   x_array,   wx_array,
+							 Nphi, phi_array, wphi_array);
 
 		printf("Calculating P123 ... \n");
 		auto timestamp_P123_calc_start = chrono::system_clock::now();
@@ -1316,7 +1352,8 @@ void fill_P123_arrays(double** P123_sparse_val_array,
 														   Np_WP, p_array_WP_bounds,
 														   Nq_WP, q_array_WP_bounds,
 														   Nx, x_array, wx_array,
-														   Nphi,
+														   Nphi, phi_array, wphi_array,
+														   pq_WP_overlap_array,
 														   J_2N_max,
 														   pw_states,
 														   run_parameters,
@@ -1339,6 +1376,12 @@ void fill_P123_arrays(double** P123_sparse_val_array,
 		auto timestamp_P123_store_end = chrono::system_clock::now();
 		chrono::duration<double> time_P123_store = timestamp_P123_store_end - timestamp_P123_store_start;
 		printf(" - Done. Time used: %.6f\n", time_P123_store.count());
+
+		//delete [] x_array;
+		//delete [] wx_array;
+		//delete [] phi_array;
+		//delete [] wphi_array;
+		//delete [] pq_WP_overlap_array;
 	}
 	else if (run_parameters.solve_faddeev){
 		printf("Reading P123 from h5 ... \n");
@@ -1356,33 +1399,5 @@ void fill_P123_arrays(double** P123_sparse_val_array,
 		auto timestamp_P123_read_end = chrono::system_clock::now();
 		chrono::duration<double> time_P123_read = timestamp_P123_read_end - timestamp_P123_read_start;
 		printf(" - Done. Time used: %.6f\n", time_P123_read.count());
-		
-		///* OLD CODE SNIPPET TO DOUBLE-CHECK ANY OPTIMIZATIONS OF P123 CALCULATON
-		// * SHOULD BE MOVED TO A UNIT-TEST */
-		//if (P123_sparse_dim_t==P123_sparse_dim){
-		//	//int row_idx = 0;
-		//	for (int idx=0; idx<P123_sparse_dim; idx++){
-		//		//if (P123_sparse_row_array[idx]==row_idx){
-		//		bool check1 = (abs(P123_sparse_val_array_t[idx]-P123_sparse_val_array[idx])>1e-15);
-		//		bool check2 = (P123_sparse_row_array_t[idx]!=P123_sparse_row_array[idx]);
-		//		bool check3 = (P123_sparse_col_array_t[idx]!=P123_sparse_col_array[idx]);
-		//		if (check1||check2||check3){
-		//			std::cout << "Value wrong, idx: " << idx << std::endl;
-		//			std::cout << "BM val:   " << P123_sparse_val_array_t[idx] << std::endl;
-		//			std::cout << "BM row:   " << P123_sparse_row_array_t[idx] << std::endl;
-		//			std::cout << "BM col:   " << P123_sparse_col_array_t[idx] << std::endl;
-		//			std::cout << "Prog val: " << P123_sparse_val_array[idx] << std::endl;
-		//			std::cout << "Prog row: " << P123_sparse_row_array[idx] << std::endl;
-		//			std::cout << "Prog col: " << P123_sparse_col_array[idx] << std::endl;
-		//			raise_error("element mismatch");
-		//		}
-		//		//}
-		//	}
-		//}
-		//else{
-		//	std::cout << "BM dim:   " << P123_sparse_dim_t << std::endl;
-		//	std::cout << "Prog dim: " << P123_sparse_dim << std::endl;
-		//	raise_error("dim not right");
-		//}
 	}
 }

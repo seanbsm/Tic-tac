@@ -95,7 +95,6 @@ typedef struct run_params{
 	int         Nq_per_WP;
 	int			channel_idx;
 	int			P123_omp_num_threads;
-	int			max_TFC;
 	double 		chebyshev_t;
 	double 		chebyshev_s;
 	bool        parallel_run;
@@ -104,7 +103,9 @@ typedef struct run_params{
 	bool		isospin_breaking_1S0;
 	bool 		midpoint_approx;
 	bool		calculate_and_store_P123;
+	bool		include_breakup_channels;
 	bool		solve_faddeev;
+	bool		solve_dense;
 	bool		production_run;
 	bool	    parameter_walk;
 	int			PSI_start;

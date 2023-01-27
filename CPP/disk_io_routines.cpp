@@ -598,7 +598,6 @@ void store_U_BU_matrix_elements_txt(std::complex<double>*    U_array,
 	result_file << "# qcm:                         Spectator centre-of-mass momentum bin midpoint \n";
 	result_file << "# qlo:                         Spectator centre-of-mass momentum bin lower boundary \n";
 	result_file << "# qup:                         Spectator centre-of-mass momentum bin upper boundary \n";
-	result_file << "# pcm:                         Pair centre-of-mass momentum bin midpoint \n";
 	result_file << "# plo:                         Pair centre-of-mass momentum bin lower boundary \n";
 	result_file << "# pup:                         Pair centre-of-mass momentum bin upper boundary \n";
 	result_file << "# init.:                       Pre-scattering \n";
@@ -666,6 +665,57 @@ void store_U_BU_matrix_elements_txt(std::complex<double>*    U_array,
 	}
 	result_file << "# ################################################################################################### \n";
 
+	/* Close writing session */
+	result_file << std::endl;
+	
+	/* Close files */
+	result_file.close();
+}
+
+void store_array(double* array, size_t array_length, std::string filename){
+	/* Open file*/
+	std::ofstream result_file;
+	result_file.open(filename);
+	
+	/* Fixes formatting of stored numbers */
+	result_file << std::fixed
+				<< std::showpos
+				//~ << std::right
+                //~ << std::setw(14)
+				<< std::setprecision(8);
+	
+	/* Append array-values */
+	for (size_t i=0; i<array_length; i++){
+		/* Append vector element */
+		//result_file << array[i] << "\n";
+        result_file << array[i] << "\n";
+	}
+	
+	/* Close writing session */
+	result_file << std::endl;
+	
+	/* Close files */
+	result_file.close();
+}
+void store_array(cdouble* array, size_t array_length, std::string filename){
+	/* Open file*/
+	std::ofstream result_file;
+	result_file.open(filename);
+	
+	/* Fixes formatting of stored numbers */
+	result_file << std::fixed
+				<< std::showpos
+				//~ << std::right
+                //~ << std::setw(14)
+				<< std::setprecision(8);
+	
+	/* Append array-values */
+	for (size_t i=0; i<array_length; i++){
+		/* Append vector element */
+		//result_file << array[i] << "\n";
+        result_file << "(" << array[i].real() << array[i].imag() << "j)\n";
+	}
+	
 	/* Close writing session */
 	result_file << std::endl;
 	

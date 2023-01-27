@@ -39,6 +39,14 @@
 #include "General_functions/matrix_routines.h"
 #include "General_functions/templates.h"
 
+const int max_size_per_TFC_file = 1; // 1 GB per thread, per file
+
+void calculate_WP_overlap(bool* pq_WP_overlap_array,
+						  int   Np_WP, double *p_array_WP_bounds,
+						  int   Nq_WP, double *q_array_WP_bounds,
+						  int   Nx,    double* x_array,   double* wx_array,
+						  int   Nphi,  double* phi_array, double* wphi_array);
+
 void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array,
 												   int*		max_TFC_array,
 												   bool     use_dense_format,
@@ -47,6 +55,7 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 												   int      Nq_WP, double *q_array_WP_bounds,
 												   int      Nx, double* x_array, double* wx_array,
 												   int      Nphi,
+												   bool*    pq_WP_overlap_array,
 												   int      J_2N_max,
 												   pw_3N_statespace pw_states,
 												   run_params run_parameters,
@@ -61,6 +70,7 @@ void calculate_permutation_matrices_for_all_3N_channels(double** P123_sparse_val
 														int      Nq_WP, double *q_array_WP_bounds,
 														int      Nx, double* x_array, double* wx_array,
 														int      Nphi,
+														bool*    pq_WP_overlap_array,
 														int      J_2N_max,
 														pw_3N_statespace pw_states,
 														run_params run_parameters,

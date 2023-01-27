@@ -78,6 +78,9 @@ void store_q_WP_kinematics_txt(size_t Nq_WP,
 void store_q_WP_boundaries_csv(fwp_statespace fwp_states,
 						   	   std::string filename);
 
+void store_array(double* array, size_t array_length, std::string filename);
+void store_array(cdouble* array, size_t array_length, std::string filename);
+
 void store_U_BU_matrix_elements_txt(std::complex<double>*    U_array,
 								    solution_configuration solve_config,
 								    channel_os_indexing chn_os_indexing,

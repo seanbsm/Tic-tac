@@ -51,7 +51,9 @@ std::string create_input_printout_string(run_params run_parameters){
 	output_string << "Isospin-breaking in 1S0:         " << type_to_string(run_parameters.isospin_breaking_1S0) 	  	<< "\n";
 	output_string << "Mid-point approximation:         " << type_to_string(run_parameters.midpoint_approx) 	  	  		<< "\n";
 	output_string << "Calculate P123 and store:        " << type_to_string(run_parameters.calculate_and_store_P123) 	<< "\n";
+	output_string << "Calculate breakup amplitudes:    " << type_to_string(run_parameters.include_breakup_channels) 	<< "\n";
 	output_string << "Solve Faddeev equation:          " << type_to_string(run_parameters.solve_faddeev)   	  	  		<< "\n";
+	output_string << "Solve Faddeev with LAPACK:       " << type_to_string(run_parameters.solve_dense)   	  	  		<< "\n";
 	output_string << "Production run:                  " << type_to_string(run_parameters.production_run)  	  	  		<< "\n";
 	output_string << "Potential model:                 " << type_to_string(run_parameters.potential_model) 	  	  		<< "\n";
 	output_string << "p-momentum grid type:            " << type_to_string(run_parameters.p_grid_type) 		  	  		<< "\n";
@@ -107,9 +109,6 @@ bool read_and_set_parameter(run_params& run_parameters, std::string option, std:
 	}
 	else if (option == "P123_omp_num_threads"){
 		run_parameters.P123_omp_num_threads = std::stoi(input);
-	}
-	else if (option == "max_TFC"){
-		run_parameters.max_TFC = std::stoi(input);
 	}
 	else if (option == "PSI_start"){
 		run_parameters.PSI_start = std::stoi(input);
@@ -168,9 +167,25 @@ bool read_and_set_parameter(run_params& run_parameters, std::string option, std:
 			raise_error("Invalid value for input parameter calculate_and_store_P123!");
 		}
 	}
+	else if (option == "include_breakup_channels"){
+		if (input=="true" || input=="false"){
+			run_parameters.include_breakup_channels = (input=="true");
+		}
+		else{
+			raise_error("Invalid value for input parameter include_breakup_channels!");
+		}
+	}
 	else if (option == "solve_faddeev"){
 		if (input=="true" || input=="false"){
 			run_parameters.solve_faddeev = (input=="true");
+		}
+		else{
+			raise_error("Invalid value for input parameter solve_faddeev!");
+		}
+	}
+	else if (option == "solve_dense"){
+		if (input=="true" || input=="false"){
+			run_parameters.solve_dense = (input=="true");
 		}
 		else{
 			raise_error("Invalid value for input parameter solve_faddeev!");
@@ -398,10 +413,6 @@ void show_usage(){
 			  << seperationLine
 			  << std::endl;
 			  
-	std::cout << "max_TFC:                  \n"
-			  << seperationLine
-			  << std::endl;
-			  
 	std::cout << "parameter_walk:           Sets whether or not program is run as a walk over model\n"
 			  << "                          parameter space. (REQUIRES INPUT FILE, SEE parameter_file)\n"
 			  << "                          Possible options are (true, false).\n"
@@ -469,10 +480,28 @@ void show_usage(){
 			  << seperationLine
 			  << std::endl;
 			  
+	std::cout << "include_breakup_channels: Tell program whether to calculate breakup channels, This is\n"
+			  << "                          more costly. Possible options are (true, false).\n"
+			  << "Example:                  include_breakup_channels=true -> Program will also calculate \n"
+	  		  << "                                                           breakup U-matrix elements.\n"
+			  << seperationLine
+			  << std::endl;
+			  
 	std::cout << "solve_faddeev:            Tell program whether to solve the Faddeev equation.\n"
 			  << "                          Possible options are (true, false).\n"
 			  << "Example:                  solve_faddeev=true -> Program will solve the Faddeev\n"
 	  		  << "                                                equation.\n"
+			  << seperationLine
+			  << std::endl;
+			  
+	std::cout << "solve_dense:              Tell program whether to solve the Faddeev equation using\n"
+			  << "                          a dense LAPACK solver or with Pade resummation. Note that\n"
+			  << "                          the dense solver is VERY SLOW compared to the Pade resummation.\n"
+			  << "                          The dense solver also stores the A, K, and U matrices. This\n"
+			  << "                          option only really exists for debugging.\n"
+			  << "                          Possible options are (true, false).\n"
+			  << "Example:                  solve_dense=true -> Program will solve the Faddeev equation\n"
+	  		  << "                                              using LAPACK solver.\n"
 			  << seperationLine
 			  << std::endl;
 			  
@@ -561,7 +590,6 @@ void set_default_values(run_params& run_parameters){
 	run_parameters.q_grid_type 	  	        = "chebyshev";
 	run_parameters.q_grid_filename 	        = "";
 	run_parameters.P123_omp_num_threads     = omp_get_max_threads();
-	run_parameters.max_TFC				    = -1;
 	run_parameters.parameter_walk 	        = false;
 	run_parameters.parameter_file 	        = "none";
 	run_parameters.PSI_start				= -1;
@@ -571,7 +599,9 @@ void set_default_values(run_params& run_parameters){
 	run_parameters.isospin_breaking_1S0     = true;
 	run_parameters.midpoint_approx  		= false;
 	run_parameters.calculate_and_store_P123 = true;
+	run_parameters.include_breakup_channels = false;
 	run_parameters.solve_faddeev		    = true;
+	run_parameters.solve_dense				= false;
 	run_parameters.production_run		    = true;
 	run_parameters.energy_input_file        = "lab_energies.txt";
 	run_parameters.output_folder  	        = "Output";

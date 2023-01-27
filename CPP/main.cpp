@@ -158,6 +158,10 @@ int main(int argc, char* argv[]){
 	/* ################################################################################################################### */
 	/* Start of looping over 3N-channels */
 
+	/* Verify either P123 or U is being calculated, or both */
+	if (run_parameters.solve_faddeev==false && run_parameters.calculate_and_store_P123==false){
+		raise_error("Both solve_faddeev=false and calculate_and_store_P123==false so code has nothing to do!");
+	}
 
 	for (int chn_3N=0; chn_3N<pw_states.N_chn_3N; chn_3N++){
 
@@ -204,14 +208,14 @@ int main(int argc, char* argv[]){
 		size_t	P123_sparse_dim		  = 0;
 
 		fill_P123_arrays(&P123_sparse_val_array,
-						&P123_sparse_row_array,
-						&P123_sparse_col_array,
-						P123_sparse_dim,
-						run_parameters.production_run,
-						fwp_states,
-						pw_substates,
-						run_parameters,
-						run_parameters.P123_folder);
+						 &P123_sparse_row_array,
+						 &P123_sparse_col_array,
+						 P123_sparse_dim,
+						 run_parameters.production_run,
+						 fwp_states,
+						 pw_substates,
+						 run_parameters,
+						 run_parameters.P123_folder);
 
 		/* End of code segment for permutation matrix construction */
 		/* ################################################################################################################### */
@@ -409,8 +413,10 @@ int main(int argc, char* argv[]){
 											  * chn_os_indexing.num_deuteron_states
 											  * chn_os_indexing.num_deuteron_states];
 				
-				cdouble* U_BU_array = new cdouble [chn_os_indexing.num_T_lab
-											     * chn_os_indexing.num_BU_chns];
+				cdouble* U_BU_array = NULL;
+				if (run_parameters.include_breakup_channels){
+					U_BU_array = new cdouble [chn_os_indexing.num_T_lab * chn_os_indexing.num_BU_chns];
+				}
 												 
 				printf(" - Solving Faddeev equation ... \n");
 				solve_faddeev_equations(U_array,
@@ -448,19 +454,21 @@ int main(int argc, char* argv[]){
 											pw_substates,
 											U_mat_filename_t);
 				
-				std::string U_mat_BU_filename_t = run_parameters.output_folder + "/" + "U_PW_breakup_elements"
-																			+ file_identification
-																			+ "_PSI_" + std::to_string(idx_param_set)
-																			+ ".txt";
+				if (run_parameters.include_breakup_channels){
+					std::string U_mat_BU_filename_t = run_parameters.output_folder + "/" + "U_PW_breakup_elements"
+																				+ file_identification
+																				+ "_PSI_" + std::to_string(idx_param_set)
+																				+ ".txt";
 
-				store_U_BU_matrix_elements_txt(U_BU_array,
-											solve_config,
-											chn_os_indexing,
-											run_parameters,
-											fwp_states,
-											swp_states,
-											pw_substates,
-											U_mat_BU_filename_t);
+					store_U_BU_matrix_elements_txt(U_BU_array,
+												solve_config,
+												chn_os_indexing,
+												run_parameters,
+												fwp_states,
+												swp_states,
+												pw_substates,
+												U_mat_BU_filename_t);
+				}
 
 				/* End of code segment for storing on-shell U-matrix solutions */
 				/* ################################################################################################################### */

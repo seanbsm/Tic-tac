@@ -22,7 +22,7 @@ void find_on_shell_bins(solution_configuration& solve_config,
     int     Np_WP      = swp_states.Np_WP;
     int     Nq_WP      = swp_states.Nq_WP;
     double  E_bound    = swp_states.E_bound;
-    double* p_WP_array = fwp_states.p_WP_array;
+    //double* p_WP_array = fwp_states.p_WP_array;
     double* q_WP_array = swp_states.q_WP_array;
 
 	double* e_SWP_unco_array = swp_states.e_SWP_unco_array;
@@ -138,207 +138,212 @@ void find_on_shell_bins(solution_configuration& solve_config,
 	}
 	printf("     - On-shell q-momentum WP bins found \n");
 
-	/* Find all BREAKUP bins with an on-shell Tlab 
-	 * Need to locate bins in all channels (must determine p and q for all alpha)*/
-	printf("   - Locating breakup on-shell p- & q-momentum WP-indices for %zu on-shell energies ... \n", num_T_lab);
-	//solve_config_subchn.alphapq_idx_array     = new int [num_T_lab * 3];
-	std::vector<int> alphapd_idx_vector;
-	solve_config_subchn.q_com_BU_idx_array    = new int [num_T_lab + 1];
-	solve_config_subchn.q_com_BU_idx_array[0] = 0;
-	solve_config_subchn.num_BU_chns 		  = 0;
-	
-	for (size_t idx_Tlab=0; idx_Tlab<num_T_lab; idx_Tlab++){
-		double E_com = solve_config.E_com_array[idx_Tlab];
+	/* Find all BREAKUP bins with an on-shell Tlab
+	 * Need to locate bins in all channels (must determine p and q for all alpha) */
+	if (run_parameters.include_breakup_channels){
+		printf("   - Locating breakup on-shell p- & q-momentum WP-indices for %zu on-shell energies ... \n", num_T_lab);
+		//solve_config_subchn.alphapq_idx_array     = new int [num_T_lab * 3];
+		std::vector<int> alphapd_idx_vector;
+		solve_config_subchn.q_com_BU_idx_array    = new int [num_T_lab + 1];
+		solve_config_subchn.q_com_BU_idx_array[0] = 0;
+		solve_config_subchn.num_BU_chns 		  = 0;
+		
+		double* alphapq_boundaries = new double [4*Nalpha*Np_WP*Nq_WP];
+		for (size_t idx_Tlab=0; idx_Tlab<num_T_lab; idx_Tlab++){
+			double E_com = solve_config.E_com_array[idx_Tlab];
 
-		if (E_com+E_bound<0){
-			solve_config_subchn.q_com_BU_idx_array[idx_Tlab+1] = solve_config_subchn.q_com_BU_idx_array[idx_Tlab];
-			continue;
-		}
-
-		int idx_alpha_store    = -1;
-		int idx_q_bin_store    = -1;
-		int idx_p_bin_store    = -1;
-		for (int idx_alpha=0; idx_alpha<Nalpha; idx_alpha++){
-			int L = pw_states.L_2N_array[idx_alpha];
-			int S = pw_states.S_2N_array[idx_alpha];
-			int J = pw_states.J_2N_array[idx_alpha];
-			int T = pw_states.T_2N_array[idx_alpha];
-
-			int two_T_3N = pw_states.two_T_3N_array[idx_alpha];
-
-			/* Detemine if this is a coupled channel.
-			* !!! With isospin symmetry-breaking we count 1S0 as a coupled matrix via T_3N-coupling !!! */
-			bool coupled_channel = false;
-			bool state_1S0 = (S==0 && J==0 && L==0);
-			bool coupled_via_L_2N = (tensor_force_true && L!=J && J!=0);
-			bool coupled_via_T_3N = (state_1S0==true && run_parameters.isospin_breaking_1S0==true);
-			if (coupled_via_L_2N && coupled_via_T_3N){
-				raise_error("Warning! Code has not been written to handle isospin-breaking in coupled channels!");
-			}
-			if (coupled_via_L_2N || coupled_via_T_3N){ // This counts 3P0 as uncoupled; used in matrix structure
-				coupled_channel  = true;
+			if (E_com+E_bound<0){
+				solve_config_subchn.q_com_BU_idx_array[idx_Tlab+1] = solve_config_subchn.q_com_BU_idx_array[idx_Tlab];
+				continue;
 			}
 
-			if (coupled_channel){
-				int chn_2N_idx = unique_2N_idx(L, S, J, T, coupled_channel, run_parameters);
-				if (coupled_via_L_2N){
-					if (L<J){
-						e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1)];
-					}
-					else{
-						e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1) + Np_WP+1];
-					}
+			int idx_alpha_store    = -1;
+			int idx_q_bin_store    = -1;
+			int idx_p_bin_store    = -1;
+			bool kinematics_stored = false;
+			for (int idx_alpha=0; idx_alpha<Nalpha; idx_alpha++){
+				int L = pw_states.L_2N_array[idx_alpha];
+				int S = pw_states.S_2N_array[idx_alpha];
+				int J = pw_states.J_2N_array[idx_alpha];
+				int T = pw_states.T_2N_array[idx_alpha];
+
+				int two_T_3N = pw_states.two_T_3N_array[idx_alpha];
+
+				/* Detemine if this is a coupled channel.
+				* !!! With isospin symmetry-breaking we count 1S0 as a coupled matrix via T_3N-coupling !!! */
+				bool coupled_channel = false;
+				bool state_1S0 = (S==0 && J==0 && L==0);
+				bool coupled_via_L_2N = (tensor_force_true && L!=J && J!=0);
+				bool coupled_via_T_3N = (state_1S0==true && run_parameters.isospin_breaking_1S0==true);
+				if (coupled_via_L_2N && coupled_via_T_3N){
+					raise_error("Warning! Code has not been written to handle isospin-breaking in coupled channels!");
 				}
-				else if (coupled_via_T_3N){
-					if (two_T_3N==1){
-						e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1)];
+				if (coupled_via_L_2N || coupled_via_T_3N){ // This counts 3P0 as uncoupled; used in matrix structure
+					coupled_channel  = true;
+				}
+
+				if (coupled_channel){
+					int chn_2N_idx = unique_2N_idx(L, S, J, T, coupled_channel, run_parameters);
+					if (coupled_via_L_2N){
+						if (L<J){
+							e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1)];
+						}
+						else{
+							e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1) + Np_WP+1];
+						}
+					}
+					else if (coupled_via_T_3N){
+						if (two_T_3N==1){
+							e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1)];
+						}
+						else{
+							e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1) + Np_WP+1];
+						}
 					}
 					else{
-						e_SWP_array_ptr = &e_SWP_coup_array[chn_2N_idx * 2*(Np_WP+1) + Np_WP+1];
+						raise_error("Unknown coupling encountered when selecting on-shell bins!");
 					}
 				}
 				else{
-					raise_error("Unknown coupling encountered when selecting on-shell bins!");
-				}
-			}
-			else{
-				int chn_2N_idx = unique_2N_idx(L, S, J, T, coupled_channel, run_parameters);
-				e_SWP_array_ptr = &e_SWP_unco_array[chn_2N_idx * (Np_WP+1)];
-			}
-
-			/* p-momentum index loop */
-			bool break_loop = false;
-			int counter = 0;
-			for (int q_idx_WP=0; q_idx_WP<Nq_WP; q_idx_WP++){
-
-				if (break_loop){
-					break;
+					int chn_2N_idx = unique_2N_idx(L, S, J, T, coupled_channel, run_parameters);
+					e_SWP_array_ptr = &e_SWP_unco_array[chn_2N_idx * (Np_WP+1)];
 				}
 
-				double Eq_bin_lower = 0.5*(q_WP_array[q_idx_WP]   * q_WP_array[q_idx_WP]  )/mu1_free();
-				double Eq_bin_upper = 0.5*(q_WP_array[q_idx_WP+1] * q_WP_array[q_idx_WP+1])/mu1_free();
-				for (int p_idx_WP=0; p_idx_WP<Np_WP; p_idx_WP++){
-					/* Upper and lower boundaries of current p-bin (expressed in energy) */
-					double Ep_bin_lower = e_SWP_array_ptr[p_idx_WP    ];
-					double Ep_bin_upper = e_SWP_array_ptr[p_idx_WP + 1];
-					
-					double E_cell_lower = Ep_bin_lower + Eq_bin_lower;
-					double E_cell_upper = Ep_bin_upper + Eq_bin_upper;
+				/* p-momentum index loop */
+				int counter = 0;
+				for (int q_idx_WP=0; q_idx_WP<Nq_WP; q_idx_WP++){
 
-					/* See if input energy lies between two bin mid-points */
-					if (E_cell_lower<=E_com && E_com<=E_cell_upper && Ep_bin_lower>=0 && Ep_bin_upper>=0){
+					double Eq_bin_lower = 0.5*(q_WP_array[q_idx_WP]   * q_WP_array[q_idx_WP]  )/mu1_free();
+					double Eq_bin_upper = 0.5*(q_WP_array[q_idx_WP+1] * q_WP_array[q_idx_WP+1])/mu1_free();
+					for (int p_idx_WP=0; p_idx_WP<Np_WP; p_idx_WP++){
+						/* Upper and lower boundaries of current p-bin (expressed in energy) */
+						double Ep_bin_lower = e_SWP_array_ptr[p_idx_WP    ];
+						double Ep_bin_upper = e_SWP_array_ptr[p_idx_WP + 1];
+
+						if (kinematics_stored==false){
+							int idx = idx_alpha*Np_WP*Nq_WP + q_idx_WP*Np_WP + p_idx_WP;
+							alphapq_boundaries[4*idx + 0] = Eq_bin_lower;
+							alphapq_boundaries[4*idx + 1] = Eq_bin_upper;
+							alphapq_boundaries[4*idx + 2] = Ep_bin_lower;
+							alphapq_boundaries[4*idx + 3] = Ep_bin_upper;
+						}
 						
-						idx_alpha_store = idx_alpha;
-						idx_q_bin_store = q_idx_WP;
-						idx_p_bin_store = p_idx_WP;
+						double E_cell_lower = Ep_bin_lower + Eq_bin_lower;
+						double E_cell_upper = Ep_bin_upper + Eq_bin_upper;
 
-						//printf("Ep_l = %.3f \n", Ep_bin_lower);
-						//printf("Ep_u = %.3f \n", Ep_bin_upper);
-						//printf("Eq_l = %.3f \n", Eq_bin_lower);
-						//printf("Eq_u = %.3f \n", Eq_bin_upper);
-						//printf("Ec_l = %.3f \n", E_cell_lower);
-						//printf("Ec_u = %.3f \n", E_cell_upper);
-						//printf("Ecom = %.3f \n\n", E_com);
-						//printf("Tlab = %.3f \n\n", solve_config.T_lab_array[idx_Tlab]);
+						/* See if input energy lies between two bin mid-points */
+						if (E_cell_lower<=E_com && E_com<=E_cell_upper && Ep_bin_lower>=0 && Ep_bin_upper>=0){
+							
+							idx_alpha_store = idx_alpha;
+							idx_q_bin_store = q_idx_WP;
+							idx_p_bin_store = p_idx_WP;
 
-						alphapd_idx_vector.push_back(idx_alpha_store);
-						alphapd_idx_vector.push_back(idx_q_bin_store);
-						alphapd_idx_vector.push_back(idx_p_bin_store);			
-						solve_config_subchn.num_BU_chns	+= 1;
-						counter += 1;
+							//printf("Ep_l = %.3f \n", Ep_bin_lower);
+							//printf("Ep_u = %.3f \n", Ep_bin_upper);
+							//printf("Eq_l = %.3f \n", Eq_bin_lower);
+							//printf("Eq_u = %.3f \n", Eq_bin_upper);
+							//printf("Ec_l = %.3f \n", E_cell_lower);
+							//printf("Ec_u = %.3f \n", E_cell_upper);
+							//printf("Ecom = %.3f \n\n", E_com);
+							//printf("Tlab = %.3f \n\n", solve_config.T_lab_array[idx_Tlab]);
 
-						/* Determine cell quadrant for overlap */
-						double Ep = 0.5*(Ep_bin_upper - Ep_bin_lower);
-						double Eq = 0.5*(Eq_bin_upper - Eq_bin_lower);
-						/* Quadrant 1 */
-						double Eq1l = Eq + Ep;
-						double Eq1u = E_cell_upper;
-						/* Quadrant 2 */
-						double Eq2l = Eq + Ep_bin_lower;
-						double Eq2u = Ep + Eq_bin_upper;
-						/* Quadrant 3 */
-						double Eq3l = E_cell_lower;
-						double Eq3u = Eq + Ep;
-						/* Quadrant 4 */
-						double Eq4l = Eq_bin_lower + Ep;
-						double Eq4u = Ep_bin_upper + Eq;
-						//int quadrant = locate_quadrant(Ep, E1, Ep_bin_lower, Ep_bin_upper, Eq_bin_lower, Eq_bin_upper, E_com);
-						if (Eq1l<=E_com && E_com<=Eq1u){
-							for (int pi=idx_p_bin_store; pi<=idx_p_bin_store+1; pi++){
-								for (int qj=idx_q_bin_store; qj<=idx_q_bin_store+1; qj++){
-									if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
-										alphapd_idx_vector.push_back(idx_alpha_store);
-										alphapd_idx_vector.push_back(qj);
-										alphapd_idx_vector.push_back(pi);			
-										solve_config_subchn.num_BU_chns	+= 1;
-										counter += 1;
+							alphapd_idx_vector.push_back(idx_alpha_store);
+							alphapd_idx_vector.push_back(idx_q_bin_store);
+							alphapd_idx_vector.push_back(idx_p_bin_store);			
+							solve_config_subchn.num_BU_chns	+= 1;
+							counter += 1;
+
+							/* Determine cell quadrant for overlap */
+							double Ep = 0.5*(Ep_bin_upper + Ep_bin_lower);
+							double Eq = 0.5*(Eq_bin_upper + Eq_bin_lower);
+							/* Quadrant 1 */
+							double Eq1l = Eq + Ep;
+							double Eq1u = E_cell_upper;
+							/* Quadrant 2 */
+							double Eq2l = Eq + Ep_bin_lower;
+							double Eq2u = Ep + Eq_bin_upper;
+							/* Quadrant 3 */
+							double Eq3l = E_cell_lower;
+							double Eq3u = Eq + Ep;
+							/* Quadrant 4 */
+							double Eq4l = Eq_bin_lower + Ep;
+							double Eq4u = Ep_bin_upper + Eq;
+							//int quadrant = locate_quadrant(Ep, E1, Ep_bin_lower, Ep_bin_upper, Eq_bin_lower, Eq_bin_upper, E_com);
+							if (Eq1l<=E_com && E_com<=Eq1u){
+								for (int pi=idx_p_bin_store; pi<=idx_p_bin_store+1; pi++){
+									for (int qj=idx_q_bin_store; qj<=idx_q_bin_store+1; qj++){
+										if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
+											alphapd_idx_vector.push_back(idx_alpha_store);
+											alphapd_idx_vector.push_back(qj);
+											alphapd_idx_vector.push_back(pi);			
+											solve_config_subchn.num_BU_chns	+= 1;
+											counter += 1;
+										}
+									}
+								}
+							}
+							else if (Eq2l<=E_com && E_com<=Eq2u){
+								for (int pi=idx_p_bin_store-1; pi<=idx_p_bin_store; pi++){
+									for (int qj=idx_q_bin_store; qj<=idx_q_bin_store+1; qj++){
+										if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
+											alphapd_idx_vector.push_back(idx_alpha_store);
+											alphapd_idx_vector.push_back(qj);
+											alphapd_idx_vector.push_back(pi);			
+											solve_config_subchn.num_BU_chns	+= 1;
+											counter += 1;
+										}
+									}
+								}
+							}
+							else if (Eq3l<=E_com && E_com<=Eq3u){
+								for (int pi=idx_p_bin_store-1; pi<=idx_p_bin_store; pi++){
+									for (int qj=idx_q_bin_store-1; qj<=idx_q_bin_store; qj++){
+										if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
+											alphapd_idx_vector.push_back(idx_alpha_store);
+											alphapd_idx_vector.push_back(qj);
+											alphapd_idx_vector.push_back(pi);			
+											solve_config_subchn.num_BU_chns	+= 1;
+											counter += 1;
+										}
+									}
+								}
+							}
+							else if (Eq4l<=E_com && E_com<=Eq4u){
+								for (int pi=idx_p_bin_store; pi<=idx_p_bin_store+1; pi++){
+									for (int qj=idx_q_bin_store-1; qj<=idx_q_bin_store; qj++){
+										if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
+											alphapd_idx_vector.push_back(idx_alpha_store);
+											alphapd_idx_vector.push_back(qj);
+											alphapd_idx_vector.push_back(pi);			
+											solve_config_subchn.num_BU_chns	+= 1;
+											counter += 1;
+										}
 									}
 								}
 							}
 						}
-						else if (Eq2l<=E_com && E_com<=Eq2u){
-							for (int pi=idx_p_bin_store-1; pi<=idx_p_bin_store; pi++){
-								for (int qj=idx_q_bin_store; qj<=idx_q_bin_store+1; qj++){
-									if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
-										alphapd_idx_vector.push_back(idx_alpha_store);
-										alphapd_idx_vector.push_back(qj);
-										alphapd_idx_vector.push_back(pi);			
-										solve_config_subchn.num_BU_chns	+= 1;
-										counter += 1;
-									}
-								}
-							}
-						}
-						else if (Eq3l<=E_com && E_com<=Eq3u){
-							for (int pi=idx_p_bin_store-1; pi<=idx_p_bin_store; pi++){
-								for (int qj=idx_q_bin_store-1; qj<=idx_q_bin_store; qj++){
-									if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
-										alphapd_idx_vector.push_back(idx_alpha_store);
-										alphapd_idx_vector.push_back(qj);
-										alphapd_idx_vector.push_back(pi);			
-										solve_config_subchn.num_BU_chns	+= 1;
-										counter += 1;
-									}
-								}
-							}
-						}
-						else if (Eq4l<=E_com && E_com<=Eq4u){
-							for (int pi=idx_p_bin_store; pi<=idx_p_bin_store+1; pi++){
-								for (int qj=idx_q_bin_store-1; qj<=idx_q_bin_store; qj++){
-									if (pi!=idx_p_bin_store || qj!=idx_q_bin_store){
-										alphapd_idx_vector.push_back(idx_alpha_store);
-										alphapd_idx_vector.push_back(qj);
-										alphapd_idx_vector.push_back(pi);			
-										solve_config_subchn.num_BU_chns	+= 1;
-										counter += 1;
-									}
-								}
-							}
-						}
-
-						//break_loop = true;
-						//break;
 					}
 				}
 			}
-			//std::cout << "ALPHA: " << idx_alpha << " | COUNTER: "<< counter << std::endl;
+
+			if (kinematics_stored==false){
+				store_array(alphapq_boundaries, 4*Nalpha*Np_WP*Nq_WP, "alpha_pq_boundaries.txt");
+				kinematics_stored = true;
+			}
+
+			if (idx_alpha_store==-1 || idx_q_bin_store==-1 || idx_p_bin_store==-1){
+				printf("On-shell kinetic energy Tlab=%.3f MeV doesn't exist in WP state space \n", solve_config.T_lab_array[idx_Tlab]);
+				raise_error("Invalid Tlab entered. Exiting ...");
+			}
+			solve_config_subchn.q_com_BU_idx_array[idx_Tlab+1] = solve_config_subchn.num_BU_chns;
 		}
-		if (idx_alpha_store==-1 || idx_q_bin_store==-1 || idx_p_bin_store==-1){
-			printf("On-shell kinetic energy Tlab=%.3f MeV doesn't exist in WP state space \n", solve_config.T_lab_array[idx_Tlab]);
-			raise_error("Invalid Tlab entered. Exiting ...");
-		}
-		//else{
-		//	alphapd_idx_vector.push_back(idx_alpha_store);
-		//	alphapd_idx_vector.push_back(idx_q_bin_store);
-		//	alphapd_idx_vector.push_back(idx_p_bin_store);				
-		//	solve_config_subchn.num_BU_chns	+= 1;
-		//}
-		solve_config_subchn.q_com_BU_idx_array[idx_Tlab+1] = solve_config_subchn.num_BU_chns;
+		/* Copy vector contents into struct array */
+		solve_config_subchn.alphapq_idx_array = new int [alphapd_idx_vector.size()];
+		std::copy(alphapd_idx_vector.begin(), alphapd_idx_vector.end(), solve_config_subchn.alphapq_idx_array);
+		printf("     - On-shell p- & q-momentum WP bins found \n");
+
+		delete [] alphapq_boundaries;
 	}
-	/* Copy vector contents into struct array */
-	solve_config_subchn.alphapq_idx_array = new int [alphapd_idx_vector.size()];
-	std::copy(alphapd_idx_vector.begin(), alphapd_idx_vector.end(), solve_config_subchn.alphapq_idx_array);
-	printf("     - On-shell p- & q-momentum WP bins found \n");
 }
 
 void find_deuteron_channels(solution_configuration& solve_config,

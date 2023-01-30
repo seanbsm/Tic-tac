@@ -475,9 +475,6 @@ void pade_method_solve(cdouble*  U_array,
 	/* Use as many threads as possible in MKL-GEMM */
 	mkl_set_num_threads(omp_get_max_threads());
 
-	//MKL_NUM_THREADS = omp_get_max_threads();
-	//printf("   - Will run with %d MKL-threads \n",mkl_get_max_threads()); fflush(stdout);
-
 	/* Number of on-shell nucleon-deuteron channels (deuteron states can mix, hence ^2) */
 	size_t num_on_shell_A_rows = num_deuteron_states * num_q_com;
 	size_t num_EL_A_vals 	   = num_deuteron_states * num_deuteron_states * num_q_com;	// Elastic elements
@@ -547,8 +544,6 @@ void pade_method_solve(cdouble*  U_array,
     size_t num_chunks            = dense_dim / num_cols_per_chunk + 1;
     size_t block_size 			 = num_cols_per_chunk;
 
-	//printf("   - Will calculate kernels in %d chunks of %d GB \n", num_chunks, num_Gbytes_per_chunk); fflush(stdout);
-
 	/* From test-script to program notation */
 	size_t    max_num_cols_in_mem = block_size;
 	size_t	  num_col_chunks	  = num_chunks;
@@ -582,7 +577,6 @@ void pade_method_solve(cdouble*  U_array,
 	int*    CPVC_r_array   = NULL;
 	size_t* CPVC_csc_array = NULL;
 	long long int* CPVC_c_array_LL   = NULL;
-	//long long int* CPVC_r_array_LL   = NULL;
 	long long int* CPVC_csc_array_LL = NULL;
 
 	
@@ -652,11 +646,9 @@ void pade_method_solve(cdouble*  U_array,
 								   P123_sparse_row_array,
 								   P123_sparse_col_array,
 								   P123_sparse_dim);
-
-
-				//std::cout << thread_idx << " " << 1 << std::endl;
 				
-				/* Lengthen array by 100*dense_dim if the array cannot fit another dense_dim nnz-elements (i.e. max nnz elements from next loop-iteration) */
+				/* Lengthen array by 100*dense_dim if the array cannot fit another dense_dim nnz-elements
+				 * (i.e. max nnz elements from next loop-iteration) */
 				if ( omp_CPVC_nnz[thread_idx]+num_nnz+dense_dim >= omp_CPVC_dim[thread_idx] ){
 					size_t steplength = 100*dense_dim;
 					increase_sparse_array_size(&omp_CPVC_v_array[thread_idx], omp_CPVC_dim[thread_idx], steplength);
@@ -665,21 +657,14 @@ void pade_method_solve(cdouble*  U_array,
 					omp_CPVC_dim[thread_idx] += steplength;
 				}
 
-				//std::cout << thread_idx << " " << 2 << std::endl;
-
 				/* Append nnz elements to sparse omp-array */
 				size_t curr_nnz = omp_CPVC_nnz[thread_idx];
 				for (int nnz=0; nnz<num_nnz; nnz++){
-					//std::cout << nnz << " " << curr_nnz << std::endl;
-					//std::cout << col_array[nnz_to_row_array[nnz]] << std::endl;
-					//std::cout << nnz_to_row_array[nnz] << std::endl;
-					//std::cout << idx_col << std::endl;
 					omp_CPVC_v_array[thread_idx][curr_nnz+nnz] = col_array[nnz_to_row_array[nnz]];
 					omp_CPVC_r_array[thread_idx][curr_nnz+nnz] = nnz_to_row_array[nnz];
 					omp_CPVC_c_array[thread_idx][curr_nnz+nnz] = idx_col;
 				}
 				omp_CPVC_nnz[thread_idx] += num_nnz;
-				//std::cout << thread_idx << " " << 3 << std::endl;
 			}
 		}
 		size_t CPVC_num_nnz = 0;
@@ -750,45 +735,6 @@ void pade_method_solve(cdouble*  U_array,
 		std::chrono::duration<double>  time_CPVC_consolidation = timestamp_end - timestamp_start;
 		printf("         - Time spent:     %.6f \n", time_CPVC_consolidation.count()); fflush(stdout);
 		printf("         - Done. \n"); fflush(stdout);
-
-		///* Sort CPVC COO-sparse array */
-		//printf("     - Sorting COO-entries ... \n"); fflush(stdout);
-		//timestamp_start = std::chrono::system_clock::now();
-		//unsorted_sparse_to_coo_row_major_sorter(&CPVC_v_array,
-		//									 	&CPVC_r_array,
-		//									 	&CPVC_c_array,
-		//									 	CPVC_num_nnz,
-		//									 	dense_dim);
-		//timestamp_end = std::chrono::system_clock::now();
-		//std::chrono::duration<double>  time_CPVC_sorting = timestamp_end - timestamp_start;
-		//printf("       - Time spent:     %.6f \n", time_CPVC_sorting.count()); fflush(stdout);
-		//printf("       - Done. \n"); fflush(stdout);
-
-		///* Convert COO-array to CSC-array */
-		//printf("     - Converting from COO to CSC ... \n"); fflush(stdout);
-		//timestamp_start = std::chrono::system_clock::now();
-		//CPVC_csc_array = new size_t [dense_dim + 1];
-		//coo_to_csc_format_converter(CPVC_r_array,
-		//						 	  CPVC_csc_array,
-		//						 	  CPVC_num_nnz,
-		//						 	  dense_dim);
-		//delete [] CPVC_r_array;
-		//timestamp_end = std::chrono::system_clock::now();
-		//std::chrono::duration<double>  time_CPVC_convertion = timestamp_end - timestamp_start;
-		//printf("       - Time spent:     %.6f \n", time_CPVC_convertion.count()); fflush(stdout);
-		//printf("       - Done. \n"); fflush(stdout);
-		///* Copy column-array from int to long long int */
-		//CPVC_c_array_LL   = new long long int [CPVC_num_nnz];
-		//for (size_t i=0; i<CPVC_num_nnz; i++){
-		//	CPVC_c_array_LL[i] = CPVC_c_array[i];
-		//}
-		//delete [] CPVC_c_array;
-		///* Copy CSC-array from int to long long int */
-		//CPVC_csc_array_LL = new long long int [dense_dim+1];
-		//for (int i=0; i<dense_dim+1; i++){
-		//	CPVC_csc_array_LL[i] = CPVC_csc_array[i];
-		//}
-		//delete [] CPVC_csc_array;
 
 		std::string filename = "kernel.h5";   //P123_folder + "/CPVC_"
 						 				   //+ to_string(two_J_3N) + "_" + to_string(P_3N)
@@ -1152,13 +1098,6 @@ void pade_method_solve(cdouble*  U_array,
 			printf("         - Total time:                    %.6f s \n", time_neumann);
 			printf("         - Done \n"); fflush(stdout);
 
-			//size_t nnz_counts = 0;
-			//for (size_t i=0; i<100; i++){
-			//	nnz_counts += counter_array[i];
-			//}
-			//printf("NUMBER OF NNZ ELEMENTS IN A: %zu \n", nnz_counts);
-			//printf("NUMBER OF NNZ ELEMENTS IN P: %zu \n", P123_sparse_dim);
-
 			/* Rewrite previous A_An with current A_An */
 			for (size_t i=0; i<num_on_shell_A_rows*dense_dim; i++){
 				re_A_An_row_array_prev[i] = re_A_An_row_array[i];
@@ -1322,10 +1261,6 @@ void pade_method_solve(cdouble*  U_array,
 						pade_approximants_idx_array[idx_NDOS]  = idx_best_PA;
 						num_converged_elements += 1;
 					}
-
-					//if (print_PA_convergences){
-					//	printf("PA[%d,%d] = %.16e + %.16ei, PA_diff = %.16e \n", NM,NM,PA.real(), PA.imag(), PA_diff);
-					//}
 				}
 			}
 		}
@@ -1391,10 +1326,6 @@ void pade_method_solve(cdouble*  U_array,
 							pade_approximants_BU_idx_array[idx_NDOS]  = idx_best_PA;
 							num_converged_elements += 1;
 						}
-
-						//if (print_PA_convergences){
-						//	printf("PA[%d,%d] = %.16e + %.16ei, PA_diff = %.16e \n", NM,NM,PA.real(), PA.imag(), PA_diff);
-						//}
 					}
 				}
 			}

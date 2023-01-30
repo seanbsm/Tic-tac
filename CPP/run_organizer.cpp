@@ -1,13 +1,6 @@
 
 #include "run_organizer.h"
 
-/* l = lower
- * u = upper
- * m = mid */
-int locate_quadrant(double Epm, double Eqm, double Epl, double Epu, double Eql, double Equ, double Ecm){
-
-}
-
 void find_on_shell_bins(solution_configuration& solve_config,
 						channel_os_indexing&	solve_config_subchn,
 						pw_3N_statespace pw_states,

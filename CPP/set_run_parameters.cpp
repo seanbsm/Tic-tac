@@ -64,7 +64,7 @@ std::string create_input_printout_string(run_params run_parameters){
 	output_string << "Parameter input file:            " << type_to_string(run_parameters.parameter_file)		  		<< "\n";
 	output_string << "Parameter set index (PSI) start: " << type_to_string(run_parameters.PSI_start)		  			<< "\n";
 	output_string << "Parameter set index (PSI) end:   " << type_to_string(run_parameters.PSI_end)		  				<< "\n";
-	output_string << "Output folder:                   " << type_to_string(run_parameters.output_folder) 		  		<< "\n";
+	output_string << "Energy input file:               " << type_to_string(run_parameters.energy_input_file)	  		<< "\n";
 	output_string << "P123-matrix read/write folder:   " << type_to_string(run_parameters.P123_folder) 		  	  		<< "\n";
 	output_string << "Parallel run:                    " << type_to_string(run_parameters.parallel_run)  		  	  	<< "\n";
 	if(run_parameters.parallel_run==true){
@@ -449,7 +449,13 @@ void show_usage(){
 			  << seperationLine
 			  << std::endl;
 			  
-	std::cout << "P123_recovery:            \n"
+	std::cout << "P123_recovery:            Tells code to read past-generated TFC-subfiles to construct\n"
+			  << "                          to construct P123-matrix. This option is handy for merging\n"
+			  << "                          P123-subfiles on large-memory notes without using much\n"
+			  << "                          computing resources. \n"
+			  << "                          Possible options are (true, false).\n"
+			  << "Example:                  P123_recovery=true -> Program will read TFC-files instead of \n"
+			  << "                                                calculting P123-elements.\n"
 			  << seperationLine
 			  << std::endl;
 			  

@@ -173,9 +173,10 @@ void construct_symmetric_pw_states(pw_3N_statespace& pw_states,
 												    }
 												}
 
-												if (L_2N!=0 || L_1N!=0){
-													continue;
-												}
+												/* Only S-waves */
+												//if (L_2N!=0 || L_1N!=0){
+												//	continue;
+												//}
 
 												/* Quartet channel for Malfliet-Tjon debugging */
 												//if (L_2N!=0 ||

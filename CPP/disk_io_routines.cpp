@@ -144,6 +144,39 @@ void store_sep_complex_matrix(double* re_matrix_array,
 	output_file.close();
 }
 
+void store_complex_vector_with_comments(cdouble* matrix_array,
+										std::string* comment_array,
+										size_t num_rows,
+										std::string file_path,
+										bool rewrite_file,
+										std::string array_seperator_text){
+	/* Open file*/
+	std::ofstream output_file;
+	open_file(output_file, file_path, rewrite_file);
+	
+	/* Fixes formatting of stored numbers */
+	output_file << std::fixed
+				<< std::showpos
+				<< std::scientific
+				//~ << std::right
+				//~ << std::setw(14)
+				<< std::setprecision(17);
+			
+	output_file << "# " << array_seperator_text << "\n";
+	
+	/* Append array-values */
+	for (size_t r=0; r<num_rows; r++){
+		/* Append vector element */
+		output_file << matrix_array[r].real() << " " << matrix_array[r].imag()  << " " << comment_array[r] << "\n";
+	}
+	
+	/* Close writing session */
+	output_file << std::endl;
+	
+	/* Close files */
+	output_file.close();
+}
+
 void store_complex_matrix(cdouble* matrix_array,
                           size_t num_rows,
 						  size_t num_cols,

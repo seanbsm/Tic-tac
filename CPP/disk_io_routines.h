@@ -57,6 +57,13 @@ void store_sep_complex_matrix(double* re_matrix_array,
 						 	  bool rewrite_file,
 						 	  std::string array_seperator_text);
 
+void store_complex_vector_with_comments(cdouble* matrix_array,
+										std::string* comment_array,
+										size_t num_rows,
+										std::string file_path,
+										bool rewrite_file,
+										std::string array_seperator_text);
+
 void store_complex_matrix(cdouble* matrix_array,
                           size_t num_rows,
 						  size_t num_cols,

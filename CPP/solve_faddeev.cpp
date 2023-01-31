@@ -488,6 +488,10 @@ void pade_method_solve(cdouble*  U_array,
 	cdouble* a_coeff_array 	  = new cdouble [ num_neumann_terms * num_EL_A_vals];
 	cdouble* a_BU_coeff_array = NULL;//new cdouble [ num_neumann_terms * num_BU_A_vals];
 
+	/* Index holder array for storing Neumann terms */
+	cdouble* 	 neumann_store_array 	= new cdouble [num_EL_A_vals];
+	std::string* comment_array 	  		= new std::string [num_EL_A_vals];
+
 	/* Dense dimension of 3N-channel */
 	size_t dense_dim = Nalpha * Nq_WP * Np_WP;
 
@@ -805,6 +809,27 @@ void pade_method_solve(cdouble*  U_array,
 	std::chrono::duration<double> time = timestamp_end - timestamp_start;
 	printf("         - Time generating CPVC-rows:     %.6f \n", time.count()); fflush(stdout);
 	printf("         - Done \n"); fflush(stdout);
+
+	/* Define Neumann-printout commentary array */
+	for (size_t idx_d_row=0; idx_d_row<num_deuteron_states; idx_d_row++){
+		for (size_t idx_d_col=0; idx_d_col<num_deuteron_states; idx_d_col++){
+			for (size_t idx_q_com=0; idx_q_com<num_q_com; idx_q_com++){
+				/* Nucleon-deuteron on-shell (NDOS) indices
+				* (deuteron bound-state p-index is alwasy 0 due to eigenvalue ordering in SWP construction) */
+				size_t idx_alpha_NDOS_row = deuteron_idx_array[idx_d_row];
+				size_t idx_alpha_NDOS_col = deuteron_idx_array[idx_d_col];
+				size_t idx_q_NDOS 	 	  = q_com_idx_array[idx_q_com];
+
+				/* Store coefficient */
+				size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
+
+				/* Store indices of coefficient */
+				comment_array[idx_NDOS] =   "\t#\t alpha'-idx=" + std::to_string(idx_alpha_NDOS_row)
+										  + "\t alpha-idx="+ std::to_string(idx_alpha_NDOS_col)
+										  + "\t q-idx=" + std::to_string(idx_q_NDOS);
+			}
+		}
+	}
 	
 	/* First Neumann-term */
 	printf("       - Extracting on-shell Neumann-series terms a_n=A*K^n for n=%d. \n",0); fflush(stdout);
@@ -828,6 +853,9 @@ void pade_method_solve(cdouble*  U_array,
 				/* Store coefficient */
 				size_t idx_NDOS = idx_d_row*num_deuteron_states*num_q_com + idx_d_col*num_q_com + idx_q_com;
 				a_coeff_array[idx_NDOS*num_neumann_terms] = a_coeff;
+
+				/* Store coefficient in print-to-file format */
+				neumann_store_array[idx_NDOS] = a_coeff;
 				
 				if (print_neumann_terms){
 					printf("         - Neumann term %d for alpha'=%d, alpha=%d, q=%d: %.16e + %.16ei \n", 0, idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, a_coeff.real(), a_coeff.imag());
@@ -879,13 +907,12 @@ void pade_method_solve(cdouble*  U_array,
 	if (store_neumann_terms){
 		printf("       - Storing on-shell Neumann-series terms a_n=A*K^n for n=%d to output-folder. \n", 0); fflush(stdout);
 		std::string array_seperator_text = "n = " + std::to_string(0);
-		store_complex_matrix(a_coeff_array,
-    	                     num_deuteron_states*num_deuteron_states*num_q_com,
-			    			 num_neumann_terms,
-			    			 num_neumann_terms,
-			    			 neumann_terms_filename,
-			    			 true,
-							 array_seperator_text);
+		store_complex_vector_with_comments(neumann_store_array,
+										   comment_array,
+										   num_deuteron_states*num_deuteron_states*num_q_com,
+										   neumann_terms_filename,
+										   true,
+										   array_seperator_text);
 		printf("         - Done \n");
 	}
 
@@ -1133,6 +1160,12 @@ void pade_method_solve(cdouble*  U_array,
 						/* Store coefficient */
 						a_coeff_array[idx_NDOS*num_neumann_terms + n] = a_coeff;
 
+						/* Store coefficient in print-to-file format */
+						neumann_store_array[idx_NDOS] = a_coeff;
+
+						/* Store coefficient in print-to-file format */
+						neumann_store_array[idx_NDOS] = a_coeff;
+
 						if (print_neumann_terms){
 							printf("         - Neumann term %d for alpha'=%d, alpha=%d, q=%d: %.16e + %.16ei \n", n, idx_alpha_NDOS_row, idx_alpha_NDOS_col, idx_q_NDOS, a_coeff.real(), a_coeff.imag());
 							//printf("%d\n", idx_row_NDOS*dense_dim + idx_col_NDOS);
@@ -1189,13 +1222,12 @@ void pade_method_solve(cdouble*  U_array,
 			if (store_neumann_terms){
 				printf("       - Storing on-shell Neumann-series terms a_n=A*K^n for n=%d to output-folder. \n", n); fflush(stdout);
 				std::string array_seperator_text = "n = " + std::to_string(n);
-				store_complex_matrix(a_coeff_array,
-            	                     num_deuteron_states*num_deuteron_states*num_q_com,
-		    					     num_neumann_terms,
-		    					     num_neumann_terms,
-		    					     neumann_terms_filename,
-		    					     false,
-									 array_seperator_text);
+				store_complex_vector_with_comments(neumann_store_array,
+										   		   comment_array,
+												   num_deuteron_states*num_deuteron_states*num_q_com,
+												   neumann_terms_filename,
+												   false,
+												   array_seperator_text);
 				printf("         - Done \n");
 			}
 		}
@@ -1377,19 +1409,20 @@ void pade_method_solve(cdouble*  U_array,
 	}
 	printf("       - Done \n"); fflush(stdout);
 
-	printf("       - Storing on-shell Neumann-series terms a_n=A*K^n for all n to output-folder. \n"); fflush(stdout);
-	store_complex_matrix(a_coeff_array,
-                         num_deuteron_states*num_deuteron_states*num_q_com,
-					     num_neumann_terms,
-					     num_neumann_terms,
-					     neumann_terms_filename,
-					     true,
-						 "Neumann terms");
-	printf("         - Done \n");
+	//printf("       - Storing on-shell Neumann-series terms a_n=A*K^n for all n to output-folder. \n"); fflush(stdout);
+	//			std::string array_seperator_text = "n = " + std::to_string(2*NM_max+1);
+	//store_complex_vector_with_comments(neumann_store_array,
+	//								   comment_array,
+	//								   num_deuteron_states*num_deuteron_states*num_q_com,
+	//								   neumann_terms_filename,
+	//								   false,
+	//								   "Neumann terms");
+	//printf("         - Done \n");
 
 	/* Free allocated working space */
 	delete [] a_coeff_array;
 	delete [] a_BU_coeff_array;
+	delete [] neumann_store_array;
 	delete [] CPVC_cols_array;
 	delete [] omp_CPVC_col_array;
 	delete [] omp_CPVC_row_to_nnz_array;

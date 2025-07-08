@@ -1,21 +1,26 @@
 
 #include "matrix_routines.h"
 
-void raise_error_DSS_MKL(_INTEGER_t error, const char* function_name){
-    printf("Function %s returned error code %lld\n", function_name, error);
-	exit(1);
-}
+//void raise_error_DSS_MKL(_INTEGER_t error, const char* function_name){
+//    printf("Function %s returned error code %lld\n", function_name, error);
+//	exit(1);
+//}
 
 void dot_MV(double *A, double *B, double *C, int N, int M){
 	double  beta  = 0.0;
 	double  alpha = 1.0;
-	MKL_INT incrx = 1.0;
-	MKL_INT incry = 1.0;
+	//tmp_int incrx = 1.0;
+	//tmp_int incry = 1.0;
+	blasint incrx = 1.0;
+	blasint incry = 1.0;
 	char    trans = 'N';
-	MKL_INT n = N;
-	MKL_INT m = M;
+	//tmp_int n = N;
+	//tmp_int m = M;
+	blasint n = N;
+	blasint m = M;
 	//cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, M, K, &alpha, A, K, B, M, &beta, C, M);
-	dgemv(&trans, &n, &m, &alpha, A, &m, B, &incrx, &beta, C, &incry);
+	//dgemv(&trans, &n, &m, &alpha, A, &m, B, &incrx, &beta, C, &incry);
+	cblas_dgemv(CblasRowMajor, CblasNoTrans, n, m, alpha, A, m, B, incrx, beta, C, incry);
 }
 
 
@@ -50,14 +55,14 @@ void cdot_MM(std::complex<double> *A, std::complex<double> *B, std::complex<doub
 
 void solve_MM(float* A, float* B, int dim){
 	char trans = 'N';
-	long long int ipiv [dim];
+	lapack_int ipiv [dim];
 	
 	LAPACKE_sgetrf(LAPACK_ROW_MAJOR, dim, dim, A, dim, ipiv);
 	LAPACKE_sgetrs(LAPACK_ROW_MAJOR, trans, dim, dim, A, dim, ipiv, B, dim);
 }
 void solve_MM(double* A, double* B, int dim){
 	char trans = 'N';
-	long long int ipiv [dim];
+	lapack_int ipiv [dim];
 	
 	LAPACKE_dgetrf(LAPACK_ROW_MAJOR, dim, dim, A, dim, ipiv);
 	LAPACKE_dgetrs(LAPACK_ROW_MAJOR, trans, dim, dim, A, dim, ipiv, B, dim);
@@ -65,7 +70,7 @@ void solve_MM(double* A, double* B, int dim){
 void solve_MM(std::complex<float> *A, std::complex<float> *B, int N){
 	
 	char trans = 'N';
-	long long int ipiv [N];
+	lapack_int ipiv [N];
 	
 	LAPACKE_cgetrf(LAPACK_ROW_MAJOR, N, N, A, N, ipiv);
 	LAPACKE_cgetrs(LAPACK_ROW_MAJOR, trans, N, N, A, N, ipiv, B, N);
@@ -73,7 +78,7 @@ void solve_MM(std::complex<float> *A, std::complex<float> *B, int N){
 void solve_MM(std::complex<double> *A, std::complex<double> *B, int N){
 	
 	char trans = 'N';
-	long long int ipiv [N];
+	lapack_int ipiv [N];
 	
 	LAPACKE_zgetrf(LAPACK_ROW_MAJOR, N, N, A, N, ipiv);
 	LAPACKE_zgetrs(LAPACK_ROW_MAJOR, trans, N, N, A, N, ipiv, B, N);
@@ -81,7 +86,7 @@ void solve_MM(std::complex<double> *A, std::complex<double> *B, int N){
 
 std::complex<double> determinant(std::complex<double>* A, int N){
 	//char trans = 'N';
-	long long int ipiv [N];
+	lapack_int ipiv [N];
 	
 	/* Perform LU decomposition, A is overwritten by L */
 	LAPACKE_zgetrf(LAPACK_ROW_MAJOR, N, N, A, N, ipiv);

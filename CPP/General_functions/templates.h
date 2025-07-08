@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <numeric>
+#include <algorithm>
 
 /* Copied from: https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes */
 template <typename T>

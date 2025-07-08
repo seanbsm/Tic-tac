@@ -11,6 +11,10 @@ typedef double floatType;
 typedef std::complex<floatType> cfloatType;
 typedef std::complex<double> cdouble;
 typedef unsigned long long int ull_int;
+typedef unsigned long long int tmp_int;
+
+#define lapack_complex_double std::complex<double>
+#define lapack_complex_float std::complex<float>
 
 typedef struct pw_3N_statespace{
 	int  Nalpha;				// Number of partial waves, set in dynamical state-space construction (by construct_symmetric_pw_states)

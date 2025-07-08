@@ -1,6 +1,11 @@
 
 #include "auxiliary.h"
 
+
+#include <cblas.h> // system CBLAS (e.g., OpenBLAS)
+#include <gsl/gsl_blas.h>
+
+
 double P (double x, void *params)       // P, dP, fdf necessary for initalizing of the object FDF
 {
 	int n = *(int *) params;
@@ -472,12 +477,12 @@ double pi2_prime_tilde(double p, double q, double x)
 	return sqrt(p * p + 0.25 * q * q + p * q * x);
 }
 
-void generate_Ptilde_new (double *P123_store, MKL_INT64 Pdim, MKL_INT64 N_p, double *p, MKL_INT64 N_q, double *q, MKL_INT64 N_x, double *x, double *wx, MKL_INT64 Jj_dim, double pmax, double qmax, int *L12_Jj, int *l3_Jj, int *J12_Jj, int *two_j3_Jj, int *S12_Jj, int *T12_Jj, MKL_INT64 Lmax, MKL_INT64 max_L12, MKL_INT64 max_l3, MKL_INT64 two_J, MKL_INT64 two_T, double *SixJ_array, int two_jmax_SixJ/*, double *Atilde_store, double *Btilde_store*/, double* Gtilde_store)
+void generate_Ptilde_new (double *P123_store, tmp_int Pdim, tmp_int N_p, double *p, tmp_int N_q, double *q, tmp_int N_x, double *x, double *wx, tmp_int Jj_dim, double pmax, double qmax, int *L12_Jj, int *l3_Jj, int *J12_Jj, int *two_j3_Jj, int *S12_Jj, int *T12_Jj, tmp_int Lmax, tmp_int max_L12, tmp_int max_l3, tmp_int two_J, tmp_int two_T, double *SixJ_array, int two_jmax_SixJ/*, double *Atilde_store, double *Btilde_store*/, double* Gtilde_store)
 {
 
 	// unused variable: int iZERO = 0;
 
-	for (MKL_INT64 index = 0; index <= Pdim * Pdim - 1; index++)
+	for (tmp_int index = 0; index <= Pdim * Pdim - 1; index++)
 	{
 		P123_store[index] = 0.0;
 	}
@@ -500,7 +505,7 @@ void generate_Ptilde_new (double *P123_store, MKL_INT64 Pdim, MKL_INT64 N_p, dou
 	{
 		#pragma omp for
 
-		for (MKL_INT64 c = 0; c <= Pdim - 1; c++)
+		for (tmp_int c = 0; c <= Pdim - 1; c++)
 		{
 
 			int c_fortran = c + 1;
@@ -537,7 +542,7 @@ void generate_Ptilde_new (double *P123_store, MKL_INT64 Pdim, MKL_INT64 N_p, dou
 			}
 		*/
 
-			for (MKL_INT64 r = 0; r <= Pdim - 1; r++)
+			for (tmp_int r = 0; r <= Pdim - 1; r++)
 			{
 
 				int r_fortran = r + 1;
@@ -551,26 +556,6 @@ void generate_Ptilde_new (double *P123_store, MKL_INT64 Pdim, MKL_INT64 N_p, dou
 				r_global = r_global - q_index * N_p;
 
 				int p_index = r_global;
-
-		/*
-				if ((alpha >= Jj_dim) || (alpha < 0))
-				{
-					cout << "alpha problem!\n";
-					//MPI_Finalize();
-				}
-
-				if ((q_index >= N_q) || (q_index < 0))
-				{
-					cout << "q problem\n";
-					//MPI_Finalize();
-				}
-
-				if ((p_index >= N_p) || (p_index < 0))
-				{
-					cout << "p problem\n";
-					//MPI_Finalize();
-				}
-		*/
 
 				for (int x_index = 0; x_index <= N_x - 1; x_index++)
 				{
@@ -629,10 +614,10 @@ void generate_Ptilde_new (double *P123_store, MKL_INT64 Pdim, MKL_INT64 N_p, dou
 					// old:
 					/*
 					// note fortran convention for rows/columns! needed to make descriptors work properly
-					for (MKL_INT64 Ltotal = max(abs((int) (L12_Jj[alpha] - l3_Jj[alpha])), abs((int) (L12_Jj[alphaprime] - l3_Jj[alphaprime]))); Ltotal <= min((int) ((two_J + 5) / 2), min((int) (L12_Jj[alpha] + l3_Jj[alpha]), (int) (L12_Jj[alphaprime] + l3_Jj[alphaprime]))); Ltotal++)
+					for (tmp_int Ltotal = max(abs((int) (L12_Jj[alpha] - l3_Jj[alpha])), abs((int) (L12_Jj[alphaprime] - l3_Jj[alphaprime]))); Ltotal <= min((int) ((two_J + 5) / 2), min((int) (L12_Jj[alpha] + l3_Jj[alpha]), (int) (L12_Jj[alphaprime] + l3_Jj[alphaprime]))); Ltotal++)
 					{
 
-						MKL_INT64 index = L12_Jj[alpha] * (max_l3 + 1) * (max_L12 + 1) * (max_l3 + 1) * N_p * N_q * N_x * (Lmax + 1)
+						tmp_int index = L12_Jj[alpha] * (max_l3 + 1) * (max_L12 + 1) * (max_l3 + 1) * N_p * N_q * N_x * (Lmax + 1)
 										  + l3_Jj[alpha] * (max_L12 + 1) * (max_l3 + 1) * N_p * N_q * N_x * (Lmax + 1)
 										  + L12_Jj[alphaprime] * (max_l3 + 1) * N_p * N_q * N_x * (Lmax + 1)
 										  + l3_Jj[alphaprime] * N_p * N_q * N_x * (Lmax + 1)

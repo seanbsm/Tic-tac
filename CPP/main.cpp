@@ -18,6 +18,7 @@
 #include "make_permutation_matrix.h"
 #include "General_functions/gauss_legendre.h"
 #include "General_functions/kinetic_conversion.h"
+#include "General_functions/blas_lapack_interface.h"
 #include "Interactions/potential_model.h"
 #include "make_potential_matrix.h"
 #include "make_wp_states.h"
@@ -81,6 +82,9 @@ A^3 =  A^2 C^t PV C = C^t PV C C^t PV C C^t PV C = C^t PVPVPV C
 using namespace std;
 
 int main(int argc, char* argv[]){
+
+	/* Initialize */
+	set_max_OMP_threads_for_BLAS();
 
 	auto program_start = chrono::system_clock::now();
 	

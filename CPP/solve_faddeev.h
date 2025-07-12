@@ -21,6 +21,7 @@
 #include "make_pw_symm_states.h"
 #include "make_permutation_matrix.h"
 #include "General_functions/matrix_routines.h"
+#include "General_functions/blas_lapack_interface.h"
 
 void solve_faddeev_equations(cdouble*  U_array,
 					   		 cdouble*  U_BU_array,

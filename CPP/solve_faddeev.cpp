@@ -473,7 +473,7 @@ void pade_method_solve(cdouble*  U_array,
 	auto timestamp_end   = std::chrono::system_clock::now();
 
 	/* Use as many threads as possible in MKL-GEMM */
-	mkl_set_num_threads(omp_get_max_threads());
+	// mkl_set_num_threads(omp_get_max_threads());
 
 	/* Number of on-shell nucleon-deuteron channels (deuteron states can mix, hence ^2) */
 	size_t num_on_shell_A_rows = num_deuteron_states * num_q_com;
@@ -1071,39 +1071,50 @@ void pade_method_solve(cdouble*  U_array,
 
 					double beta  = 0;
 					double alpha = 1;
-					MKL_INT M    = num_non_conv_rows;// num_on_shell_A_rows
-					MKL_INT N    = cols_in_chunk;// max_num_cols_in_mem;
-					MKL_INT K    = dense_dim;
-					MKL_INT lda  = dense_dim;
-					MKL_INT ldb  = dense_dim;//max_num_cols_in_mem;
-					MKL_INT ldc  = dense_dim;
+					size_t M    = num_non_conv_rows;// num_on_shell_A_rows
+					size_t N    = cols_in_chunk;// max_num_cols_in_mem;
+					size_t K    = dense_dim;
+					size_t lda  = dense_dim;
+					size_t ldb  = dense_dim;//max_num_cols_in_mem;
+					size_t ldc  = dense_dim;
 					double* re_A = &re_A_An_row_array_comp[0];
 					double* im_A = &im_A_An_row_array_comp[0];
 					double* B 	 = &CPVC_cols_array[0];
 					double* re_C = &re_A_An_row_array_prod[idx_col_start];
 					double* im_C = &im_A_An_row_array_prod[idx_col_start];
+					bool row_maj 	= true;
+					bool no_trans_A	= true;
+					bool no_trans_B	= false;
 
 					double timestamp_gemm_start = omp_get_wtime();
-					cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, re_A, lda, B, ldb, beta, re_C, ldc);	// real multiplication
-					cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, im_A, lda, B, ldb, beta, im_C, ldc);	// imag multiplication
+					// cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, re_A, lda, B, ldb, beta, re_C, ldc);	// real multiplication
+					// cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, im_A, lda, B, ldb, beta, im_C, ldc);	// imag multiplication
+					dot_MM_full(row_maj, no_trans_A, no_trans_B, M, N, K, re_A, lda, B, ldb, re_C, ldc);
+					dot_MM_full(row_maj, no_trans_A, no_trans_B, M, N, K, im_A, lda, B, ldb, im_C, ldc);
 					double timestamp_gemm_end   = omp_get_wtime();
 					time_An_CPVC_multiply += timestamp_gemm_end - timestamp_gemm_start;
 				}
 			}
 			else{
 				double timestamp_gemm_start = omp_get_wtime();
-				const char   ordering = 'R';
-				const char   trans 	  = 'T';
-				const double alpha 	  = 1.0;
+				// const char   ordering = 'R';
+				// const char   trans 	  = 'T';
+				bool row_maj 		= true;
+				bool no_trans		= false;
+				const double alpha 	= 1.0;
 				/* Transpose An before sparse multiplication */
-				mkl_dimatcopy(ordering, trans, num_non_conv_rows, dense_dim, alpha, re_A_An_row_array_comp, dense_dim, num_non_conv_rows);
-				mkl_dimatcopy(ordering, trans, num_non_conv_rows, dense_dim, alpha, im_A_An_row_array_comp, dense_dim, num_non_conv_rows);
+				// mkl_dimatcopy(ordering, trans, num_non_conv_rows, dense_dim, alpha, re_A_An_row_array_comp, dense_dim, num_non_conv_rows);
+				// mkl_dimatcopy(ordering, trans, num_non_conv_rows, dense_dim, alpha, im_A_An_row_array_comp, dense_dim, num_non_conv_rows);
+				dimatcopy(row_maj, no_trans, num_non_conv_rows, dense_dim, alpha, re_A_An_row_array_comp, dense_dim, num_non_conv_rows);
+				dimatcopy(row_maj, no_trans, num_non_conv_rows, dense_dim, alpha, im_A_An_row_array_comp, dense_dim, num_non_conv_rows);
 				/* Multiply CPVC with An using sparse multiplication */
 				//dot_MM_sparse(CPVC_v_array, CPVC_c_array_LL, CPVC_csc_array_LL, re_A_An_row_array_comp, re_A_An_row_array_prod, dense_dim, dense_dim, num_non_conv_rows, true);
 				//dot_MM_sparse(CPVC_v_array, CPVC_c_array_LL, CPVC_csc_array_LL, re_A_An_row_array_comp, im_A_An_row_array_prod, dense_dim, dense_dim, num_non_conv_rows, true);
 				/* Transpose An+1 after sparse multiplication */
-				mkl_dimatcopy(ordering, trans, dense_dim, num_non_conv_rows, alpha, re_A_An_row_array_prod, num_non_conv_rows, dense_dim);
-				mkl_dimatcopy(ordering, trans, dense_dim, num_non_conv_rows, alpha, im_A_An_row_array_prod, num_non_conv_rows, dense_dim);
+				// mkl_dimatcopy(ordering, trans, dense_dim, num_non_conv_rows, alpha, re_A_An_row_array_prod, num_non_conv_rows, dense_dim);
+				// mkl_dimatcopy(ordering, trans, dense_dim, num_non_conv_rows, alpha, im_A_An_row_array_prod, num_non_conv_rows, dense_dim);
+				dimatcopy(row_maj, no_trans, dense_dim, num_non_conv_rows, alpha, re_A_An_row_array_prod, num_non_conv_rows, dense_dim);
+				dimatcopy(row_maj, no_trans, dense_dim, num_non_conv_rows, alpha, im_A_An_row_array_prod, num_non_conv_rows, dense_dim);
 				double timestamp_gemm_end   = omp_get_wtime();
 				time_An_CPVC_multiply += timestamp_gemm_end - timestamp_gemm_start;
 			}

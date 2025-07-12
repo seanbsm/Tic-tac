@@ -29,11 +29,11 @@ void calculate_Gtilde_array(double* Gtilde_array,
 	{
 		#pragma omp for
 
-		for (MKL_INT64 p_idx=0; p_idx<Np; p_idx++){
-			for (MKL_INT64 q_idx=0; q_idx<Nq; q_idx++){
-				for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
-					for (MKL_INT64 alpha=0; alpha<Nalpha; alpha++){
-						for (MKL_INT64 alpha_p=0; alpha_p<Nalpha; alpha_p++){
+		for (ull_int p_idx=0; p_idx<Np; p_idx++){
+			for (ull_int q_idx=0; q_idx<Nq; q_idx++){
+				for (ull_int x_idx=0; x_idx<Nx; x_idx++){
+					for (ull_int alpha=0; alpha<Nalpha; alpha++){
+						for (ull_int alpha_p=0; alpha_p<Nalpha; alpha_p++){
 							Gtilde_array[alpha*Nalpha*Np*Nq*Nx + alpha_p*Np*Nq*Nx + p_idx*Nq*Nx + q_idx*Nx + x_idx]
 								= Gtilde_new (p_array[p_idx], q_array[q_idx], x_array[x_idx], alpha, alpha_p, Nalpha, L_max, L_2N_array, L_1N_array, Atilde_array, two_J_3N);
 
@@ -66,9 +66,9 @@ void calculate_Gtilde_array(double* Gtilde_array,
 //	long int counter = 0;
 //	int frac_n, frac_o=0;
 //	
-//	for (MKL_INT64 p_idx=0; p_idx<Np; p_idx++){
-//		for (MKL_INT64 q_idx=0; q_idx<Nq; q_idx++){
-//			for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
+//	for (ull_int p_idx=0; p_idx<Np; p_idx++){
+//		for (ull_int q_idx=0; q_idx<Nq; q_idx++){
+//			for (ull_int x_idx=0; x_idx<Nx; x_idx++){
 //				Gtilde_subarray[p_idx*Nq*Nx + q_idx*Nx + x_idx]
 //					= Gtilde_subarray_new (p_array[p_idx],
 //										   q_array[q_idx],
@@ -112,8 +112,8 @@ void calculate_Gtilde_subarray_polar(double* Gtilde_subarray,
 	long int counter = 0;
 	int frac_n, frac_o=0;
 	
-	for (MKL_INT64 phi_idx=0; phi_idx<Nphi; phi_idx++){
-		for (MKL_INT64 x_idx=0; x_idx<Nx; x_idx++){
+	for (ull_int phi_idx=0; phi_idx<Nphi; phi_idx++){
+		for (ull_int x_idx=0; x_idx<Nx; x_idx++){
 			Gtilde_subarray[phi_idx*Nx+ x_idx]
 				= Gtilde_subarray_new (sin_phi_subarray[phi_idx],
 									   cos_phi_subarray[phi_idx],
@@ -441,11 +441,11 @@ void calculate_permutation_elements_for_3N_channel(double** P123_val_dense_array
 	if (print_content){
 		printf("   - Precalculating Atilde \n");
 	}
-	MKL_INT64 Atilde_N = Jj_dim * Jj_dim * (Lmax + 1);
+	ull_int Atilde_N = Jj_dim * Jj_dim * (Lmax + 1);
 	printf("     - Total prestore requirement is %zu doubles. Allocating arrays ... \n", Atilde_N);
 	double *Atilde_store = new double[Atilde_N];
 	printf("     - Success. Calculating ... \n");
-	for (MKL_INT64 i=0; i<Atilde_N; i++){
+	for (ull_int i=0; i<Atilde_N; i++){
 		Atilde_store[i] = 0.0;
 	}
 	for (int alpha = 0; alpha <= Jj_dim - 1; alpha++){

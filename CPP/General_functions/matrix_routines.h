@@ -20,47 +20,6 @@
 // extern "C" {
 // 	#include <cblas.h>
 // }
-#include <cblas.h>
-
-#include <lapacke.h>
-
-void dot_MV(double *A, double *B, double *C, int N, int M);
-
-std::complex<double> cdot_VV(std::complex<float>  *X, std::complex<float>  *Y, int N, int INCR_X, int INCR_Y);
-std::complex<double> cdot_VV(std::complex<double> *X, std::complex<double> *Y, int N, int INCR_X, int INCR_Y);
-
-void dot_MM(float  *A, float  *B, float  *C, int N, int K, int M);
-void dot_MM(double *A, double *B, double *C, int N, int K, int M);
-void cdot_MM(std::complex<float>  *A, std::complex<float>  *B, std::complex<float>  *C, int N, int K, int M);
-void cdot_MM(std::complex<double> *A, std::complex<double> *B, std::complex<double> *C, int N, int K, int M);
-
-/* Solves linear system A*X=B for dense NxN matrices, for matrix X */
-void solve_MM(float *A, float *B, int N);
-void solve_MM(double *A, double *B, int N);
-void solve_MM(std::complex<float> *A, std::complex<float> *B, int N);
-void solve_MM(std::complex<double> *A, std::complex<double> *B, int N);
-
-void dot_MM_sparse(double* A_v, long long int* A_c, long long int* A_r, double *B, double *C, int N, int K, int M, bool transpose_A);
-
-std::complex<double> determinant(std::complex<double>* A, int N);
-
-/* Solves linear system A*X=B for sparse NxN matrix A and column B, for column X
- * The logic in this function follows exactly that listed in
- * https://scc.ustc.edu.cn/zlsc/sugon/intel/mkl/mkl_manual/GUID-24A41D50-4D0A-471B-9722-EA59E443ABC8.htm*/
-void solve_MM_sparse(double*  A_val_array,
-					 tmp_int* A_idx_row_array,
-					 tmp_int* A_idx_col_array,
-					 tmp_int  A_nnz,
-					 double*  B_val_array,
-					 tmp_int  mat_dim,
-					 double*  sol_val_array);
-void solve_MM_sparse(std::complex<double>*  A_val_array,
-					 tmp_int* A_idx_row_array,
-					 tmp_int* A_idx_col_array,
-					 tmp_int  A_nnz,
-					 std::complex<double>*  B_val_array,
-					 tmp_int  mat_dim,
-					 std::complex<double>*  sol_val_array);
 
 void simple_transpose_matrix_routine(double* mat_array, int mat_dim);
 

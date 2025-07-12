@@ -20,11 +20,36 @@ find_path(GSL_INCLUDE_DIR gsl/gsl_math.h PATHS ${GSL_DIR}/include)
 find_library(GSL_LIBRARY NAMES gsl PATHS ${GSL_DIR}/lib)
 
 target_include_directories(gsl_helpers
-    PUBLIC ${GSL_INCLUDE_DIR}
+    PRIVATE ${GSL_INCLUDE_DIR}
 )
 
 target_link_libraries(gsl_helpers
     PRIVATE ${GSL_LIBRARY}
+)
+
+# -------------------------------
+# BLAS/LAPACKE interface library
+# -------------------------------
+set(BLAS_LAPACK_INTERFACE_SOURCES
+    ${CMAKE_SOURCE_DIR}/General_functions/blas_lapack_interface.cpp
+)
+
+add_library(blas_lapack_interface STATIC ${BLAS_LAPACK_INTERFACE_SOURCES})
+
+
+find_library(OPENBLAS_LIB NAMES openblas REQUIRED)
+find_library(LAPACKE_LIBRARY NAMES lapacke REQUIRED)
+find_path(LAPACKE_INCLUDE_DIR lapacke.h PATHS /usr/include)
+
+target_include_directories(blas_lapack_interface
+    PUBLIC ${LAPACKE_INCLUDE_DIR}
+)
+
+find_package(BLAS REQUIRED)
+message(STATUS "BLAS libraries found: ${BLAS_LIBRARIES}")
+
+target_link_libraries(blas_lapack_interface
+    PRIVATE ${BLAS_LIBRARIES} ${LAPACKE_LIBRARY} ${OPENBLAS_LIB} 
 )
 
 # -------------------------------
@@ -34,8 +59,9 @@ file(GLOB_RECURSE CPP_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/*.cpp)
 file(GLOB_RECURSE F90_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/*.f90)
 file(GLOB_RECURSE F77_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/*.f)
 
-# Remove GSL-related files from main sources
+# Remove helper and interface sources from main sources
 list(REMOVE_ITEM CPP_SOURCES ${GSL_HELPER_SOURCES})
+list(REMOVE_ITEM CPP_SOURCES ${CMAKE_SOURCE_DIR}/General_functions/blas_lapack_interface.cpp)
 
 add_library(tic_tac STATIC ${CPP_SOURCES} ${F90_SOURCES} ${F77_SOURCES})
 
@@ -45,14 +71,6 @@ if(OpenMP_CXX_FOUND)
     target_compile_options(tic_tac PRIVATE ${OpenMP_CXX_FLAGS})
     target_link_libraries(tic_tac PRIVATE OpenMP::OpenMP_CXX)
 endif()
-
-# Optimized BLAS (OpenBLAS)
-find_package(BLAS REQUIRED)
-message(STATUS "BLAS libraries found: ${BLAS_LIBRARIES}")
-
-# LAPACK
-find_library(LAPACKE_LIBRARY NAMES lapacke REQUIRED)
-find_path(LAPACKE_INCLUDE_DIR lapacke.h PATHS /usr/include)
 
 # HDF5
 find_package(HDF5 REQUIRED COMPONENTS C HL CXX)
@@ -74,10 +92,14 @@ set_source_files_properties(${F77_SOURCES} PROPERTIES COMPILE_FLAGS "-O3")
 target_link_libraries(tic_tac
     PRIVATE
         gsl_helpers
+        blas_lapack_interface
         ${BLAS_LIBRARIES}
+        ${OPENBLAS_LIB}
         ${LAPACKE_LIBRARY}
         ${HDF5_LIBRARIES}
+        ${HDF5_HL_LIBRARIES}
         gfortran
+        stdc++fs
         pthread
         m
         dl
@@ -96,7 +118,6 @@ install(FILES
     ${CMAKE_SOURCE_DIR}/make_wp_states.h
     ${CMAKE_SOURCE_DIR}/run_organizer.h 
     ${CMAKE_SOURCE_DIR}/set_run_parameters.h 
-    ${CMAKE_SOURCE_DIR}/set_run_parameters.h 
     ${CMAKE_SOURCE_DIR}/solve_faddeev.h 
     ${CMAKE_SOURCE_DIR}/type_defs.h 
     ${CMAKE_SOURCE_DIR}/General_functions/gauss_legendre.h 
@@ -104,6 +125,19 @@ install(FILES
     ${CMAKE_SOURCE_DIR}/General_functions/legendre.h
     ${CMAKE_SOURCE_DIR}/General_functions/matrix_routines.h
     ${CMAKE_SOURCE_DIR}/General_functions/templates.h
+    ${CMAKE_SOURCE_DIR}/General_functions/blas_lapack_interface.h
     DESTINATION include
+)
+
+# -------------------------------
+# Executable target
+# -------------------------------
+add_executable(tictac ${CMAKE_SOURCE_DIR}/main.cpp)
+
+target_link_libraries(tictac
+    PRIVATE
+        tic_tac
+        gsl_helpers
+        blas_lapack_interface
 )
 

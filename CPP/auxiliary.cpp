@@ -1,11 +1,6 @@
 
 #include "auxiliary.h"
 
-
-#include <cblas.h> // system CBLAS (e.g., OpenBLAS)
-#include <gsl/gsl_blas.h>
-
-
 double P (double x, void *params)       // P, dP, fdf necessary for initalizing of the object FDF
 {
 	int n = *(int *) params;

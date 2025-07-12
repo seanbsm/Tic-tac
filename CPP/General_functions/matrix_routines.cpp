@@ -1,11 +1,6 @@
 
 #include "matrix_routines.h"
 
-//void raise_error_DSS_MKL(_INTEGER_t error, const char* function_name){
-//    printf("Function %s returned error code %lld\n", function_name, error);
-//	exit(1);
-//}
-
 void dot_MV(double *A, double *B, double *C, int N, int M){
 	double  beta  = 0.0;
 	double  alpha = 1.0;

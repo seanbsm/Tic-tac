@@ -20,13 +20,13 @@
 #include <omp.h>
 
 /* gsl-libraries */
-#include <gsl/gsl_sf_coupling.h>
-#include <gsl/gsl_fit.h>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_complex_math.h>
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_roots.h>
-#include <gsl/gsl_sf.h>
+// #include <gsl/gsl_sf_coupling.h>
+// #include <gsl/gsl_fit.h>
+// #include <gsl/gsl_math.h>
+// #include <gsl/gsl_complex_math.h>
+// #include <gsl/gsl_errno.h>
+// #include <gsl/gsl_roots.h>
+// #include <gsl/gsl_sf.h>
 
 /* hdf5-storage libaries */
 #include "hdf5/serial/hdf5.h"
@@ -36,7 +36,7 @@
 #include "set_run_parameters.h"
 #include "error_management.h"
 #include "make_pw_symm_states.h"
-#include "General_functions/matrix_routines.h"
+// #include "General_functions/matrix_routines.h"
 #include "General_functions/kinetic_conversion.h"
 
 void read_parameter_sample_list(run_params run_parameters,

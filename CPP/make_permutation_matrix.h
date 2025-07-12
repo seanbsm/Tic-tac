@@ -14,7 +14,7 @@
 #include <experimental/filesystem>
 
 /* Modules used in benchmark code */
-#include "mkl.h"
+// #include "mkl.h"
 #include <math.h>
 #include "auxiliary.h"
 

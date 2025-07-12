@@ -8,7 +8,7 @@
 #include <fstream>
 #include <iomanip>
 #include <omp.h>
-#include "mkl.h"
+// #include "mkl.h"
 
 /* Time-keeping modules */
 #include <chrono>

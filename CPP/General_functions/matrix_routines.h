@@ -3,7 +3,6 @@
 
 #include "../type_defs.h"
 #include "templates.h"
-#include "../error_management.h"
 
 #include <iostream>
 #include <math.h>

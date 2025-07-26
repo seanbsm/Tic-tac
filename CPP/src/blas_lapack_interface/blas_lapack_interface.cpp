@@ -60,30 +60,23 @@ void dot_MM_full(bool       row_maj,
 				 float* 	C,
 				 size_t 	ldc){
 	/* Define layout */
-	CBLAS_LAYOUT layout;
+	CBLAS_LAYOUT layout = CblasColMajor;
 	if (row_maj){
 		layout = CblasRowMajor;
 	}
-	else{
-		layout = CblasColMajor;
-	}
-	CBLAS_TRANSPOSE transA;
+	/* Define transposition of matrix A */
+	CBLAS_TRANSPOSE transA = CblasTrans;
 	if (no_trans_A){
 		transA = CblasNoTrans;
 	}
-	else{
-		transA = CblasTrans;
-	}
-	CBLAS_TRANSPOSE transB;	
+	/* Define transposition of matrix B */
+	CBLAS_TRANSPOSE transB = CblasTrans;	
 	if (no_trans_B){
 		transB = CblasNoTrans;
 	}
-	else{
-		transB = CblasTrans;
-	}
-	float beta  = 0;
-	float alpha = 1;
-	cblas_sgemm(layout, transA, transB, N, M, K, alpha, A, K, B, M, beta, C, M);
+	const float beta  = 0;
+	const float alpha = 1;
+	cblas_sgemm(layout, transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
 void dot_MM_full(bool       row_maj,
 				 bool       no_trans_A,
@@ -98,32 +91,23 @@ void dot_MM_full(bool       row_maj,
 				 double* 	C,
 				 size_t 	ldc){
 	/* Define layout */
-	CBLAS_LAYOUT layout;
+	CBLAS_LAYOUT layout = CblasColMajor;
 	if (row_maj){
 		layout = CblasRowMajor;
 	}
-	else{
-		layout = CblasColMajor;
-	}
 	/* Define transposition of matrix A */
-	CBLAS_TRANSPOSE transA;
+	CBLAS_TRANSPOSE transA = CblasTrans;
 	if (no_trans_A){
 		transA = CblasNoTrans;
 	}
-	else{
-		transA = CblasTrans;
-	}
 	/* Define transposition of matrix B */
-	CBLAS_TRANSPOSE transB;	
+	CBLAS_TRANSPOSE transB = CblasTrans;	
 	if (no_trans_B){
 		transB = CblasNoTrans;
 	}
-	else{
-		transB = CblasTrans;
-	}
-	double beta  = 0;
-	double alpha = 1;
-	cblas_dgemm(layout, transA, transB, N, M, K, alpha, A, K, B, M, beta, C, M);
+	const double beta  = 0;
+	const double alpha = 1;
+	cblas_dgemm(layout, transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
 
 void cdot_MM(std::complex<float> *A, std::complex<float> *B, std::complex<float> *C, int N, int K, int M){

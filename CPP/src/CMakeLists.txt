@@ -24,6 +24,7 @@ target_link_libraries(tic_tac
         pthread
         m
         dl
+        OpenMPHelper
 )
 
 # Include directories for HDF5 and LAPACKE

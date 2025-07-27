@@ -9,3 +9,6 @@ target_include_directories(core
     PRIVATE
         ${PROJECT_SOURCE_DIR}/src
 )
+
+# Link OpenMP flags and libraries via the interface target
+target_link_libraries(core PRIVATE OpenMPHelper)

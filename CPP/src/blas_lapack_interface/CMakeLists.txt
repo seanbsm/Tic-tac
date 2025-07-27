@@ -19,3 +19,6 @@ target_link_libraries(blas_lapack_interface
         ${LAPACKE_LIBRARY}
         ${OPENBLAS_LIB}
 )
+
+# Link OpenMP flags and libraries via the interface target
+target_link_libraries(blas_lapack_interface PRIVATE OpenMPHelper)

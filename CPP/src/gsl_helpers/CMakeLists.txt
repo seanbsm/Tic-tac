@@ -19,3 +19,6 @@ target_link_libraries(gsl_helpers
     PRIVATE
         ${GSL_LIBRARY}
 )
+
+# Link OpenMP flags and libraries via the interface target
+target_link_libraries(gsl_helpers PRIVATE OpenMPHelper)

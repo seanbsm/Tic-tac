@@ -12,6 +12,12 @@ find_library(OPENBLAS_LIB NAMES openblas REQUIRED)
 find_library(LAPACKE_LIBRARY NAMES lapacke REQUIRED)
 find_path(LAPACKE_INCLUDE_DIR lapacke.h PATHS /usr/include)
 
+# Create an interface target for OpenMP
+add_library(OpenMPHelper INTERFACE)
+target_link_libraries(OpenMPHelper INTERFACE OpenMP::OpenMP_CXX)
+target_compile_options(OpenMPHelper INTERFACE ${OpenMP_CXX_FLAGS})
+
+
 # Subdirectories
 add_subdirectory(src/gsl_helpers)
 add_subdirectory(src/blas_lapack_interface)

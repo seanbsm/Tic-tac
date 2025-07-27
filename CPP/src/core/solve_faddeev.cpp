@@ -1089,11 +1089,8 @@ void pade_method_solve(cdouble*  U_array,
 					double timestamp_gemm_start = omp_get_wtime();
 					// cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, re_A, lda, B, ldb, beta, re_C, ldc);	// real multiplication
 					// cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, alpha, im_A, lda, B, ldb, beta, im_C, ldc);	// imag multiplication
-					printf("Test 1\n"); fflush(stdout);
 					dot_MM_full(row_maj, no_trans_A, no_trans_B, M, N, K, re_A, lda, B, ldb, re_C, ldc);
-					printf("Test 2\n"); fflush(stdout);
 					dot_MM_full(row_maj, no_trans_A, no_trans_B, M, N, K, im_A, lda, B, ldb, im_C, ldc);
-					printf("Test 3\n"); fflush(stdout);
 					double timestamp_gemm_end   = omp_get_wtime();
 					time_An_CPVC_multiply += timestamp_gemm_end - timestamp_gemm_start;
 				}

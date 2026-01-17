@@ -52,9 +52,3 @@ double com_energy_to_com_p_momentum(double Ep){
 double com_p_momentum_to_com_energy(double p){
 	return p*p/(2*mu23);
 }
-
-//double lab_energy_to_com_energy(double T_lab, int Tz){
-//}
-//
-//double com_energy_to_lab_energy(double T_com, int Tz){
-//}

@@ -8,7 +8,12 @@
 
 /* Use as many threads as possible in GEMM */
 void set_max_OMP_threads_for_BLAS(){
-	openblas_set_num_threads(omp_get_max_threads());
+    // Set BLAS threads to match OpenMP threads via environment variable
+    // Most BLAS implementations (OpenBLAS, MKL, etc.) respect OMP_NUM_THREADS
+    int max_threads = omp_get_max_threads();
+    char env_var[64];
+    sprintf(env_var, "OMP_NUM_THREADS=%d", max_threads);
+    putenv(env_var);
 }
 
 void dot_MV(double *A, double *B, double *C, int N, int M){

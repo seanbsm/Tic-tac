@@ -12,12 +12,11 @@ target_include_directories(blas_lapack_interface
 )
 
 # Link against required libraries:
-# - BLAS, LAPACKE, and OpenBLAS for numerical routines
+# - BLAS and LAPACKE for numerical routines
 target_link_libraries(blas_lapack_interface
     PRIVATE
         ${BLAS_TARGET}
         LAPACKE::LAPACKE
-        ${OPENBLAS_LIB}
 )
 
 # Link OpenMP flags and libraries via the interface target

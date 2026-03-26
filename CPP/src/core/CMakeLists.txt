@@ -1,8 +1,19 @@
-# Recursively collect all .cpp source files in this directory
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cpp)
+# List all source files explicitly
+set(CORE_SOURCES
+    make_permutation_matrix.cpp
+    make_potential_matrix.cpp
+    make_pw_symm_states.cpp
+    make_resolvent.cpp
+    make_swp_states.cpp
+    make_wp_states.cpp
+    solve_faddeev.cpp
+)
 
 # Create an object library from the collected sources
-add_library(core OBJECT ${SOURCES})
+add_library(core OBJECT ${CORE_SOURCES})
+
+# Set compile options
+target_compile_options(core PRIVATE -O3 -fPIC)
 
 # Add private include path for internal headers (e.g., utils/constants.h)
 target_include_directories(core

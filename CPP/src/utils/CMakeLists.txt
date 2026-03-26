@@ -1,8 +1,17 @@
-# Recursively collect all .cpp source files in this directory
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cpp)
+# List all source files explicitly
+set(UTILS_SOURCES
+    disk_io_routines.cpp
+    gauss_legendre.cpp
+    kinetic_conversion.cpp
+    legendre.cpp
+    matrix_routines.cpp
+)
 
 # Create an object library from the collected sources
-add_library(utils OBJECT ${SOURCES})
+add_library(utils OBJECT ${UTILS_SOURCES})
+
+# Set compile options
+target_compile_options(utils PRIVATE -O3 -fPIC)
 
 # Add private include path for internal headers (e.g., from other src/ subfolders)
 target_include_directories(utils

@@ -1,8 +1,15 @@
-# Recursively collect all .cpp source files in this directory
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cpp)
+# List all source files explicitly
+set(MASTER_SOURCES
+    error_management.cpp
+    run_organizer.cpp
+    set_run_parameters.cpp
+)
 
 # Create an object library from the collected sources
-add_library(master OBJECT ${SOURCES})
+add_library(master OBJECT ${MASTER_SOURCES})
+
+# Set compile options
+target_compile_options(master PRIVATE -O3 -fPIC)
 
 # Add private include path for internal headers (e.g., from utils/, core/, etc.)
 target_include_directories(master

@@ -15,8 +15,8 @@ target_include_directories(blas_lapack_interface
 # - BLAS, LAPACKE, and OpenBLAS for numerical routines
 target_link_libraries(blas_lapack_interface
     PRIVATE
-        ${BLAS_LIBRARIES}
-        ${LAPACKE_LIBRARY}
+        ${BLAS_TARGET}
+        LAPACKE::LAPACKE
         ${OPENBLAS_LIB}
 )
 

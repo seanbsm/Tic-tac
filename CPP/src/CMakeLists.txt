@@ -18,8 +18,8 @@ target_link_libraries(tic_tac
         interactions
         gsl_helpers
         blas_lapack_interface
-        ${HDF5_LIBRARIES}
-        ${HDF5_HL_LIBRARIES}
+        ${HDF5_TARGET}
+        ${HDF5_HL_TARGET}
         gfortran
         pthread
         m
@@ -27,10 +27,9 @@ target_link_libraries(tic_tac
         OpenMPHelper
 )
 
-# Include directories for HDF5 and LAPACKE
+# Include directories for LAPACKE
 target_include_directories(tic_tac
     PRIVATE
-        ${HDF5_INCLUDE_DIRS}
         ${LAPACKE_INCLUDE_DIR}
 )
 

@@ -19,8 +19,8 @@
 #include <omp.h>
 
 /* hdf5-storage libaries */
-#include "hdf5/serial/hdf5.h"
-#include "hdf5/serial/hdf5_hl.h"
+#include "hdf5.h"
+#include "hdf5_hl.h"
 
 #include "utils/type_defs.h"
 #include "utils/kinetic_conversion.h"
